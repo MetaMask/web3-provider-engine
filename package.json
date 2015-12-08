@@ -14,6 +14,8 @@
     "es6-promise": "^3.0.2",
     "ethereumjs-tx": "^0.6.11",
     "ethereumjs-util": "^2.3.1",
+    "ethereumjs-vm": "^1.0.3",
+    "fake-merkle-patricia-tree": "^1.0.1",
     "isomorphic-fetch": "^2.2.0",
     "request": "^2.67.0",
     "semaphore": "^1.0.3",

@@ -2,7 +2,7 @@ const EventEmitter = require('events').EventEmitter
 const inherits = require('util').inherits
 const ethUtil = require('ethereumjs-util')
 const BN = ethUtil.BN
-const Stoplight = require('./util/stoplight.js')
+const Stoplight = require('../util/stoplight.js')
 
 module.exports = RemoteDataSource
 
@@ -32,7 +32,7 @@ function RemoteDataSource(){
     'eth_getUncleCountByBlockHash',
     'eth_getUncleCountByBlockNumber',
     'eth_getCode',
-    'eth_sendRawTransaction',
+    // 'eth_sendRawTransaction',
     'eth_getBlockByHash',
     'eth_getBlockByNumber',
     'eth_getTransactionByHash',
@@ -53,34 +53,37 @@ function RemoteDataSource(){
 
 RemoteDataSource.prototype.handleAsync = function(payload, cb){
   const self = this
-  
-  // parse blockTag
-  var blockTag = blockTagForPayload(payload)
-  if (blockTag === 'latest') blockTag = formatBlockNumber(self._blocks.latest)
+  self._ready.await(function(){
 
-  // check cache
-  var blockCache = self._blockCache[blockTag]
-  var requestIdentifier = requestIdentifierForPayload(payload)
-  if (blockCache) {
-    var result = blockCache[requestIdentifier]
-    if (result !== undefined) {
-      console.log('CACHE HIT:', blockTag, requestIdentifier)
-      return cb(null, result)
-    }
-  }
+    // parse blockTag
+    var blockTag = blockTagForPayload(payload)
+    if (blockTag === 'latest') blockTag = formatBlockNumber(self._blocks.latest)
 
-  // perform request
-  console.log('CACHE MISS:', blockTag, requestIdentifier)
-  self._handleAsync(payload, function(err, result){
-    if (err) return cb(err)
-    // populate cache
+    // check cache
+    var blockCache = self._blockCache[blockTag]
+    var requestIdentifier = requestIdentifierForPayload(payload)
     if (blockCache) {
-      blockCache[requestIdentifier] = result
-      console.log('CACHE POPULATE:', blockTag, requestIdentifier)
-    } else {
-      console.log('CACHE POPULATE MISS:', blockTag, requestIdentifier)
+      var result = blockCache[requestIdentifier]
+      if (result !== undefined) {
+        console.log('CACHE HIT:', blockTag, requestIdentifier)
+        return cb(null, result)
+      }
     }
-    cb(null, result)
+
+    // perform request
+    console.log('CACHE MISS:', blockTag, requestIdentifier)
+    self._handleAsync(payload, function(err, result){
+      if (err) return cb(err)
+      // populate cache
+      if (blockCache) {
+        blockCache[requestIdentifier] = result
+        console.log('CACHE POPULATE:', blockTag, requestIdentifier, '->', result)
+      } else {
+        console.log('CACHE POPULATE MISS:', blockTag, requestIdentifier)
+      }
+      cb(null, result)
+    })
+
   })
 }
 
@@ -142,7 +145,8 @@ RemoteDataSource.prototype.setCurrentBlock = function(block){
 // util
 
 function formatBlockNumber(block){
-  return ethUtil.addHexPrefix(block.number.toString('hex'))
+  // return ethUtil.addHexPrefix(block.number.toString())
+  return block.number.toString()
 }
 
 function requestIdentifierForPayload(payload){

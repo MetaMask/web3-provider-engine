@@ -8,6 +8,7 @@ const inherits = require('util').inherits
 const ethUtil = require('ethereumjs-util')
 const BN = ethUtil.BN
 const RemoteDataSource = require('./remote-data.js')
+const createPayload = require('../util/create-payload.js')
 
 
 module.exports = RpcSource
@@ -70,12 +71,7 @@ RpcSource.prototype._handleAsync = function(payload, cb){
 RpcSource.prototype.requestFromRpc = function(method, params, cb){
   const self = this
   var targetUrl = self.rpcUrl
-  var payload = {
-    id: getRandomId(),
-    jsonrpc: '2.0',
-    method: method,
-    params: params,
-  }
+  var payload = createPayload({ method: method, params: params })
   // console.log('uri:', targetUrl)
   // console.log('method:', method)
   // console.log('params:', params)
@@ -100,16 +96,16 @@ RpcSource.prototype.requestFromRpc = function(method, params, cb){
       return cb(err)
     }
 
+    // console.log('------------------ network -----------------')
+    // console.log(payload, '->', data)
+    // console.log('---------------------------------------------')
+
     cb(null, data.result)
   })
   
 }
 
 // util
-
-function getRandomId(){
-  return Math.floor(Math.random()*Number.MAX_SAFE_INTEGER)
-}
 
 function materializeTransaction(data){
   var tx = new Transaction({
