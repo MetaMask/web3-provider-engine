@@ -12,6 +12,7 @@
     "array.prototype.find": "^1.0.0",
     "async": "^1.5.0",
     "es6-promise": "^3.0.2",
+    "ethereumjs-block": "^1.0.4",
     "ethereumjs-tx": "^0.6.11",
     "ethereumjs-util": "^2.3.1",
     "ethereumjs-vm": "^1.0.3",

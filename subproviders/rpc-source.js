@@ -87,6 +87,7 @@ RpcSource.prototype.requestFromRpc = function(method, params, cb){
     rejectUnauthorized: false,
   }, function(err, res, body) {
     if (err) return cb(err)
+
     // parse response into raw account
     var data
     try {
@@ -99,6 +100,8 @@ RpcSource.prototype.requestFromRpc = function(method, params, cb){
     // console.log('------------------ network -----------------')
     // console.log(payload, '->', data)
     // console.log('---------------------------------------------')
+
+    if (data.error) return cb(new Error(data.error.message))  
 
     cb(null, data.result)
   })

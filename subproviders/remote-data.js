@@ -51,16 +51,24 @@ function RemoteDataSource(){
   ]
 }
 
+RemoteDataSource.prototype.cacheForBlockTag = function(blockTag){
+  const self = this
+  var cache = self._blockCache[blockTag]
+  // if (!cache) cache = self._blockCache[blockTag] = {}
+  return cache
+}
+
 RemoteDataSource.prototype.handleAsync = function(payload, cb){
   const self = this
   self._ready.await(function(){
 
     // parse blockTag
+    // console.log('remote-data:', payload)
     var blockTag = blockTagForPayload(payload)
     if (blockTag === 'latest') blockTag = formatBlockNumber(self._blocks.latest)
 
     // check cache
-    var blockCache = self._blockCache[blockTag]
+    var blockCache = self.cacheForBlockTag(blockTag)
     var requestIdentifier = requestIdentifierForPayload(payload)
     if (blockCache) {
       var result = blockCache[requestIdentifier]
@@ -79,6 +87,7 @@ RemoteDataSource.prototype.handleAsync = function(payload, cb){
         blockCache[requestIdentifier] = result
         console.log('CACHE POPULATE:', blockTag, requestIdentifier, '->', result)
       } else {
+        console.log(self._blockCache)
         console.log('CACHE POPULATE MISS:', blockTag, requestIdentifier)
       }
       cb(null, result)
@@ -97,9 +106,24 @@ RemoteDataSource.prototype.fetchBlock = function(number, cb){
     if (err) return cb(err)
 
     var block = {
-      hash: new Buffer(ethUtil.stripHexPrefix(data.hash), 'hex'),
-      number: new BN(ethUtil.stripHexPrefix(data.number), 16),
-      stateRoot: new Buffer(ethUtil.stripHexPrefix(data.stateRoot), 16),
+      // number: new BN(ethUtil.stripHexPrefix(data.number), 16),
+      number: hexToBuffer(data.number),
+      hash: hexToBuffer(data.hash),
+      parentHash: hexToBuffer(data.parentHash),
+      nonce: hexToBuffer(data.nonce),
+      sha3Uncles: hexToBuffer(data.sha3Uncles),
+      logsBloom: hexToBuffer(data.logsBloom),
+      transactionsRoot: hexToBuffer(data.transactionsRoot),
+      stateRoot: hexToBuffer(data.stateRoot),
+      receiptRoot: hexToBuffer(data.receiptRoot),
+      miner: hexToBuffer(data.miner),
+      difficulty: hexToBuffer(data.difficulty),
+      totalDifficulty: hexToBuffer(data.totalDifficulty),
+      size: hexToBuffer(data.size),
+      extraData: hexToBuffer(data.extraData),
+      gasLimit: hexToBuffer(data.gasLimit),
+      gasUsed: hexToBuffer(data.gasUsed),
+      timestamp: hexToBuffer(data.timestamp),
       transactions: data.transactions,
     }
 
@@ -135,6 +159,7 @@ RemoteDataSource.prototype.setCurrentBlock = function(block){
   var blockNumber = formatBlockNumber(block)
   self._blocks[blockNumber] = block
   self._blocks.latest = block
+  console.log('saving block cache with number:', blockNumber)
   self._blockCache[blockNumber] = {}
   self.emit('block', block)
 }
@@ -145,8 +170,8 @@ RemoteDataSource.prototype.setCurrentBlock = function(block){
 // util
 
 function formatBlockNumber(block){
-  // return ethUtil.addHexPrefix(block.number.toString())
-  return block.number.toString()
+  return ethUtil.addHexPrefix(block.number.toString('hex'))
+  // return block.number.toString()
 }
 
 function requestIdentifierForPayload(payload){
@@ -183,4 +208,10 @@ function paramsWithoutBlockTag(payload){
     default:
       return payload.params.slice()
   }
+}
+
+function hexToBuffer(hexString){
+  hexString = ethUtil.stripHexPrefix(hexString)
+  if (hexString.length%2) hexString = '0'+hexString
+  return new Buffer(hexString, 'hex')
 }
