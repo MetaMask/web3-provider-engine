@@ -1,5 +1,6 @@
 const RpcSubprovider = require('./subproviders/rpc-source.js')
 const VmSubprovider = require('./subproviders/vm.js')
+const FilterSubprovider = require('./subproviders/filters.js')
 const ProviderEngine = require('./engine.js')
 const Web3 = require('web3')
 
@@ -7,15 +8,23 @@ const Web3 = require('web3')
 var engine = new ProviderEngine()
 var web3 = new Web3(engine)
 
-var rpcSubprovider = new RpcSubprovider({
-  rpcUrl: 'https://rpc.metamask.io/',
+// filters
+var filterSubprovider = new FilterSubprovider({
+  rootProvider: engine,
 })
-engine.addSource(rpcSubprovider)
+engine.addSource(filterSubprovider)
 
+// ethereum vm
 var vmSubprovider = new VmSubprovider({
   rootProvider: engine,
 })
 engine.addSource(vmSubprovider)
+
+// data source
+var rpcSubprovider = new RpcSubprovider({
+  rpcUrl: 'https://rpc.metamask.io/',
+})
+engine.addSource(rpcSubprovider)
 
 // done adding subproviders
 engine.start()
