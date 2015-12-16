@@ -106,7 +106,6 @@ RemoteDataSource.prototype.fetchBlock = function(number, cb){
     if (err) return cb(err)
 
     var block = {
-      // number: new BN(ethUtil.stripHexPrefix(data.number), 16),
       number: hexToBuffer(data.number),
       hash: hexToBuffer(data.hash),
       parentHash: hexToBuffer(data.parentHash),

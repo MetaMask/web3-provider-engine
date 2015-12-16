@@ -17,30 +17,50 @@ function VmSubprovider(opts){
   self.methods = ['eth_call', 'eth_estimateGas']
   self.rootProvider = opts.rootProvider
   self.currentBlock = 'latest'
+  // readiness lock, used to keep vm calls down to 1 at a time
   self._ready = new Stoplight()
-  // hack - pending moving currentBlock to engine
-  // self.rootProvider.once('block', function(){ self._ready.go() })
-  self.rootProvider._sources[0].once('block', setTimeout.bind(null, function(){ self._ready.go() }))
+  self._ready.go()
 }
 
-VmSubprovider.prototype.handleAsync = function(payload, cb){
+VmSubprovider.prototype.sendAsync = function(payload, cb){
   const self = this
   self.runVm(payload, function(err, results){
     if (err) return cb(err)
+
+    var resultObj = {
+      id: payload.id,
+      jsonrpc: payload.jsonrpc,
+    }
 
     switch (payload.method) {
       
       case 'eth_call':
         var returnValue = null
-        if (results.vm.returnValue) {
+        if (results.error) {
+          returnValue = '0x'
+        } else if (results.vm.returnValue) {
           returnValue = ethUtil.addHexPrefix(results.vm.returnValue.toString('hex'))
         }
-        return cb(null, returnValue)
+        resultObj.result = returnValue
+        return cb(null, resultObj)
       
       case 'eth_estimateGas':
-        console.log(results)
+        // i considered transforming request to eth_call
+        // to reduce the cache area, but we'd need to store
+        // metadata somewhere or something, instead of just
+        // the simple return value
+
+        // self.rootProvider.sendAsync(createPayload({
+        //   method: 'eth_call',
+        //   params: payload.params,
+        // }), function(err, results){
+        //   // if (err) return cb(err)
+        //   console.log('gas -> call results:', results)
+        // })
+
         var returnValue = ethUtil.addHexPrefix(results.gasUsed.toString('hex'))
-        return cb(null, returnValue)
+        resultObj.result = returnValue
+        return cb(null, resultObj)
 
     }
   })
@@ -86,7 +106,14 @@ VmSubprovider.prototype.runVm = function(payload, cb){
       // unlock vm
       self._ready.go()
 
-      if (err) return cb(err)
+      if (err) {
+        if (isNormalVmError(err.message)) {
+          return cb(null, { error: err })
+        } else {
+          return cb(err)
+        }
+      }
+
       cb(null, results)
     });
 
@@ -234,6 +261,16 @@ FallbackAsyncStore.prototype.set = function(address, code, cb){
 }
 
 // util
+const NOT_ENOUGH_FUNDS = 'sender doesn\'t have enough funds to send tx.'
+const WRONG_NONCE = 'the tx doesn\'t have the correct nonce. account has nonce of:'
+const VM_INTERNAL_ERRORS = [NOT_ENOUGH_FUNDS, WRONG_NONCE]
+function isNormalVmError(message){
+  var matchedErrors = VM_INTERNAL_ERRORS.filter(function(errorPattern){
+    var submessage = message.slice(0,errorPattern.length)
+    return submessage === errorPattern
+  })
+  return matchedErrors.length === 1
+}
 
 function blockFromBlockData(blockData){
   var block = new Block()

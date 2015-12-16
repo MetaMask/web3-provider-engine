@@ -17,8 +17,11 @@ var vmSubprovider = new VmSubprovider({
 })
 engine.addSource(vmSubprovider)
 
+// done adding subproviders
+engine.start()
 
-rpcSubprovider.on('block', function(block){
+
+engine.on('block', function(block){
   // lazy hack - move caching and current block to engine
   engine.currentBlock = block
   console.log('================================')
@@ -28,7 +31,8 @@ rpcSubprovider.on('block', function(block){
 
 setInterval(function(){
 
-  vmSubprovider.handleAsync({
+  console.log('estimating gas cost...')
+  engine.sendAsync({
     method: 'eth_estimateGas',
     params: [{
       from: '0xde0b295669a9fd93d5f28d9ec85e40f4cb697bae',

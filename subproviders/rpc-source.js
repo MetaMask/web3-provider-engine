@@ -7,70 +7,54 @@ const request = require('request')
 const inherits = require('util').inherits
 const ethUtil = require('ethereumjs-util')
 const BN = ethUtil.BN
-const RemoteDataSource = require('./remote-data.js')
 const createPayload = require('../util/create-payload.js')
-
 
 module.exports = RpcSource
 
-inherits(RpcSource, RemoteDataSource)
 
 function RpcSource(opts){
   const self = this
   self.rpcUrl = opts.rpcUrl
-  RemoteDataSource.call(self)
+  self.methods = [
+    'eth_hashrate',
+    'eth_gasPrice',
+    'eth_blockNumber',
+    'eth_getBalance',
+    'eth_getStorageAt',
+    'eth_getTransactionCount',
+    'eth_getBlockTransactionCountByHash',
+    'eth_getBlockTransactionCountByNumber',
+    'eth_getUncleCountByBlockHash',
+    'eth_getUncleCountByBlockNumber',
+    'eth_getCode',
+    'eth_getBlockByHash',
+    'eth_getBlockByNumber',
+    'eth_getTransactionByHash',
+    'eth_getTransactionByBlockHashAndIndex',
+    'eth_getTransactionByBlockNumberAndIndex',
+    'eth_getTransactionReceipt',
+    'eth_getUncleByBlockHashAndIndex',
+    'eth_getUncleByBlockNumberAndIndex',
+    // 'eth_newFilter',
+    // 'eth_newBlockFilter',
+    // 'eth_newPendingTransactionFilter',
+    // 'eth_uninstallFilter',
+    // 'eth_getFilterChanges',
+    // 'eth_getFilterLogs',
+    // 'eth_getLogs',
+    'eth_sendRawTransaction',
+  ]
 }
 
-RpcSource.prototype._handleAsync = function(payload, cb){
-  const self = this
-  self.requestFromRpc(payload.method, payload.params, cb)
-}
-
-// RpcSource.prototype._fetchAccount = function(address, block, cb){
-//   const self = this
-//   async.parallel([
-//     self._fetchAccountBalance.bind(self, address, block),
-//     self._fetchAccountNonce.bind(self, address, block),
-//     self._fetchAccountCode.bind(self, address, block),
-//   ], function(err, results){
-//     if (err) return cb(err)
-
-//     console.log(block, 'results:', results)
-//     var account = {
-//       balance: results[0],
-//       nonce: results[1],
-//       code: results[2],
-//     }
-
-//     cb(null, account)
-//   })
-
-// }
-
-// RpcSource.prototype._fetchAccountStorage = function(address, key, block, cb){
-//   const self = this
-//   self.requestFromRpc('eth_getStorageAt', [address, key, block], cb)
-// }
-
-// RpcSource.prototype._fetchAccountBalance = function(address, block, cb){
-//   const self = this
-//   self.requestFromRpc('eth_getBalance', [address, block], cb)
-// }
-
-// RpcSource.prototype._fetchAccountNonce = function(address, block, cb){
-//   const self = this
-//   self.requestFromRpc('eth_getTransactionCount', [address, block], cb)
-// }
-
-// RpcSource.prototype._fetchAccountCode = function(address, block, cb){
-//   const self = this
-//   self.requestFromRpc('eth_getCode', [address, block], cb)
-// }
-
-
-RpcSource.prototype.requestFromRpc = function(method, params, cb){
+RpcSource.prototype.sendAsync = function(payload, cb){
   const self = this
   var targetUrl = self.rpcUrl
+  var method = payload.method
+  var params = payload.params
+
+  // new payload with random large id,
+  // so as not to conflict with other concurrent users
+
   var payload = createPayload({ method: method, params: params })
   // console.log('uri:', targetUrl)
   // console.log('method:', method)
@@ -88,6 +72,11 @@ RpcSource.prototype.requestFromRpc = function(method, params, cb){
   }, function(err, res, body) {
     if (err) return cb(err)
 
+    var resultObj = {
+      id: payload.id,
+      jsonrpc: payload.jsonrpc,
+    }
+
     // parse response into raw account
     var data
     try {
@@ -102,23 +91,9 @@ RpcSource.prototype.requestFromRpc = function(method, params, cb){
     // console.log('---------------------------------------------')
 
     if (data.error) return cb(new Error(data.error.message))  
-
-    cb(null, data.result)
+    
+    resultObj.result = data.result
+    cb(null, resultObj)
   })
   
-}
-
-// util
-
-function materializeTransaction(data){
-  var tx = new Transaction({
-    nonce: data.nonce,
-    gasPrice: data.gasPrice,
-    gasLimit: data.gas,
-    to: data.to,
-    value: data.value,
-    data: data.input,
-  })
-  tx.from = new Buffer(ethUtil.stripHexPrefix(data.from), 'hex')
-  return tx
 }
