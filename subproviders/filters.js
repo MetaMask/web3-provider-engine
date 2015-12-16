@@ -1,3 +1,4 @@
+const createPayload = require('../util/create-payload.js')
 
 module.exports = FilterSubprovider
 
@@ -12,6 +13,7 @@ function FilterSubprovider() {
     'eth_newFilter',
     'eth_getFilterChanges',
     'eth_uninstallFilter',
+    'eth_getFilterLogs',
   ]
 }
 
@@ -26,13 +28,15 @@ FilterSubprovider.prototype.sendAsync = function(payload, cb){
       self.newBlockFilter(cb)
       return
     case 'eth_newFilter':
-      self.newFilter(cb)
+      self.newFilter(payload.params[0], cb)
       return
     case 'eth_getFilterChanges':
-      self.getFilterChanges(cb)
+      self.getFilterChanges(payload.params[0], cb)
       return
+    case 'eth_getFilterLogs':
+      self.getFilterLogs(payload.params[0], cb)
     case 'eth_uninstallFilter':
-      self.uninstallFilter(cb)
+      self.uninstallFilter(payload.params[0], cb)
       return
   }
 }
@@ -62,10 +66,32 @@ FilterSubprovider.prototype.newBlockFilter = function(cb) {
 }
 
 // blockapps does not index LOGs at this time
-FilterSubprovider.prototype.newFilter = function(args, cb) {
+FilterSubprovider.prototype.newFilter = function(opts, cb) {
   const self = this
   console.log('FilterSubprovider - newFilter')
-  throw new Error('kablammo!')
+  self._getBlockNumber(function(err, blockNumber){
+    if (err) return cb(err)
+    
+    var filter = new LogFilter(opts)
+    var newLogHandler = filter.update.bind(filter)
+    var destroyHandler = function(){
+      self.rootProvider.removeListener('block', newBlockHandler)
+    }
+
+    self.rootProvider.on('block', function(block){
+      self._logsForBlock(block, function(err, logs){
+        if (err) throw err
+        logs.forEach(newLogHandler)
+      })
+    })
+    
+    self.filterIndex++
+    var hexFilterIndex = intToHex(self.filterIndex)
+    self.filters[hexFilterIndex] = filter
+    self.filterDestroyHandlers[hexFilterIndex] = destroyHandler
+
+    cb(null, hexFilterIndex)
+  })
 }
 
 FilterSubprovider.prototype.getFilterChanges = function(filterId, cb) {
@@ -76,6 +102,16 @@ FilterSubprovider.prototype.getFilterChanges = function(filterId, cb) {
   if (!filter) return cb(null, [])
   var results = filter.getChanges()
   filter.clearChanges()
+  cb(null, results)
+}
+
+FilterSubprovider.prototype.getFilterLogs = function(filterId, cb) {
+  const self = this
+  console.log('FilterSubprovider - getFilterLogs')
+  filterId = hexToInt(filterId)
+  var filter = self.filters[filterId]
+  if (!filter) return cb(null, [])
+  var results = filter.getAllResults()
   cb(null, results)
 }
 
@@ -103,6 +139,22 @@ FilterSubprovider.prototype._getBlockNumber = function(cb) {
   const self = this
   var blockNumber = bufferToHex(self.rootProvider.currentBlock.number)
   cb(null, blockNumber)
+}
+
+FilterSubprovider.prototype._logsForBlock = function(block, cb) {
+  const self = this
+  var blockNumber = bufferToHex(block.number)
+  self.rootProvider.sendAsync(createPayload({
+    method: 'eth_getLogs',
+    params: [{
+      fromBlock: blockNumber,
+      toBlock: blockNumber,
+    }],
+  }), function(err, results){
+    if (err) return cb(err)
+    cb(null, results.result)
+  })
+
 }
 
 //
@@ -133,6 +185,68 @@ BlockFilter.prototype.clearChanges = function(){
   self.updates = []
 }
 
+//
+// LogFilter
+//
+
+function LogFilter(opts) {
+  const self = this
+  self.fromBlock = opts.fromBlock || 'latest'
+  self.toBlock = opts.toBlock || 'latest'
+  self.address = opts.address
+  self.topics = opts.topics || []
+  self.updates = []
+  self.allResults = []
+}
+
+LogFilter.prototype.validateLog = function(log){
+  const self = this
+  // block number
+  blockTagIsNumber(self.fromBlock) && hexToInt(self.fromBlock) <= hexToInt(log.blockNumber) return false
+  blockTagIsNumber(self.toBlock) && hexToInt(self.toBlock) >= hexToInt(log.blockNumber) return false
+  // address
+  self.address && self.address !== log.address return false
+  // topics
+  // topics can be nested to represent `and` then `or` [[a || b] && c]
+  var topicsMatch = self.topics.reduce(function(previousMatched, topic){
+    if (!previousMatched) return false
+    var subtopics = Array.isArray(topic) : topic : [topic]
+    var topicMatches = subtopics.filter(function(topic){
+      return log.topics.indexOf(topic) !== -1
+    }).length > 0
+    return topicMatches
+  }, true)
+
+  return topicsMatch
+}
+
+LogFilter.prototype.update = function(log){
+  const self = this
+  // validate filter match
+  if (!self.validateLog(log)) return
+  // add to results
+  self.updates.push(log)
+  self.allResults.push(log)
+}
+
+LogFilter.prototype.getChanges = function(){
+  const self = this
+  var results = self.updates
+  return results
+}
+
+LogFilter.prototype.getAllResults = function(){
+  const self = this
+  var results = self.allResults
+  return results
+}
+
+LogFilter.prototype.clearChanges = function(){
+  const self = this
+  self.updates = []
+}
+
+
 // util
 
 function intToHex(value) {
@@ -152,7 +266,10 @@ function hexToInt(hexString) {
   return parseInt(hexString, 16)
 }
 
-
 function bufferToHex(buffer) {
   return '0x'+buffer.toString('hex')
+}
+
+function blockTagIsNumber(blockTag){
+  return blockTag && ['earliest', 'latest', 'pending'].indexOf(blockTag) === -1
 }
