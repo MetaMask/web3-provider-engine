@@ -1,12 +1,17 @@
+const ProviderEngine = require('./engine.js')
 const RpcSubprovider = require('./subproviders/rpc-source.js')
 const VmSubprovider = require('./subproviders/vm.js')
 const FilterSubprovider = require('./subproviders/filters.js')
-const ProviderEngine = require('./engine.js')
+const DefaultStatic = require('./subproviders/deafult-static.js')
 const Web3 = require('web3')
 
 
 var engine = new ProviderEngine()
 var web3 = new Web3(engine)
+
+// static
+var staticSubprovider = new DefaultStatic()
+engine.addSource(staticSubprovider)
 
 // filters
 var filterSubprovider = new FilterSubprovider({
