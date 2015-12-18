@@ -1,4 +1,4 @@
-const lightwallet = require('lightwallet')
+const lightwallet = require('eth-lightwallet')
 const createPayload = require('../util/create-payload.js')
 
 module.exports = LightWalletSubprovider

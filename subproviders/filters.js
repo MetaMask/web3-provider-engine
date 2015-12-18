@@ -202,15 +202,15 @@ function LogFilter(opts) {
 LogFilter.prototype.validateLog = function(log){
   const self = this
   // block number
-  blockTagIsNumber(self.fromBlock) && hexToInt(self.fromBlock) <= hexToInt(log.blockNumber) return false
-  blockTagIsNumber(self.toBlock) && hexToInt(self.toBlock) >= hexToInt(log.blockNumber) return false
+  if (blockTagIsNumber(self.fromBlock) && hexToInt(self.fromBlock) <= hexToInt(log.blockNumber)) return false
+  if (blockTagIsNumber(self.toBlock) && hexToInt(self.toBlock) >= hexToInt(log.blockNumber)) return false
   // address
-  self.address && self.address !== log.address return false
+  if (self.address && self.address !== log.address) return false
   // topics
   // topics can be nested to represent `and` then `or` [[a || b] && c]
   var topicsMatch = self.topics.reduce(function(previousMatched, topic){
     if (!previousMatched) return false
-    var subtopics = Array.isArray(topic) : topic : [topic]
+    var subtopics = Array.isArray(topic) ? topic : [topic]
     var topicMatches = subtopics.filter(function(topic){
       return log.topics.indexOf(topic) !== -1
     }).length > 0
