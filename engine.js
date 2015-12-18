@@ -90,13 +90,13 @@ Web3ProviderEngine.prototype._handleAsyncTryCache = function(payload, cb){
   if (requestIdentifier && blockCache) {
     var result = blockCache[requestIdentifier]
     if (result !== undefined) {
-      console.log('CACHE HIT:', blockTag, requestIdentifier, '->', result)
+      // console.log('CACHE HIT:', blockTag, requestIdentifier, '->', result)
       return cb(null, result)
     }
   }
 
   // fallback to request
-  console.log('CACHE MISS:', blockTag, requestIdentifier)
+  // console.log('CACHE MISS:', blockTag, requestIdentifier)
   self._handleAsync(payload, function(err, resultObj){
 
     if (err) return cb(err)
@@ -133,9 +133,9 @@ Web3ProviderEngine.prototype._handleAsyncTryCache = function(payload, cb){
     // populate cache with result
     if (blockCache && resultObj.result) {
       blockCache[requestIdentifier] = resultObj.result
-      console.log('CACHE POPULATE:', blockTag, requestIdentifier, '->', resultObj.result)
+      // console.log('CACHE POPULATE:', blockTag, requestIdentifier, '->', resultObj.result)
     } else {
-      console.log('CACHE POPULATE MISS:', blockTag, requestIdentifier)
+      // console.log('CACHE POPULATE MISS:', blockTag, requestIdentifier)
       console.log(self._blockCache)
     }
     

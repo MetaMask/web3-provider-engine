@@ -35,7 +35,7 @@ VmSubprovider.prototype.sendAsync = function(payload, cb){
     switch (payload.method) {
       
       case 'eth_call':
-        var returnValue = null
+        var returnValue = '0x'
         if (results.error) {
           returnValue = '0x'
         } else if (results.vm.returnValue) {
@@ -144,7 +144,8 @@ VmSubprovider.prototype._fetchAccount = function(blockNumber, address, cb){
     results._exists = results.nonce !== '0x0' || results.balance != '0x0' || results._code != '0x'
     // console.log('fetch account results:', results)
     var account = new Account(results)
-
+    // needs to be anything but the default (ethUtil.SHA3_NULL)
+    account.codeHash = new Buffer('0000000000000000000000000000000000000000000000000000000000000000', 'hex')
     cb(null, account)
   })
 
@@ -242,13 +243,14 @@ function FallbackAsyncStore(fetchValue){
 
 FallbackAsyncStore.prototype.get = function(address, cb){
   const self = this
-  var code = self.cache[address]
+  var addressHex = '0x'+address.toString('hex')
+  var code = self.cache[addressHex]
   if (code !== undefined) {
     cb(null, code)
   } else {
-    self.fetch(address, function(err, value){
+    self.fetch(addressHex, function(err, value){
       if (err) return cb(err)
-      self.cache[address] = value
+      self.cache[addressHex] = value
       cb(null, value)
     })
   }
@@ -256,7 +258,8 @@ FallbackAsyncStore.prototype.get = function(address, cb){
 
 FallbackAsyncStore.prototype.set = function(address, code, cb){
   const self = this
-  self.cache[address] = code
+  var addressHex = '0x'+address.toString('hex')
+  self.cache[addressHex] = code
   cb()
 }
 

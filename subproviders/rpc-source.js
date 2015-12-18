@@ -3,7 +3,7 @@ require('es6-promise').polyfill()
 require('isomorphic-fetch')
 const Transaction = require('ethereumjs-tx')
 const async = require('async')
-const request = require('request')
+const xhr = process.browser ? require('xhr') : require('request')
 const inherits = require('util').inherits
 const ethUtil = require('ethereumjs-util')
 const BN = ethUtil.BN
@@ -16,33 +16,6 @@ function RpcSource(opts){
   const self = this
   self.rpcUrl = opts.rpcUrl
   self.methods = [
-    'eth_hashrate',
-    'eth_gasPrice',
-    'eth_blockNumber',
-    'eth_getBalance',
-    'eth_getStorageAt',
-    'eth_getTransactionCount',
-    'eth_getBlockTransactionCountByHash',
-    'eth_getBlockTransactionCountByNumber',
-    'eth_getUncleCountByBlockHash',
-    'eth_getUncleCountByBlockNumber',
-    'eth_getCode',
-    'eth_getBlockByHash',
-    'eth_getBlockByNumber',
-    'eth_getTransactionByHash',
-    'eth_getTransactionByBlockHashAndIndex',
-    'eth_getTransactionByBlockNumberAndIndex',
-    'eth_getTransactionReceipt',
-    'eth_getUncleByBlockHashAndIndex',
-    'eth_getUncleByBlockNumberAndIndex',
-    // 'eth_newFilter',
-    // 'eth_newBlockFilter',
-    // 'eth_newPendingTransactionFilter',
-    // 'eth_uninstallFilter',
-    // 'eth_getFilterChanges',
-    // 'eth_getFilterLogs',
-    // 'eth_getLogs',
-    'eth_sendRawTransaction',
     'eth_gasPrice',
     'eth_blockNumber',
     'eth_getBalance',
@@ -80,7 +53,11 @@ RpcSource.prototype.sendAsync = function(payload, cb){
   // console.log('method:', method)
   // console.log('params:', params)
 
-  request({
+  // console.log('------------------ network attempt -----------------')
+  // console.log(payload)
+  // console.log('---------------------------------------------')
+
+  xhr({
     uri: targetUrl,
     method: 'POST',
     headers: {
@@ -106,9 +83,7 @@ RpcSource.prototype.sendAsync = function(payload, cb){
       return cb(err)
     }
 
-    // console.log('------------------ network -----------------')
-    // console.log(payload, '->', data)
-    // console.log('---------------------------------------------')
+    console.log('network:', payload.method, payload.params, '->', data.result)
 
     if (data.error) return cb(new Error(data.error.message))  
     

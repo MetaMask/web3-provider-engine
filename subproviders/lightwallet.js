@@ -18,7 +18,8 @@ function LightWalletSubprovider(opts){
 
   var secretSeed = lightwallet.keystore.generateRandomSeed()
   // the seed is stored encrypted by a user-defined password
-  var password = prompt('Enter password for encryption', 'password')
+  var password = 'secret_password_shhhhh'
+  // var password = prompt('Enter password for encryption', 'password')
   self.keystore = new lightwallet.keystore(secretSeed, password)
   self.keystore.passwordProvider = self.unlock.bind(self)
 
@@ -31,7 +32,8 @@ function LightWalletSubprovider(opts){
 
 LightWalletSubprovider.prototype.unlock = function(cb){
   const self = this
-  var password = prompt('Please enter password', 'Password')
+  var password = 'secret_password_shhhhh'
+  // var password = prompt('Please enter password', 'Password')
   cb(null, password)
 }
 

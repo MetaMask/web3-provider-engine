@@ -3,8 +3,9 @@ const createPayload = require('../util/create-payload.js')
 module.exports = FilterSubprovider
 
 
-function FilterSubprovider() {
+function FilterSubprovider(opts) {
   const self = this
+  self.rootProvider = opts.rootProvider
   self.filterIndex = 0
   self.filters = {}
   self.filterDestroyHandlers = {}
@@ -250,8 +251,7 @@ LogFilter.prototype.clearChanges = function(){
 // util
 
 function intToHex(value) {
-  var number = toBigNumber(value)
-  var hexString = number.toString(16)
+  var hexString = value.toString(16)
   var isNegative = value < 0
   if (isNegative) hexString = hexString.slice(1)
   if (hexString.length%2 !== 0) hexString = '0'+hexString

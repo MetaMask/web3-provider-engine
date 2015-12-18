@@ -27,5 +27,8 @@
   },
   "devDependencies": {
     "browserify": "^12.0.1"
+  },
+  "browser": {
+    "request": false
   }
 }
