@@ -87,7 +87,7 @@ Web3ProviderEngine.prototype._handleAsyncTryCache = function(payload, cb){
   // first try cache
   var blockCache = self._cacheForBlockTag(blockTag)
   var requestIdentifier = getCacheIdentifierForPayload(payload)
-  if (blockCache) {
+  if (requestIdentifier && blockCache) {
     var result = blockCache[requestIdentifier]
     if (result !== undefined) {
       console.log('CACHE HIT:', blockTag, requestIdentifier, '->', result)
@@ -246,28 +246,32 @@ function SourceNotFoundError(payload){
 function getCacheIdentifierForPayload(payload){
   var simpleParams = paramsWithoutBlockTag(payload)
   switch(payload.method) {
-    case 'eth_call':
-    case 'eth_estimateGas':
-      return payload.method+':'+JSON.stringify(simpleParams[0])
+    // dont cache
+    case 'eth_coinbase':
+    case 'eth_accounts':
+    case 'eth_sendTransaction':
+    case 'eth_sign':
+      return null
+    // cache based on all params
     default:
-      return payload.method+':'+simpleParams.join(',')
+      return payload.method+':'+JSON.stringify(simpleParams)
   }
-  return identifier
 }
 
 function blockTagForPayload(payload){
   switch(payload.method) {
+    // blockTag is last param
     case 'eth_getBalance':
     case 'eth_getCode':
     case 'eth_getTransactionCount':
     case 'eth_getStorageAt':
     case 'eth_call':
     case 'eth_estimateGas':
-      // take the last param
       return payload.params[payload.params.length-1]
+    // blockTag is first param
     case 'eth_getBlockByNumber':
-      // take the first param
       return payload.params[0]
+    // there is no blockTag
     default:
       return null
   }
@@ -275,17 +279,18 @@ function blockTagForPayload(payload){
 
 function paramsWithoutBlockTag(payload){
   switch(payload.method) {
+    // blockTag is last param
     case 'eth_getBalance':
     case 'eth_getCode':
     case 'eth_getTransactionCount':
     case 'eth_getStorageAt':
     case 'eth_call':
     case 'eth_estimateGas':
-      // cut the last param
       return payload.params.slice(0,-1)
+    // blockTag is first param
     case 'eth_getBlockByNumber':
-      // cut the first param
       return payload.params.slice(1)
+    // there is no blockTag
     default:
       return payload.params.slice()
   }
