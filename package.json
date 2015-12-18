@@ -24,5 +24,8 @@
     "ssl-root-cas": "^1.1.10",
     "web3": "^0.15.1",
     "xhr": "^2.2.0"
+  },
+  "devDependencies": {
+    "browserify": "^12.0.1"
   }
 }
