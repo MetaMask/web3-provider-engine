@@ -35,9 +35,9 @@ The provider engine also handles caching of rpc request results.
 - [x] eth_getFilterChanges
 
 ##### accounts manager
-- [ ] eth_coinbase
-- [ ] eth_accounts
-- [ ] eth_sendTransaction
+- [x] eth_coinbase
+- [x] eth_accounts
+- [x] eth_sendTransaction
 - [ ] eth_sign ( not used in web3.js )
 
 ##### vm
