@@ -16,7 +16,7 @@ The provider engine also handles caching of rpc request results.
 
 ### Current RPC method support:
 
-####### static
+##### static
 - [x] web3_clientVersion
 - [x] net_version
 - [x] net_listening
@@ -26,7 +26,7 @@ The provider engine also handles caching of rpc request results.
 - [x] eth_mining
 - [x] eth_syncing
 
-####### filters
+##### filters
 - [x] eth_newBlockFilter
 - [ ] eth_newPendingTransactionFilter
 - [x] eth_newFilter
@@ -34,29 +34,29 @@ The provider engine also handles caching of rpc request results.
 - [x] eth_getFilterLogs
 - [x] eth_getFilterChanges
 
-####### accounts manager
+##### accounts manager
 - [ ] eth_coinbase
 - [ ] eth_accounts
 - [ ] eth_sendTransaction
 - [ ] eth_sign ( not used in web3.js )
 
-####### vm
+##### vm
 - [x] eth_call
 - [x] eth_estimateGas
 
-####### db source
+##### db source
 - [ ] db_putString
 - [ ] db_getString
 - [ ] db_putHex
 - [ ] db_getHex
 
-####### compiler
+##### compiler
 - [ ] eth_getCompilers
 - [ ] eth_compileLLL
 - [ ] eth_compileSerpent
 - [ ] eth_compileSolidity
 
-####### shh gateway
+##### shh gateway
 - [ ] shh_version
 - [ ] shh_post
 - [ ] shh_newIdentity
@@ -64,7 +64,7 @@ The provider engine also handles caching of rpc request results.
 - [ ] shh_newGroup
 - [ ] shh_addToGroup
 
-####### data source ( fallback to rpc )
+##### data source ( fallback to rpc )
 * eth_gasPrice
 * eth_blockNumber
 * eth_getBalance
@@ -86,7 +86,7 @@ The provider engine also handles caching of rpc request results.
 * eth_sendRawTransaction
 * eth_getLogs ( not used in web3.js )
 
-####### ( not supported )
+##### ( not supported )
 * eth_getWork
 * eth_submitWork
 * eth_submitHashrate ( not used in web3.js )
