@@ -2,7 +2,8 @@ const ProviderEngine = require('./engine.js')
 const RpcSubprovider = require('./subproviders/rpc-source.js')
 const VmSubprovider = require('./subproviders/vm.js')
 const FilterSubprovider = require('./subproviders/filters.js')
-const DefaultStatic = require('./subproviders/deafult-static.js')
+const DefaultStatic = require('./subproviders/default-static.js')
+const LightWalletSubprovider = require('./subproviders/lightwallet.js')
 const Web3 = require('web3')
 
 
@@ -19,11 +20,17 @@ var filterSubprovider = new FilterSubprovider({
 })
 engine.addSource(filterSubprovider)
 
-// ethereum vm
+// vm
 var vmSubprovider = new VmSubprovider({
   rootProvider: engine,
 })
 engine.addSource(vmSubprovider)
+
+// id mgmt
+var idmgmtSubprovider = new LightWalletSubprovider({
+  rootProvider: engine,
+})
+engine.addSource(idmgmtSubprovider)
 
 // data source
 var rpcSubprovider = new RpcSubprovider({

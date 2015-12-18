@@ -64,7 +64,7 @@ The provider engine also handles caching of rpc request results.
 - [ ] shh_newGroup
 - [ ] shh_addToGroup
 
-####### data source (fallback to rpc)
+####### data source ( fallback to rpc )
 * eth_gasPrice
 * eth_blockNumber
 * eth_getBalance
