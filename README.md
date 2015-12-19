@@ -1,17 +1,57 @@
-### 'zero-client' web3 provider engine
+# Web3 ProviderEngine
 
-Here’s an explanation of what I’m currently working on:
+Web3 ProviderEngine is a tool for composing your own [web3 providers](https://github.com/ethereum/wiki/wiki/JavaScript-API#web3).
 
-a 'zero-client' web3 provider — it is very modular and works via a stack of ‘sub-providers’ which are like normal web3 providers but only handle a subset of rpc methods,
-specified via `subProvider.methods = [‘eth_call’, ’etc...']`.
-The intention is to handle as many requests locally as possible, and just let data lookups fallback to some data source ( hosted rpc, blockapps, etc ).
+Status: WIP - expect breaking changes and strange behaviour
+
+### Composable
+
+Built to be modular - works via a stack of 'sub-providers' which are like normal web3 providers but only handle a subset of rpc methods,
+specified via `subProvider.methods = ['eth_call', 'etc...']`.
+
+The subproviders can emit new rpc requests in order to handle their own;  e.g. `eth_call` may trigger `eth_getAccountBalance`, `eth_getCode`, and others.
+The provider engine also handles caching of rpc request results.
+
+```js
+var engine = new ProviderEngine()
+var web3 = new Web3(engine)
+
+// static - e.g.: web3_clientVersion
+engine.addSource(new DefaultStatic())
+
+// filters - e.g.: eth_newBlockFilter
+engine.addSource(new FilterSubprovider({
+  rootProvider: engine,
+}))
+
+// vm - e.g.: eth_call
+engine.addSource(new VmSubprovider({
+  rootProvider: engine,
+}))
+
+// id mgmt - e.g.: eth_signTransaction
+engine.addSource(new LightWalletSubprovider({
+  rootProvider: engine,
+}))
+
+// data source - e.g.: eth_getBalance
+engine.addSource(new RpcSubprovider({
+  rpcUrl: 'https://rpc.metamask.io/',
+}))
+
+// start polling for blocks
+engine.start()
+```
+
+### Built For Zero-Clients
+
+The [Ethereum JSON RPC](https://github.com/ethereum/wiki/wiki/JSON-RPC) was not designed to have one node service many clients.
+However a smaller, lighter subset of the JSON RPC can be used to provide the blockchain data an Ethereum 'zero-client' node would need to function.
+We handle as many types of requests locally as possible, and just let data lookups fallback to some data source ( hosted rpc, blockchain api, etc ).
 Categorically, we don’t want / can’t have the following types of RPC calls go to the network:
 * id mgmt + tx signing (requires private data)
 * filters (requires a stateful data api)
 * vm (expensive, hard to scale)
-
-The subproviders can emit new rpc requests in order to handle their own;  e.g. `eth_call` may trigger `eth_getAccountBalance`, `eth_getCode`, and others.
-The provider engine also handles caching of rpc request results.
 
 
 ### Current RPC method support:
