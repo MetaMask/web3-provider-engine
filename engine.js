@@ -4,6 +4,8 @@ const inherits = require('util').inherits
 const ethUtil = require('ethereumjs-util')
 const BN = ethUtil.BN
 const Stoplight = require('./util/stoplight.js')
+const cacheUtils = require('./util/rpc-cache-utils.js')
+const POLLING_INTERVAL = 4000
 
 module.exports = Web3ProviderEngine
 
@@ -21,6 +23,7 @@ function Web3ProviderEngine(opts) {
   self._sources = []
   self._blocks = {}
   self._blockCache = {}
+  self._permaCache = {}
 }
 
 // public
@@ -38,6 +41,7 @@ Web3ProviderEngine.prototype.addSource = function(source){
 
 Web3ProviderEngine.prototype.send = function(payload){
   const self = this
+  // console.warn('SYNC REQUEST:', payload)
   return self._handleSync(payload)
 }
 
@@ -47,7 +51,7 @@ Web3ProviderEngine.prototype.sendAsync = function(payload, cb){
   
     if (Array.isArray(payload)) {
       // handle batch
-      async.each(payload, self._handleAsyncTryCache.bind(self), cb)
+      async.map(payload, self._handleAsyncTryCache.bind(self), cb)
     } else {
       // handle single
       self._handleAsyncTryCache(payload, cb)
@@ -80,69 +84,55 @@ Web3ProviderEngine.prototype._handleSync = function(payload){
 Web3ProviderEngine.prototype._handleAsyncTryCache = function(payload, cb){
   const self = this
   // parse blockTag
-  var blockTag = blockTagForPayload(payload)
+  var blockTag = cacheUtils.blockTagForPayload(payload)
   // rewrite 'latest' blockTags to block number
-  if (blockTag === 'latest') blockTag = bufferToHex(self._blocks.latest.number)
+  if (!blockTag || blockTag === 'latest') blockTag = bufferToHex(self._blocks.latest.number)
 
   // first try cache
   var blockCache = self._cacheForBlockTag(blockTag)
-  var requestIdentifier = getCacheIdentifierForPayload(payload)
-  if (requestIdentifier && blockCache) {
-    var result = blockCache[requestIdentifier]
+  var cacheIdentifier = cacheUtils.cacheIdentifierForPayload(payload)
+  if (cacheIdentifier) {
+    var result = null
+    if (cacheUtils.canPermaCache(payload)) {
+      result = self._permaCache[cacheIdentifier]
+    } else if (blockCache) {
+      result = blockCache[cacheIdentifier]
+    }
+    // if cache had a value, return it
+    // note: null is legitimate value (e.g. coinbase thats not set)
     if (result !== undefined) {
-      // console.log('CACHE HIT:', blockTag, requestIdentifier, '->', result)
-      return cb(null, result)
+      // console.log('CACHE HIT:', blockTag, cacheIdentifier, '->', result)
+      var resultObj = {
+        id: payload.id,
+        jsonrpc: payload.jsonrpc,
+        result: result
+      }
+      return cb(null, resultObj)
+    } else {
+      // console.log('CACHE MISS:', blockTag, cacheIdentifier)
     }
   }
 
   // fallback to request
-  // console.log('CACHE MISS:', blockTag, requestIdentifier)
   self._handleAsync(payload, function(err, resultObj){
-
     if (err) return cb(err)
 
-    // rpc result object - fill in request metadata
-    // var resultObj = {
-    //   id: payload.id,
-    //   jsonrpc: payload.jsonrpc,
-    // }
-
-    // // handle error
-    // // javascript error obj
-    // if (err) {
-    //   throw err
-    //   resultObj.error = {
-    //     code: -32000,
-    //     message: err.message,
-    //     stack: err.stack,
-    //   }
-    //   return cb(null, resultObj)
-    
-    // // json rpc error obj
-    // } else if (result.error) {
-    
-    //   console.error('JSON RPC ERROR?')
-    //   console.error(result.error)
-    //   throw new Error(result.error)
-
-    //   resultObj.error = result.error
-    //   return cb(null, resultObj)
-
-    // }
-
     // populate cache with result
-    if (blockCache && resultObj.result) {
-      blockCache[requestIdentifier] = resultObj.result
-      // console.log('CACHE POPULATE:', blockTag, requestIdentifier, '->', resultObj.result)
+    if (cacheIdentifier && resultObj.result) {
+      if (cacheUtils.canPermaCache(payload)) {
+        self._permaCache[cacheIdentifier] = resultObj.result
+        // console.log('CACHE POPULATE:', 'PERMA', cacheIdentifier, '->', resultObj.result)
+      } else if (blockCache && cacheUtils.canBlockCache(payload)) {
+        blockCache[cacheIdentifier] = resultObj.result
+        // console.log('CACHE POPULATE:', blockTag, cacheIdentifier, '->', resultObj.result)
+      } else {
+        // console.warn('CACHE POPULATE MISS:', blockTag, cacheIdentifier)
+      }
     } else {
-      // console.log('CACHE POPULATE MISS:', blockTag, requestIdentifier)
-      console.log(self._blockCache)
+      // console.log('CACHE SKIP:', payload.method, resultObj)
     }
     
-    // // return result
-    // resultObj.result = result
     cb(null, resultObj)
-
   })
 }
 
@@ -164,7 +154,7 @@ Web3ProviderEngine.prototype._startPolling = function(){
   function pollForBlock(){
     fetchLatestBlock(function onBlockFetchResponse(err, block){
       if (block) checkIfUpdated(block)
-      setTimeout(pollForBlock, 2000)
+      setTimeout(pollForBlock, POLLING_INTERVAL)
     })
   }
 
@@ -185,7 +175,7 @@ Web3ProviderEngine.prototype._setCurrentBlock = function(block){
   var blockNumber = bufferToHex(block.number)
   self._blocks[blockNumber] = block
   self._blocks.latest = block
-  console.log('saving block cache with number:', blockNumber)
+  // console.log('saving block cache with number:', blockNumber)
   // broadcast new block
   self.currentBlock = block
   self.emit('block', block)
@@ -193,7 +183,7 @@ Web3ProviderEngine.prototype._setCurrentBlock = function(block){
 
 Web3ProviderEngine.prototype._cacheForBlockTag = function(blockTag){
   const self = this
-  if (blockTag === 'pending') return null
+  if (!blockTag || blockTag === 'pending') return null
   var cache = self._blockCache[blockTag]
   // create new cache if necesary
   if (!cache) cache = self._blockCache[blockTag] = {}
@@ -241,59 +231,6 @@ Web3ProviderEngine.prototype._fetchBlock = function(number, cb){
 
 function SourceNotFoundError(payload){
   return new Error('Source for RPC method "'+payload.method+'" not found.')
-}
-
-function getCacheIdentifierForPayload(payload){
-  var simpleParams = paramsWithoutBlockTag(payload)
-  switch(payload.method) {
-    // dont cache
-    case 'eth_coinbase':
-    case 'eth_accounts':
-    case 'eth_sendTransaction':
-    case 'eth_sign':
-      return null
-    // cache based on all params
-    default:
-      return payload.method+':'+JSON.stringify(simpleParams)
-  }
-}
-
-function blockTagForPayload(payload){
-  switch(payload.method) {
-    // blockTag is last param
-    case 'eth_getBalance':
-    case 'eth_getCode':
-    case 'eth_getTransactionCount':
-    case 'eth_getStorageAt':
-    case 'eth_call':
-    case 'eth_estimateGas':
-      return payload.params[payload.params.length-1]
-    // blockTag is first param
-    case 'eth_getBlockByNumber':
-      return payload.params[0]
-    // there is no blockTag
-    default:
-      return null
-  }
-}
-
-function paramsWithoutBlockTag(payload){
-  switch(payload.method) {
-    // blockTag is last param
-    case 'eth_getBalance':
-    case 'eth_getCode':
-    case 'eth_getTransactionCount':
-    case 'eth_getStorageAt':
-    case 'eth_call':
-    case 'eth_estimateGas':
-      return payload.params.slice(0,-1)
-    // blockTag is first param
-    case 'eth_getBlockByNumber':
-      return payload.params.slice(1)
-    // there is no blockTag
-    default:
-      return payload.params.slice()
-  }
 }
 
 function hexToBuffer(hexString){

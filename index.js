@@ -4,14 +4,13 @@ const VmSubprovider = require('./subproviders/vm.js')
 const FilterSubprovider = require('./subproviders/filters.js')
 const DefaultStatic = require('./subproviders/default-static.js')
 const LightWalletSubprovider = require('./subproviders/lightwallet.js')
-const Web3 = require('web3')
 
-module.exports = web3Generator
+module.exports = zeroClientProvider
 
-function web3Generator(){
+
+function zeroClientProvider(){
 
   var engine = new ProviderEngine()
-  var web3 = new Web3(engine)
 
   // static
   var staticSubprovider = new DefaultStatic()
@@ -52,6 +51,6 @@ function web3Generator(){
     console.log('================================')
   })
 
-  return web3
+  return engine
 
 }

@@ -47,11 +47,7 @@ RpcSource.prototype.sendAsync = function(payload, cb){
 
   // new payload with random large id,
   // so as not to conflict with other concurrent users
-
-  var payload = createPayload({ method: method, params: params })
-  // console.log('uri:', targetUrl)
-  // console.log('method:', method)
-  // console.log('params:', params)
+  var newPayload = createPayload(payload)
 
   // console.log('------------------ network attempt -----------------')
   // console.log(payload)
@@ -64,7 +60,7 @@ RpcSource.prototype.sendAsync = function(payload, cb){
       'Accept': 'application/json',
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(payload),
+    body: JSON.stringify(newPayload),
     rejectUnauthorized: false,
   }, function(err, res, body) {
     if (err) return cb(err)

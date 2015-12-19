@@ -49,11 +49,12 @@ LightWalletSubprovider.prototype.send = function(payload, cb){
     
     case 'eth_coinbase':
       var result = self.keystore.getAddresses()[0] || null
+      if (result) result = appendHexPrefix(result)
       resultObj.result = result
       return resultObj
     
     case 'eth_accounts':
-      var result = self.keystore.getAddresses()
+      var result = self.keystore.getAddresses().map(appendHexPrefix)
       resultObj.result = result
       return resultObj
 
@@ -103,4 +104,8 @@ LightWalletSubprovider.prototype.sendAsync = function(payload, cb){
       return
 
   }
+}
+
+function appendHexPrefix(hexString){
+  return '0x'+hexString
 }

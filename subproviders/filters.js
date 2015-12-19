@@ -26,25 +26,35 @@ FilterSubprovider.prototype.sendAsync = function(payload, cb){
   const self = this
   switch(payload.method){
     case 'eth_newBlockFilter':
-      self.newBlockFilter(cb)
+      self.newBlockFilter(handleResult)
       return
     case 'eth_newFilter':
-      self.newFilter(payload.params[0], cb)
+      self.newFilter(payload.params[0], handleResult)
       return
     case 'eth_getFilterChanges':
-      self.getFilterChanges(payload.params[0], cb)
+      self.getFilterChanges(payload.params[0], handleResult)
       return
     case 'eth_getFilterLogs':
-      self.getFilterLogs(payload.params[0], cb)
+      self.getFilterLogs(payload.params[0], handleResult)
     case 'eth_uninstallFilter':
-      self.uninstallFilter(payload.params[0], cb)
+      self.uninstallFilter(payload.params[0], handleResult)
       return
+  }
+
+  function handleResult(err, result){
+    if (err) cb(err)
+    var resultObj = {
+      id: payload.id,
+      jsonrpc: '2.0',
+      result: result,
+    }
+    cb(null, resultObj)
   }
 }
 
 FilterSubprovider.prototype.newBlockFilter = function(cb) {
   const self = this
-  console.log('FilterSubprovider - newBlockFilter')
+
   self._getBlockNumber(function(err, blockNumber){
     if (err) return cb(err)
     var filter = new BlockFilter({
@@ -69,7 +79,7 @@ FilterSubprovider.prototype.newBlockFilter = function(cb) {
 // blockapps does not index LOGs at this time
 FilterSubprovider.prototype.newFilter = function(opts, cb) {
   const self = this
-  console.log('FilterSubprovider - newFilter')
+
   self._getBlockNumber(function(err, blockNumber){
     if (err) return cb(err)
     
@@ -97,7 +107,7 @@ FilterSubprovider.prototype.newFilter = function(opts, cb) {
 
 FilterSubprovider.prototype.getFilterChanges = function(filterId, cb) {
   const self = this
-  console.log('FilterSubprovider - getFilterChanges')
+
   filterId = hexToInt(filterId)
   var filter = self.filters[filterId]
   if (!filter) return cb(null, [])
@@ -108,7 +118,7 @@ FilterSubprovider.prototype.getFilterChanges = function(filterId, cb) {
 
 FilterSubprovider.prototype.getFilterLogs = function(filterId, cb) {
   const self = this
-  console.log('FilterSubprovider - getFilterLogs')
+
   filterId = hexToInt(filterId)
   var filter = self.filters[filterId]
   if (!filter) return cb(null, [])
@@ -118,7 +128,6 @@ FilterSubprovider.prototype.getFilterLogs = function(filterId, cb) {
 
 FilterSubprovider.prototype.uninstallFilter = function(filterId, cb) {
   const self = this
-  console.log('FilterSubprovider - uninstallFilter')
   
   var filter = self.filters[filterId]
   if (filter == null) {
