@@ -175,9 +175,9 @@ LightWalletSubprovider.prototype.signAndSerializeTx = function(txData, cb){
       // logging
       // var buf = new Buffer(rawTx, 'hex')
       // var newFormat = buf.toString('binary')
-      console.warn('serializing tx:', txData) 
-      console.warn('rlpTx.tx:', rlpTx.tx)
-      console.warn('rawTx:', rawTx)
+      // console.warn('serializing tx:', txData) 
+      // console.warn('rlpTx.tx:', rlpTx.tx)
+      // console.warn('rawTx:', rawTx)
       // console.warn('newFormat:', newFormat)
 
       cb(null, rawTx)

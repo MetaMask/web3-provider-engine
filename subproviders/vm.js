@@ -23,9 +23,9 @@ function VmSubprovider(opts){
 
 VmSubprovider.prototype.sendAsync = function(payload, cb){
   const self = this
-  console.log('VmSubprovider - runVm init', arguments)
+  // console.log('VmSubprovider - runVm init', arguments)
   self.runVm(payload, function(err, results){
-    console.log('VmSubprovider - runVm return', arguments)
+    // console.log('VmSubprovider - runVm return', arguments)
     if (err) return cb(err)
 
     var resultObj = {
@@ -245,23 +245,23 @@ FallbackStorageTrie.prototype.get = function(key, cb){
 //
 
 function FallbackAsyncStore(fetchFn){
-  console.log('FallbackAsyncStore - new')
+  // console.log('FallbackAsyncStore - new')
   const self = this
   self.fetch = fetchFn
   self.cache = {}
 }
 
 FallbackAsyncStore.prototype.get = function(address, cb){
-  console.log('FallbackAsyncStore - get', arguments)
+  // console.log('FallbackAsyncStore - get', arguments)
   const self = this
   var addressHex = '0x'+address.toString('hex')
   var code = self.cache[addressHex]
   if (code !== undefined) {
     cb(null, code)
   } else {
-    console.log('FallbackAsyncStore - fetch init')
+    // console.log('FallbackAsyncStore - fetch init')
     self.fetch(addressHex, function(err, value){
-      console.log('FallbackAsyncStore - fetch return', arguments)
+      // console.log('FallbackAsyncStore - fetch return', arguments)
       if (err) return cb(err)
       self.cache[addressHex] = value
       cb(null, ethUtil.toBuffer(value))
@@ -270,7 +270,7 @@ FallbackAsyncStore.prototype.get = function(address, cb){
 }
 
 FallbackAsyncStore.prototype.set = function(address, code, cb){
-  console.log('FallbackAsyncStore - set', arguments)
+  // console.log('FallbackAsyncStore - set', arguments)
   const self = this
   var addressHex = '0x'+address.toString('hex')
   self.cache[addressHex] = code
