@@ -13,11 +13,27 @@ The subproviders can emit new rpc requests in order to handle their own;  e.g. `
 The provider engine also handles caching of rpc request results.
 
 ```js
+const ProviderEngine = require('web3-provider-engine')
+const StaticProvider = require('web3-provider-engine/subproviders/static.js')
+const FilterSubprovider = require('web3-provider-engine/subproviders/fitlers.js')
+const VmSubprovider = require('web3-provider-engine/subproviders/vm.js')
+const LightWalletSubprovider = require('web3-provider-engine/subproviders/lightwallet.js')
+const RpcSubprovider = require('web3-provider-engine/subproviders/rpc.js')
+
 var engine = new ProviderEngine()
 var web3 = new Web3(engine)
 
 // static - e.g.: web3_clientVersion
-engine.addSource(new DefaultStatic())
+engine.addSource(new StaticProvider({
+  web3_clientVersion: 'MetaMask-ZeroClient/v0.0.0/javascript',
+  net_version: '1',
+  net_listening: true,
+  net_peerCount: '0xc',
+  eth_protocolVersion: '63',
+  eth_hashrate: '0x0',
+  eth_mining: false,
+  eth_syncing: true,
+})
 
 // filters - e.g.: eth_newBlockFilter
 engine.addSource(new FilterSubprovider({
