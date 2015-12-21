@@ -8,7 +8,8 @@ const LightWalletSubprovider = require('./subproviders/lightwallet.js')
 module.exports = zeroClientProvider
 
 
-function zeroClientProvider(){
+function zeroClientProvider(opts){
+  opts = opts || {}
 
   var engine = new ProviderEngine()
 
@@ -36,7 +37,7 @@ function zeroClientProvider(){
 
   // data source
   var rpcSubprovider = new RpcSubprovider({
-    rpcUrl: 'https://testrpc.metamask.io/',
+    rpcUrl: opts.rpcUrl || 'https://testrpc.metamask.io/',
   })
   engine.addSource(rpcSubprovider)
 
