@@ -36,7 +36,7 @@ function zeroClientProvider(){
 
   // data source
   var rpcSubprovider = new RpcSubprovider({
-    rpcUrl: 'https://rpc.metamask.io/',
+    rpcUrl: 'https://testrpc.metamask.io/',
   })
   engine.addSource(rpcSubprovider)
 

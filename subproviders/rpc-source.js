@@ -81,9 +81,13 @@ RpcSource.prototype.sendAsync = function(payload, cb){
 
     console.log('network:', payload.method, payload.params, '->', data.result)
 
-    if (data.error) return cb(new Error(data.error.message))  
+    if (data.error) {
+      resultObj.error = data.error
+      // return cb(new Error(data.error.message))
+    } else {
+      resultObj.result = data.result
+    }
     
-    resultObj.result = data.result
     cb(null, resultObj)
   })
   

@@ -7,7 +7,7 @@ const Transaction = require('ethereumjs-tx')
 const FakeMerklePatriciaTree = require('fake-merkle-patricia-tree')
 const ethUtil = require('ethereumjs-util')
 const createPayload = require('../util/create-payload.js')
-const Stoplight = require('../util/stoplight.js')
+const Semaphore = require('semaphore')
 
 module.exports = VmSubprovider
 
@@ -18,13 +18,14 @@ function VmSubprovider(opts){
   self.rootProvider = opts.rootProvider
   self.currentBlock = 'latest'
   // readiness lock, used to keep vm calls down to 1 at a time
-  self._ready = new Stoplight()
-  self._ready.go()
+  self.lock = Semaphore(1)
 }
 
 VmSubprovider.prototype.sendAsync = function(payload, cb){
   const self = this
+  console.log('VmSubprovider - runVm init', arguments)
   self.runVm(payload, function(err, results){
+    console.log('VmSubprovider - runVm return', arguments)
     if (err) return cb(err)
 
     var resultObj = {
@@ -38,8 +39,8 @@ VmSubprovider.prototype.sendAsync = function(payload, cb){
         var returnValue = '0x'
         if (results.error) {
           returnValue = '0x'
-        } else if (results.vm.returnValue) {
-          returnValue = ethUtil.addHexPrefix(results.vm.returnValue.toString('hex'))
+        } else if (results.vm.return) {
+          returnValue = ethUtil.addHexPrefix(results.vm.return.toString('hex'))
         }
         resultObj.result = returnValue
         return cb(null, resultObj)
@@ -68,9 +69,8 @@ VmSubprovider.prototype.sendAsync = function(payload, cb){
 
 VmSubprovider.prototype.runVm = function(payload, cb){
   const self = this
-  self._ready.await(function(){
-    // lock processing - one vm at a time
-    self._ready.stop()
+  // lock processing - one vm at a time
+  self.lock.take(function(){
     
     var blockData = self.rootProvider.currentBlock
     var block = blockFromBlockData(blockData)
@@ -91,22 +91,29 @@ VmSubprovider.prototype.runVm = function(payload, cb){
       from: txParams.from,
       value: txParams.value,
       data: txParams.data,
-      gasLimit: txParams.gas || block.gasLimit,//'0xffffffffffffffff',
+      gasLimit: txParams.gas || block.header.gasLimit,
       gasPrice: txParams.gasPrice,
+      nonce: txParams.nonce,
     })
-    tx.from = new Buffer(ethUtil.stripHexPrefix(txParams.from), 'hex')
+    tx.from = ethUtil.toBuffer(txParams.from)
 
-    // console.log('block:', block)
+    // vm.on('step', function(data, cb){
+    //   var name = data.opcode
+    //   console.warn('op coooodes:', name, data)
+    //   // debugger
+    //   cb()
+    // })
 
     vm.runTx({
       tx: tx,
       block: block,
-      // skipNonce: true,
+      skipNonce: !txParams.nonce,
     }, function(err, results) {
       // unlock vm
-      self._ready.go()
+      self.lock.leave()
 
       if (err) {
+        debugger
         if (isNormalVmError(err.message)) {
           return cb(null, { error: err })
         } else {
@@ -122,13 +129,14 @@ VmSubprovider.prototype.runVm = function(payload, cb){
 
 VmSubprovider.prototype._createAccountStorageTrie = function(blockNumber, address, cb){
   const self = this
+  var addressHex = ethUtil.addHexPrefix(address.toString('hex'))
   var storageTrie = new FallbackStorageTrie({
     fetchStorage: fetchStorage,
   })
   cb(null, storageTrie)
 
   function fetchStorage(key, cb){
-    self._fetchAccountStorage(address, key, blockNumber, cb)
+    self._fetchAccountStorage(addressHex, key, blockNumber, cb)
   }
 }
 
@@ -222,8 +230,9 @@ FallbackStorageTrie.prototype.get = function(key, cb){
     var keyHex = key.toString('hex')  
     self._fetchStorage(keyHex, function(err, rawValue){
       if (err) return cb(err)
-      var value = new Buffer(ethUtil.stripHexPrefix(rawValue), 'hex')
-      cb(null, value)
+      var value = ethUtil.toBuffer(rawValue)
+      var encodedValue = ethUtil.rlp.encode(value)
+      cb(null, encodedValue)
     })
   })
 }
@@ -235,28 +244,33 @@ FallbackStorageTrie.prototype.get = function(key, cb){
 // fallback to the network. puts are not sent.
 //
 
-function FallbackAsyncStore(fetchValue){
+function FallbackAsyncStore(fetchFn){
+  console.log('FallbackAsyncStore - new')
   const self = this
-  self.fetch = fetchValue
+  self.fetch = fetchFn
   self.cache = {}
 }
 
 FallbackAsyncStore.prototype.get = function(address, cb){
+  console.log('FallbackAsyncStore - get', arguments)
   const self = this
   var addressHex = '0x'+address.toString('hex')
   var code = self.cache[addressHex]
   if (code !== undefined) {
     cb(null, code)
   } else {
+    console.log('FallbackAsyncStore - fetch init')
     self.fetch(addressHex, function(err, value){
+      console.log('FallbackAsyncStore - fetch return', arguments)
       if (err) return cb(err)
       self.cache[addressHex] = value
-      cb(null, value)
+      cb(null, ethUtil.toBuffer(value))
     })
   }
 }
 
 FallbackAsyncStore.prototype.set = function(address, code, cb){
+  console.log('FallbackAsyncStore - set', arguments)
   const self = this
   var addressHex = '0x'+address.toString('hex')
   self.cache[addressHex] = code
