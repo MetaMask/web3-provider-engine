@@ -22,8 +22,6 @@ function Web3ProviderEngine(opts) {
   self.currentBlock = null
   self._sources = []
   self._blocks = {}
-  self._blockCache = {}
-  self._permaCache = {}
 }
 
 // public
@@ -37,24 +35,23 @@ Web3ProviderEngine.prototype.start = function(){
 Web3ProviderEngine.prototype.addSource = function(source){
   const self = this
   self._sources.push(source)
+  source._engine = this;
 }
 
 Web3ProviderEngine.prototype.send = function(payload){
-  const self = this
-  // console.warn('SYNC REQUEST:', payload)
-  return self._handleSync(payload)
+  throw new Error("Web3ProviderEngine does not support synchronous requests.");
 }
 
 Web3ProviderEngine.prototype.sendAsync = function(payload, cb){
   const self = this
   self._ready.await(function(){
-  
+
     if (Array.isArray(payload)) {
       // handle batch
-      async.map(payload, self._handleAsyncTryCache.bind(self), cb)
+      async.map(payload, self._handleAsync.bind(self), cb)
     } else {
       // handle single
-      self._handleAsyncTryCache(payload, cb)
+      self._handleAsync(payload, cb)
     }
 
   })
@@ -62,85 +59,60 @@ Web3ProviderEngine.prototype.sendAsync = function(payload, cb){
 
 // private
 
-Web3ProviderEngine.prototype._sourceForMethod = function(method){
-  const self = this
-  return self._sources.find(function(source){
-    return source.methods.indexOf(method) !== -1
-  })
-}
+Web3ProviderEngine.prototype._handleAsync = function(payload, finished) {
+  var self = this;
+  var currentProvider = -1;
+  var result = null;
+  var error = null;
 
-Web3ProviderEngine.prototype._handleSync = function(payload){
-  const self = this
-  var source = self._sourceForMethod(payload.method)
-  if (!source) throw SourceNotFoundError(payload)
-  var result = source.handleSync(payload)
-  return { 
-    id: payload.id,
-    jsonrpc: payload.jsonrpc,
-    result: result,
-  }
-}
+  var stack = [];
 
-Web3ProviderEngine.prototype._handleAsyncTryCache = function(payload, cb){
-  const self = this
-  // parse blockTag
-  var blockTag = cacheUtils.blockTagForPayload(payload)
-  // rewrite 'latest' blockTags to block number
-  if (!blockTag || blockTag === 'latest') blockTag = bufferToHex(self._blocks.latest.number)
+  function next(after) {
+    currentProvider += 1;
+    stack.unshift(after);
 
-  // first try cache
-  var blockCache = self._cacheForBlockTag(blockTag)
-  var cacheIdentifier = cacheUtils.cacheIdentifierForPayload(payload)
-  if (cacheIdentifier) {
-    var result = null
-    if (cacheUtils.canPermaCache(payload)) {
-      result = self._permaCache[cacheIdentifier]
-    } else if (blockCache) {
-      result = blockCache[cacheIdentifier]
+    // Bubbled down as far as we could go, and the request wasn't
+    // handled. Return an error.
+    if (currentProvider >= self._sources.length) {
+      end(new Error("Request for method '" + payload.method + "' not handled by any subprovider. Please check your subprovider configuration to ensure this method is handled."));
+    } else {
+      try {
+        var provider = self._sources[currentProvider];
+        provider.handleRequest(payload, next, end);
+      } catch (e) {
+        end(e);
+      }
     }
-    // if cache had a value, return it
-    // note: null is legitimate value (e.g. coinbase thats not set)
-    if (result !== undefined) {
-      // console.log('CACHE HIT:', blockTag, cacheIdentifier, '->', result)
+  };
+
+  function end(e, r) {
+    error = e;
+    result = r;
+
+    async.eachSeries(stack, function(fn, callback) {
+      if (fn != null) {
+        fn(error, result, callback);
+      } else {
+        callback();
+      }
+    }, function() {
+      console.log(payload);
+
       var resultObj = {
         id: payload.id,
         jsonrpc: payload.jsonrpc,
         result: result
-      }
-      return cb(null, resultObj)
-    } else {
-      // console.log('CACHE MISS:', blockTag, cacheIdentifier)
-    }
-  }
+      };
 
-  // fallback to request
-  self._handleAsync(payload, function(err, resultObj){
-    if (err) return cb(err)
+      if (error != null) {
+        resultObj.error = error.stack || error.message || error;
+      };
 
-    // populate cache with result
-    if (cacheIdentifier && resultObj.result) {
-      if (cacheUtils.canPermaCache(payload)) {
-        self._permaCache[cacheIdentifier] = resultObj.result
-        // console.log('CACHE POPULATE:', 'PERMA', cacheIdentifier, '->', resultObj.result)
-      } else if (blockCache && cacheUtils.canBlockCache(payload)) {
-        blockCache[cacheIdentifier] = resultObj.result
-        // console.log('CACHE POPULATE:', blockTag, cacheIdentifier, '->', resultObj.result)
-      } else {
-        // console.warn('CACHE POPULATE MISS:', blockTag, cacheIdentifier)
-      }
-    } else {
-      // console.log('CACHE SKIP:', payload.method, resultObj)
-    }
-    
-    cb(null, resultObj)
-  })
-}
+      finished(null, resultObj);
+    });
+  };
 
-Web3ProviderEngine.prototype._handleAsync = function(payload, cb){
-  const self = this
-  var source = self._sourceForMethod(payload.method)
-  if (!source) return cb(SourceNotFoundError(payload))
-  source.sendAsync(payload, cb)
+  next();
 }
 
 //
@@ -181,25 +153,19 @@ Web3ProviderEngine.prototype._setCurrentBlock = function(block){
   self.emit('block', block)
 }
 
-Web3ProviderEngine.prototype._cacheForBlockTag = function(blockTag){
-  const self = this
-  if (!blockTag || blockTag === 'pending') return null
-  var cache = self._blockCache[blockTag]
-  // create new cache if necesary
-  if (!cache) cache = self._blockCache[blockTag] = {}
-  return cache
-}
-
 Web3ProviderEngine.prototype._fetchBlock = function(number, cb){
   const self = this
-  
+
   // skip: cache, readiness, block number rewrite
   self._handleAsync({
+    jsonrpc: "2.0",
+    id: new Date().getTime() + parseInt(Math.random()*1000000),
     method: 'eth_getBlockByNumber',
     params: [number, false],
   }, function(err, resultObj){
     if (err) return cb(err)
       var data = resultObj.result
+
     // json -> buffers
     var block = {
       number: hexToBuffer(data.number),
@@ -239,6 +205,7 @@ function hexToBuffer(hexString){
   return new Buffer(hexString, 'hex')
 }
 
+// TODO: This should be in utils somewhere.
 function bufferToHex(buffer){
   return ethUtil.addHexPrefix(buffer.toString('hex'))
 }

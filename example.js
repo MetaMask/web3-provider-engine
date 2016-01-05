@@ -30,10 +30,10 @@ function zeroClientProvider(opts){
   engine.addSource(vmSubprovider)
 
   // id mgmt
-  var idmgmtSubprovider = new LightWalletSubprovider({
-    rootProvider: engine,
-  })
-  engine.addSource(idmgmtSubprovider)
+  // var idmgmtSubprovider = new LightWalletSubprovider({
+  //   rootProvider: engine,
+  // })
+  // engine.addSource(idmgmtSubprovider)
 
   // data source
   var rpcSubprovider = new RpcSubprovider({

@@ -15,36 +15,36 @@ module.exports = VmSubprovider
 function VmSubprovider(opts){
   const self = this
   self.methods = ['eth_call', 'eth_estimateGas']
-  self.rootProvider = opts.rootProvider
   self.currentBlock = 'latest'
   // readiness lock, used to keep vm calls down to 1 at a time
   self.lock = Semaphore(1)
 }
 
-VmSubprovider.prototype.sendAsync = function(payload, cb){
+VmSubprovider.prototype.handleRequest = function(payload, next, end) {
+  if (this.methods.indexOf(payload.method) < 0) {
+    return next();
+  }
+
   const self = this
   // console.log('VmSubprovider - runVm init', arguments)
   self.runVm(payload, function(err, results){
     // console.log('VmSubprovider - runVm return', arguments)
-    if (err) return cb(err)
-
-    var resultObj = {
-      id: payload.id,
-      jsonrpc: payload.jsonrpc,
-    }
+    if (err) return end(err)
 
     switch (payload.method) {
-      
+
       case 'eth_call':
-        var returnValue = '0x'
-        if (results.error) {
-          returnValue = '0x'
-        } else if (results.vm.return) {
-          returnValue = ethUtil.addHexPrefix(results.vm.return.toString('hex'))
+        console.log("RETURNING FROM CALL ----------------------");
+        console.log(results.error, results.vm.return);
+
+        var result = "0x";
+        if (!results.error && results.vm.return) {
+          console.log("VMVMVMVMVMVMVVMVMVMVVMVMVMVVMVMVMVMVV");
+          console.log(results.vm.return.toString('hex'));
+          result = ethUtil.addHexPrefix(results.vm.return.toString('hex'))
         }
-        resultObj.result = returnValue
-        return cb(null, resultObj)
-      
+        return end(null, result)
+
       case 'eth_estimateGas':
         // i considered transforming request to eth_call
         // to reduce the cache area, but we'd need to store
@@ -59,9 +59,8 @@ VmSubprovider.prototype.sendAsync = function(payload, cb){
         //   console.log('gas -> call results:', results)
         // })
 
-        var returnValue = ethUtil.addHexPrefix(results.gasUsed.toString('hex'))
-        resultObj.result = returnValue
-        return cb(null, resultObj)
+        var result = ethUtil.addHexPrefix(results.gasUsed.toString('hex'))
+        return end(null, result)
 
     }
   })
@@ -71,8 +70,8 @@ VmSubprovider.prototype.runVm = function(payload, cb){
   const self = this
   // lock processing - one vm at a time
   self.lock.take(function(){
-    
-    var blockData = self.rootProvider.currentBlock
+
+    var blockData = self._engine.currentBlock
     var block = blockFromBlockData(blockData)
     var blockNumber = ethUtil.addHexPrefix(blockData.number.toString('hex'))
 
@@ -194,7 +193,8 @@ VmSubprovider.prototype._fetchAccountCode = function(address, blockNumber, cb){
 VmSubprovider.prototype._emitPayload = function(payload, cb){
   const self = this
   // console.log('emit payload!', payload)
-  self.rootProvider.sendAsync(createPayload(payload), cb)
+  payload.cache = false;
+  this._engine.sendAsync(createPayload(payload), cb)
   // self.rootProvider.sendAsync(createPayload(payload), function(){
   //   // console.log('payload return!', arguments)
   //   cb.apply(null, arguments)
@@ -222,15 +222,21 @@ function FallbackStorageTrie(opts) {
 FallbackStorageTrie.prototype.get = function(key, cb){
   const self = this
   var _super = FakeMerklePatriciaTree.prototype.get.bind(self)
-  
+
   _super(key, function(err, value){
     if (err) return cb(err)
     if (value) return cb(null, value)
     // if value not in tree, try network
-    var keyHex = key.toString('hex')  
+    var keyHex = key.toString('hex')
     self._fetchStorage(keyHex, function(err, rawValue){
+      console.log(err, raw)
+
       if (err) return cb(err)
+
       var value = ethUtil.toBuffer(rawValue)
+      console.log(rawValue);
+      console.log(value);
+
       var encodedValue = ethUtil.rlp.encode(value)
       cb(null, encodedValue)
     })

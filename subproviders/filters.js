@@ -2,7 +2,6 @@ const createPayload = require('../util/create-payload.js')
 
 module.exports = FilterSubprovider
 
-
 function FilterSubprovider(opts) {
   const self = this
   self.rootProvider = opts.rootProvider
@@ -18,43 +17,32 @@ function FilterSubprovider(opts) {
   ]
 }
 
-FilterSubprovider.prototype.send = function(payload){
-  throw new Error('FilterSubprovider - Synchronous send not supported!')
-}
-
-FilterSubprovider.prototype.sendAsync = function(payload, cb){
+FilterSubprovider.prototype.handleRequest = function(payload, next, end){
   const self = this
   switch(payload.method){
-    
+
     case 'eth_newBlockFilter':
-      self.newBlockFilter(handleResult)
+      self.newBlockFilter(end)
       return
 
     case 'eth_newFilter':
-      self.newFilter(payload.params[0], handleResult)
+      self.newFilter(payload.params[0], end)
       return
 
     case 'eth_getFilterChanges':
-      self.getFilterChanges(payload.params[0], handleResult)
+      self.getFilterChanges(payload.params[0], end)
       return
 
     case 'eth_getFilterLogs':
-      self.getFilterLogs(payload.params[0], handleResult)
+      self.getFilterLogs(payload.params[0], end)
       return
 
     case 'eth_uninstallFilter':
-      self.uninstallFilter(payload.params[0], handleResult)
+      self.uninstallFilter(payload.params[0], end)
       return
-  }
-
-  function handleResult(err, result){
-    if (err) return cb(err)
-    var resultObj = {
-      id: payload.id,
-      jsonrpc: '2.0',
-      result: result,
-    }
-    cb(null, resultObj)
+    default:
+      next();
+      return;
   }
 }
 
@@ -72,7 +60,7 @@ FilterSubprovider.prototype.newBlockFilter = function(cb) {
     var destroyHandler = function(){
       self.rootProvider.removeListener('block', newBlockHandler)
     }
-    
+
     self.filterIndex++
     var hexFilterIndex = intToHex(self.filterIndex)
     self.filters[hexFilterIndex] = filter
@@ -88,7 +76,7 @@ FilterSubprovider.prototype.newFilter = function(opts, cb) {
 
   self._getBlockNumber(function(err, blockNumber){
     if (err) return cb(err)
-    
+
     var filter = new LogFilter(opts)
     var newLogHandler = filter.update.bind(filter)
     var destroyHandler = function(){
@@ -101,7 +89,7 @@ FilterSubprovider.prototype.newFilter = function(opts, cb) {
         logs.forEach(newLogHandler)
       })
     })
-    
+
     self.filterIndex++
     var hexFilterIndex = intToHex(self.filterIndex)
     if (!filter) console.warn('FilterSubprovider - new filter with id:', hexFilterIndex)
@@ -137,7 +125,7 @@ FilterSubprovider.prototype.getFilterLogs = function(filterId, cb) {
 
 FilterSubprovider.prototype.uninstallFilter = function(filterId, cb) {
   const self = this
-  
+
   var filter = self.filters[filterId]
   if (filter == null) {
     cb(null, false)
@@ -148,7 +136,7 @@ FilterSubprovider.prototype.uninstallFilter = function(filterId, cb) {
   delete self.filters[filterId]
   delete self.filterDestroyHandlers[filterId]
   destroyHandler()
-  
+
   cb(null, true)
 }
 
