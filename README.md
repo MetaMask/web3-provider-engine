@@ -15,7 +15,7 @@ The provider engine also handles caching of rpc request results.
 ```js
 const ProviderEngine = require('web3-provider-engine')
 const StaticProvider = require('web3-provider-engine/subproviders/static.js')
-const FilterSubprovider = require('web3-provider-engine/subproviders/fitlers.js')
+const FilterSubprovider = require('web3-provider-engine/subproviders/filters.js')
 const VmSubprovider = require('web3-provider-engine/subproviders/vm.js')
 const LightWalletSubprovider = require('web3-provider-engine/subproviders/lightwallet.js')
 const RpcSubprovider = require('web3-provider-engine/subproviders/rpc.js')
