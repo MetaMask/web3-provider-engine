@@ -1,8 +1,11 @@
 const xhr = process.browser ? require('xhr') : require('request')
 const inherits = require('util').inherits
 const createPayload = require('../util/create-payload.js')
+const Subprovider = require('./subprovider.js')
 
 module.exports = RpcSource
+
+inherits(RpcSource, Subprovider)
 
 function RpcSource(opts) {
   const self = this

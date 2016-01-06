@@ -1,9 +1,12 @@
 const KeyStore = require('eth-lightwallet').keystore
 const txUtils = require('eth-lightwallet').txutils
 const createPayload = require('../util/create-payload.js')
+const inherits = require('util').inherits
+const Subprovider = require('./subprovider.js')
 
 module.exports = LightWalletSubprovider
 
+inherits(LightWalletSubprovider, Subprovider)
 
 function LightWalletSubprovider(opts){
   const self = this

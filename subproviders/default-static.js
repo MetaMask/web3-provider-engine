@@ -3,7 +3,6 @@ const StaticProvider = require('./static.js')
 
 module.exports = DefaultStatic
 
-
 inherits(DefaultStatic, StaticProvider)
 
 function DefaultStatic() {

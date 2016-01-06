@@ -1,6 +1,10 @@
 const createPayload = require('../util/create-payload.js')
+const inherits = require('util').inherits
+const Subprovider = require('./subprovider.js')
 
 module.exports = FilterSubprovider
+
+inherits(FilterSubprovider, Subprovider)
 
 function FilterSubprovider(opts) {
   const self = this

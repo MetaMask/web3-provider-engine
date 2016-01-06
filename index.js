@@ -35,7 +35,7 @@ Web3ProviderEngine.prototype.start = function(){
 Web3ProviderEngine.prototype.addSource = function(source){
   const self = this
   self._sources.push(source)
-  source._engine = this;
+  source.setEngine(this);
 }
 
 Web3ProviderEngine.prototype.send = function(payload){
@@ -96,7 +96,8 @@ Web3ProviderEngine.prototype._handleAsync = function(payload, finished) {
         callback();
       }
     }, function() {
-      console.log(payload);
+      // console.log("COMPLETED:", payload);
+      // console.log("RESULT: ", result);
 
       var resultObj = {
         id: payload.id,
@@ -106,9 +107,10 @@ Web3ProviderEngine.prototype._handleAsync = function(payload, finished) {
 
       if (error != null) {
         resultObj.error = error.stack || error.message || error;
-      };
-
-      finished(null, resultObj);
+        finished(null, resultObj);
+      } else {
+        self._inspectResponseForNewBlock(payload, resultObj, finished);
+      }
     });
   };
 
@@ -121,34 +123,32 @@ Web3ProviderEngine.prototype._handleAsync = function(payload, finished) {
 
 Web3ProviderEngine.prototype._startPolling = function(){
   const self = this
-  pollForBlock()
 
-  function pollForBlock(){
-    fetchLatestBlock(function onBlockFetchResponse(err, block){
-      if (block) checkIfUpdated(block)
-      setTimeout(pollForBlock, POLLING_INTERVAL)
-    })
-  }
+  self._fetchLatestBlock();
 
-  function fetchLatestBlock(cb){
-    self._fetchBlock('latest', cb)
-  }
+  setInterval(function() {
+    self._fetchLatestBlock();
+  }, POLLING_INTERVAL);
+}
 
-  function checkIfUpdated(block){
-    if (!self._blocks.latest || 0 !== self._blocks.latest.hash.compare(block.hash)) {
+Web3ProviderEngine.prototype._fetchLatestBlock = function(cb) {
+  if (!cb) cb = function() {};
+
+  const self = this
+
+  self._fetchBlock('latest', function(err, block) {
+    if (err || !block) return cb(err);
+
+    if (!self.currentBlock || 0 !== self.currentBlock.hash.compare(block.hash)) {
       self._setCurrentBlock(block)
     }
-  }
+
+    cb(null, block);
+  });
 }
 
 Web3ProviderEngine.prototype._setCurrentBlock = function(block){
   const self = this
-  // self.resetBlockCache()
-  var blockNumber = bufferToHex(block.number)
-  self._blocks[blockNumber] = block
-  self._blocks.latest = block
-  // console.log('saving block cache with number:', blockNumber)
-  // broadcast new block
   self.currentBlock = block
   self.emit('block', block)
 }
@@ -192,6 +192,27 @@ Web3ProviderEngine.prototype._fetchBlock = function(number, cb){
   })
 }
 
+Web3ProviderEngine.prototype._inspectResponseForNewBlock = function(payload, resultObj, cb) {
+  if (payload.method != "eth_getTransactionByHash" && payload.method != "eth_getTransactionReceipt") {
+    return cb(null, resultObj);
+  }
+
+  if (resultObj.result == null) {
+    return cb(null, resultObj);
+  }
+
+  var blockNumber = hexToBuffer(resultObj.result.blockNumber);
+
+  // If we found a block number we don't know about, fetch a new one before
+  // returning a response.
+  if (0 !== this.currentBlock.number.compare(blockNumber)) {
+    this._fetchLatestBlock(function(err, block) {
+      cb(null, resultObj);
+    });
+  } else {
+    cb(null, resultObj);
+  }
+}
 
 // util
 

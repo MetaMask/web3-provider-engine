@@ -1,4 +1,9 @@
+const inherits = require('util').inherits
+const Subprovider = require('./subprovider.js')
+
 module.exports = StaticProvider
+
+inherits(StaticProvider, Subprovider)
 
 function StaticProvider(staticResponses){
   const self = this
