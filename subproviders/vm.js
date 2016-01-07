@@ -22,7 +22,7 @@ function VmSubprovider(opts){
 
 VmSubprovider.prototype.handleRequest = function(payload, next, end) {
   if (this.methods.indexOf(payload.method) < 0) {
-    return next();
+    return next()
   }
 
   const self = this
@@ -34,13 +34,11 @@ VmSubprovider.prototype.handleRequest = function(payload, next, end) {
     switch (payload.method) {
 
       case 'eth_call':
-        console.log("RETURNING FROM CALL ----------------------");
-        console.log(results.error, results.vm.return);
+        // console.log('RETURNING FROM CALL:', results.error, results.vm.return)
 
-        var result = "0x";
+        var result = '0x'
         if (!results.error && results.vm.return) {
-          console.log("VMVMVMVMVMVMVVMVMVMVVMVMVMVVMVMVMVMVV");
-          console.log(results.vm.return.toString('hex'));
+          // console.log(results.vm.return.toString('hex'))
           result = ethUtil.addHexPrefix(results.vm.return.toString('hex'))
         }
         return end(null, result)
@@ -121,7 +119,7 @@ VmSubprovider.prototype.runVm = function(payload, cb){
       }
 
       cb(null, results)
-    });
+    })
 
   })
 }
@@ -193,7 +191,7 @@ VmSubprovider.prototype._fetchAccountCode = function(address, blockNumber, cb){
 VmSubprovider.prototype._emitPayload = function(payload, cb){
   const self = this
   // console.log('emit payload!', payload)
-  payload.cache = false;
+  payload.cache = false
   this._engine.sendAsync(createPayload(payload), cb)
   // self.rootProvider.sendAsync(createPayload(payload), function(){
   //   // console.log('payload return!', arguments)
@@ -234,8 +232,8 @@ FallbackStorageTrie.prototype.get = function(key, cb){
       if (err) return cb(err)
 
       var value = ethUtil.toBuffer(rawValue)
-      console.log(rawValue);
-      console.log(value);
+      // console.log(rawValue)
+      // console.log(value)
 
       var encodedValue = ethUtil.rlp.encode(value)
       cb(null, encodedValue)
