@@ -1,20 +1,22 @@
-const createPayload = require('../util/create-payload.js')
+const inherits = require('util').inherits
+const Subprovider = require('./subprovider.js')
 
 module.exports = FilterSubprovider
 
+// handles the following RPC methods:
+//   eth_newBlockFilter
+//   eth_newFilter
+//   eth_getFilterChanges
+//   eth_uninstallFilter
+//   eth_getFilterLogs
+
+inherits(FilterSubprovider, Subprovider)
+
 function FilterSubprovider(opts) {
   const self = this
-  self.rootProvider = opts.rootProvider
   self.filterIndex = 0
   self.filters = {}
   self.filterDestroyHandlers = {}
-  self.methods = [
-    'eth_newBlockFilter',
-    'eth_newFilter',
-    'eth_getFilterChanges',
-    'eth_uninstallFilter',
-    'eth_getFilterLogs',
-  ]
 }
 
 FilterSubprovider.prototype.handleRequest = function(payload, next, end){
@@ -40,9 +42,10 @@ FilterSubprovider.prototype.handleRequest = function(payload, next, end){
     case 'eth_uninstallFilter':
       self.uninstallFilter(payload.params[0], end)
       return
+    
     default:
-      next();
-      return;
+      next()
+      return
   }
 }
 
@@ -56,9 +59,9 @@ FilterSubprovider.prototype.newBlockFilter = function(cb) {
     })
 
     var newBlockHandler = filter.update.bind(filter)
-    self.rootProvider.on('block', newBlockHandler)
+    self.engine.on('block', newBlockHandler)
     var destroyHandler = function(){
-      self.rootProvider.removeListener('block', newBlockHandler)
+      self.engine.removeListener('block', newBlockHandler)
     }
 
     self.filterIndex++
@@ -80,10 +83,10 @@ FilterSubprovider.prototype.newFilter = function(opts, cb) {
     var filter = new LogFilter(opts)
     var newLogHandler = filter.update.bind(filter)
     var destroyHandler = function(){
-      self.rootProvider.removeListener('block', newLogHandler)
+      self.engine.removeListener('block', newLogHandler)
     }
 
-    self.rootProvider.on('block', function(block){
+    self.engine.on('block', function(block){
       self._logsForBlock(block, function(err, logs){
         if (err) throw err
         logs.forEach(newLogHandler)
@@ -144,20 +147,20 @@ FilterSubprovider.prototype.uninstallFilter = function(filterId, cb) {
 
 FilterSubprovider.prototype._getBlockNumber = function(cb) {
   const self = this
-  var blockNumber = bufferToHex(self.rootProvider.currentBlock.number)
+  var blockNumber = bufferToHex(self.engine.currentBlock.number)
   cb(null, blockNumber)
 }
 
 FilterSubprovider.prototype._logsForBlock = function(block, cb) {
   const self = this
   var blockNumber = bufferToHex(block.number)
-  self.rootProvider.sendAsync(createPayload({
+  self.emitPayload({
     method: 'eth_getLogs',
     params: [{
       fromBlock: blockNumber,
       toBlock: blockNumber,
     }],
-  }), function(err, results){
+  }, function(err, results){
     if (err) return cb(err)
     cb(null, results.result)
   })
@@ -171,7 +174,7 @@ FilterSubprovider.prototype._logsForBlock = function(block, cb) {
 function BlockFilter(opts) {
   // console.log('BlockFilter - new')
   const self = this
-  self.rootProvider = opts.rootProvider
+  self.engine = opts.engine
   self.blockNumber = opts.blockNumber
   self.updates = []
 }
@@ -214,15 +217,19 @@ function LogFilter(opts) {
 LogFilter.prototype.validateLog = function(log){
   // console.log('LogFilter - validateLog:', log)
   const self = this
+  
   // block number
   // console.log('LogFilter - validateLog - blockNumber', self.fromBlock, self.toBlock)
   if (blockTagIsNumber(self.fromBlock) && hexToInt(self.fromBlock) <= hexToInt(log.blockNumber)) return false
   if (blockTagIsNumber(self.toBlock) && hexToInt(self.toBlock) >= hexToInt(log.blockNumber)) return false
+  
   // address
   // console.log('LogFilter - validateLog - address', self.address)
   if (self.address && self.address !== log.address) return false
+  
   // topics
   // topics can be nested to represent `and` then `or` [[a || b] && c]
+  // topics are position-dependant
   // console.log('LogFilter - validateLog - topics', self.topics)
   var topicsMatch = self.topics.reduce(function(previousMatched, topic){
     if (!previousMatched) return false
@@ -232,6 +239,7 @@ LogFilter.prototype.validateLog = function(log){
     }).length > 0
     return topicMatches
   }, true)
+  
   // console.log('LogFilter - validateLog - approved!')
   return topicsMatch
 }

@@ -1,4 +1,9 @@
+const inherits = require('util').inherits
+const Subprovider = require('./subprovider.js')
+
 module.exports = WhitelistProvider
+
+inherits(WhitelistProvider, Subprovider)
 
 function WhitelistProvider(methods){
   this.methods = methods;

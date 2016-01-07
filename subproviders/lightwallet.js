@@ -1,22 +1,24 @@
 const KeyStore = require('eth-lightwallet').keystore
 const txUtils = require('eth-lightwallet').txutils
 const createPayload = require('../util/create-payload.js')
+const inherits = require('util').inherits
+const Subprovider = require('./subprovider.js')
 
 module.exports = LightWalletSubprovider
 
+// handles the following RPC methods:
+//   eth_coinbase
+//   eth_accounts
+//   eth_sendTransaction
+//   eth_sign *pending
+
+
+inherits(LightWalletSubprovider, Subprovider)
 
 function LightWalletSubprovider(opts){
   const self = this
 
-  self.rootProvider = opts.rootProvider
-
-  self.methods = [
-    'eth_coinbase',
-    'eth_accounts',
-    'eth_sendTransaction',
-    // 'eth_sign',
-  ]
-
+  // hardcoded password is temporary, obviously
   var password = 'secret_password_shhhhh'
   var serializedKeystore = localStorage['lightwallet']
   // returning user
@@ -97,7 +99,7 @@ LightWalletSubprovider.prototype.handleRequest = function(payload, next, end){
 
 LightWalletSubprovider.prototype._fetchAccountNonce = function(address, cb){
   const self = this
-  self._emitPayload({ method: 'eth_getTransactionCount', params: [address, 'latest'] }, function(err, results){
+  self.emitPayload({ method: 'eth_getTransactionCount', params: [address, 'latest'] }, function(err, results){
     if (err) return cb(err)
     cb(null, results.result)
   })
@@ -105,21 +107,10 @@ LightWalletSubprovider.prototype._fetchAccountNonce = function(address, cb){
 
 LightWalletSubprovider.prototype._submitRawTx = function(rawTx, cb){
   const self = this
-  self._emitPayload({ method: 'eth_sendRawTransaction', params: [rawTx] }, function(err, results){
+  self.emitPayload({ method: 'eth_sendRawTransaction', params: [rawTx] }, function(err, results){
     if (err) return cb(err)
     cb(null, results.result)
   })
-}
-
-LightWalletSubprovider.prototype._emitPayload = function(payload, cb){
-  const self = this
-  // console.log('emit payload!', payload)
-  self.rootProvider.sendAsync(createPayload(payload), cb)
-  // self.rootProvider.sendAsync(createPayload(payload), function(){
-  //   // console.log('payload return!', arguments)
-  //   cb.apply(null, arguments)
-  // })
-
 }
 
 LightWalletSubprovider.prototype.signAndSerializeTx = function(txData, cb){

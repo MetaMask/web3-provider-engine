@@ -6,8 +6,7 @@ Status: WIP - expect breaking changes and strange behaviour
 
 ### Composable
 
-Built to be modular - works via a stack of 'sub-providers' which are like normal web3 providers but only handle a subset of rpc methods,
-specified via `subProvider.methods = ['eth_call', 'etc...']`.
+Built to be modular - works via a stack of 'sub-providers' which are like normal web3 providers but only handle a subset of rpc methods.
 
 The subproviders can emit new rpc requests in order to handle their own;  e.g. `eth_call` may trigger `eth_getAccountBalance`, `eth_getCode`, and others.
 The provider engine also handles caching of rpc request results.
@@ -15,7 +14,7 @@ The provider engine also handles caching of rpc request results.
 ```js
 const ProviderEngine = require('web3-provider-engine')
 const StaticProvider = require('web3-provider-engine/subproviders/static.js')
-const FilterSubprovider = require('web3-provider-engine/subproviders/fitlers.js')
+const FilterSubprovider = require('web3-provider-engine/subproviders/filters.js')
 const VmSubprovider = require('web3-provider-engine/subproviders/vm.js')
 const LightWalletSubprovider = require('web3-provider-engine/subproviders/lightwallet.js')
 const RpcSubprovider = require('web3-provider-engine/subproviders/rpc.js')
@@ -24,39 +23,40 @@ var engine = new ProviderEngine()
 var web3 = new Web3(engine)
 
 // static - e.g.: web3_clientVersion
-engine.addSource(new StaticProvider({
-  web3_clientVersion: 'MetaMask-ZeroClient/v0.0.0/javascript',
-  net_version: '1',
+engine.addProvider(new StaticProvider({
+  web3_clientVersion: 'MetaMask-ProviderEngine/v0.0.0/javascript',
   net_listening: true,
-  net_peerCount: '0xc',
-  eth_protocolVersion: '63',
   eth_hashrate: '0x0',
   eth_mining: false,
   eth_syncing: true,
 })
 
-// filters - e.g.: eth_newBlockFilter
-engine.addSource(new FilterSubprovider({
-  rootProvider: engine,
+// filters
+engine.addProvider(new FilterSubprovider())
+
+// vm
+engine.addProvider(new VmSubprovider())
+
+// id mgmt
+engine.addProvider(new LightWalletSubprovider())
+
+// data source
+engine.addProvider(new RpcSubprovider({
+  rpcUrl: 'https://testrpc.metamask.io/',
 }))
 
-// vm - e.g.: eth_call
-engine.addSource(new VmSubprovider({
-  rootProvider: engine,
-}))
-
-// id mgmt - e.g.: eth_signTransaction
-engine.addSource(new LightWalletSubprovider({
-  rootProvider: engine,
-}))
-
-// data source - e.g.: eth_getBalance
-engine.addSource(new RpcSubprovider({
-  rpcUrl: 'https://rpc.metamask.io/',
-}))
+// log new blocks
+engine.on('block', function(block){
+  // lazy hack - move caching and current block to engine
+  engine.currentBlock = block
+  console.log('================================')
+  console.log('BLOCK CHANGED:', '#'+block.number.toString('hex'), '0x'+block.hash.toString('hex'))
+  console.log('================================')
+})
 
 // start polling for blocks
 engine.start()
+
 ```
 
 ### Built For Zero-Clients

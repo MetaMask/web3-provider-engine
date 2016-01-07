@@ -1,7 +1,11 @@
 const cacheUtils = require('../util/rpc-cache-utils.js')
 const ethUtil = require('ethereumjs-util')
+const inherits = require('util').inherits
+const Subprovider = require('./subprovider.js')
 
 module.exports = BlockCacheProvider
+
+inherits(BlockCacheProvider, Subprovider)
 
 function BlockCacheProvider() {
   const self = this
@@ -17,12 +21,13 @@ function bufferToHex(buffer){
 BlockCacheProvider.prototype.handleRequest = function(payload, next, end){
   const self = this
 
-  if (payload.method == "eth_getStorageAt") {
-    debugger;
-  }
-
   if (typeof payload.cache !== "undefined" && payload.cache == false) {
     //throw new Error("Skipping cache");
+    return next();
+  }
+
+  // Ignore block polling requests.
+  if (payload.method == "eth_getBlockByNumber" && payload.params[0] == "latest") {
     return next();
   }
 
@@ -30,15 +35,12 @@ BlockCacheProvider.prototype.handleRequest = function(payload, next, end){
   var blockTag = cacheUtils.blockTagForPayload(payload)
   // rewrite 'latest' blockTags to block number
 
-  // TODO: self._engine._blocks.latest.number is gross
-  // We shoul instead listen to the block event emitted from the engine.
-
-  if (self._engine._blocks.latest == null) {
+  if (this.currentBlock == null) {
     next();
     return;
   }
 
-  if (!blockTag || blockTag === 'latest') blockTag = bufferToHex(self._engine._blocks.latest.number)
+  if (!blockTag || blockTag === 'latest') blockTag = bufferToHex(this.currentBlock.number)
 
   // first try cache
   var blockCache = self._cacheForBlockTag(blockTag)
