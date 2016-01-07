@@ -1,22 +1,24 @@
 const KeyStore = require('eth-lightwallet').keystore
 const txUtils = require('eth-lightwallet').txutils
 const createPayload = require('../util/create-payload.js')
+const inherits = require('util').inherits
+const Subprovider = require('./subprovider.js')
 
 module.exports = LightWalletSubprovider
 
+// handles the following RPC methods:
+//   eth_coinbase
+//   eth_accounts
+//   eth_sendTransaction
+//   eth_sign *pending
+
+
+inherits(LightWalletSubprovider, Subprovider)
 
 function LightWalletSubprovider(opts){
   const self = this
 
-  self.rootProvider = opts.rootProvider
-
-  self.methods = [
-    'eth_coinbase',
-    'eth_accounts',
-    'eth_sendTransaction',
-    // 'eth_sign',
-  ]
-
+  // hardcoded password is temporary, obviously
   var password = 'secret_password_shhhhh'
   var serializedKeystore = localStorage['lightwallet']
   // returning user
@@ -54,44 +56,20 @@ LightWalletSubprovider.prototype.unlock = function(cb){
   cb(null, password)
 }
 
-LightWalletSubprovider.prototype.send = function(payload, cb){
+LightWalletSubprovider.prototype.handleRequest = function(payload, next, end){
   const self = this
-  
-  var resultObj = {
-    id: payload.id,
-    jsonrpc: '2.0',
-  }
 
   switch(payload.method) {
-    
+
     case 'eth_coinbase':
       var result = self.keystore.getAddresses()[0] || null
       if (result) result = appendHexPrefix(result)
-      resultObj.result = result
-      return resultObj
-    
+      return end(null, result);
+
     case 'eth_accounts':
       var result = self.keystore.getAddresses().map(appendHexPrefix)
-      resultObj.result = result
-      return resultObj
+      return end(null, result);
 
-    default:
-      cb(new Error('RPC Methd '+payload.method+' does not support synch'))
-      return
-
-  }
-}
-
-LightWalletSubprovider.prototype.sendAsync = function(payload, cb){
-  const self = this
-  
-  var resultObj = {
-    id: payload.id,
-    jsonrpc: '2.0',
-  }
-
-  switch(payload.method) {
-    
     case 'eth_sendTransaction':
       var txData = payload.params[0]
       var fromAddress = stripHexPrefix(txData.from)
@@ -101,12 +79,11 @@ LightWalletSubprovider.prototype.sendAsync = function(payload, cb){
         self._submitRawTx(rawTx, function(err, txHash){
           if (err) return cb(err)
           console.log('tx submit completed')
-          resultObj.result = txHash
-          cb(null, resultObj)
+          end(null, txHash);
         })
       })
       return
-    
+
     // case 'eth_sign':
     //   var result = self.keystore.getAddresses()
     //   resultObj.result = result
@@ -114,8 +91,7 @@ LightWalletSubprovider.prototype.sendAsync = function(payload, cb){
     //   return
 
     default:
-      var resultObj = self.send(payload)
-      cb(null, resultObj)
+      next();
       return
 
   }
@@ -123,7 +99,7 @@ LightWalletSubprovider.prototype.sendAsync = function(payload, cb){
 
 LightWalletSubprovider.prototype._fetchAccountNonce = function(address, cb){
   const self = this
-  self._emitPayload({ method: 'eth_getTransactionCount', params: [address, 'latest'] }, function(err, results){
+  self.emitPayload({ method: 'eth_getTransactionCount', params: [address, 'latest'] }, function(err, results){
     if (err) return cb(err)
     cb(null, results.result)
   })
@@ -131,21 +107,10 @@ LightWalletSubprovider.prototype._fetchAccountNonce = function(address, cb){
 
 LightWalletSubprovider.prototype._submitRawTx = function(rawTx, cb){
   const self = this
-  self._emitPayload({ method: 'eth_sendRawTransaction', params: [rawTx] }, function(err, results){
+  self.emitPayload({ method: 'eth_sendRawTransaction', params: [rawTx] }, function(err, results){
     if (err) return cb(err)
     cb(null, results.result)
   })
-}
-
-LightWalletSubprovider.prototype._emitPayload = function(payload, cb){
-  const self = this
-  // console.log('emit payload!', payload)
-  self.rootProvider.sendAsync(createPayload(payload), cb)
-  // self.rootProvider.sendAsync(createPayload(payload), function(){
-  //   // console.log('payload return!', arguments)
-  //   cb.apply(null, arguments)
-  // })
-
 }
 
 LightWalletSubprovider.prototype.signAndSerializeTx = function(txData, cb){
@@ -171,11 +136,11 @@ LightWalletSubprovider.prototype.signAndSerializeTx = function(txData, cb){
       if (err) return cb(err)
 
       var rawTx = appendHexPrefix(self.keystore.signTx(rlpTx.tx, password, fromAddress))
-      
+
       // logging
       // var buf = new Buffer(rawTx, 'hex')
       // var newFormat = buf.toString('binary')
-      // console.warn('serializing tx:', txData) 
+      // console.warn('serializing tx:', txData)
       // console.warn('rlpTx.tx:', rlpTx.tx)
       // console.warn('rawTx:', rawTx)
       // console.warn('newFormat:', newFormat)

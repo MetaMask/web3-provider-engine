@@ -1,45 +1,18 @@
-require('array.prototype.find')
-require('es6-promise').polyfill()
-require('isomorphic-fetch')
-const Transaction = require('ethereumjs-tx')
-const async = require('async')
 const xhr = process.browser ? require('xhr') : require('request')
 const inherits = require('util').inherits
-const ethUtil = require('ethereumjs-util')
-const BN = ethUtil.BN
 const createPayload = require('../util/create-payload.js')
+const Subprovider = require('./subprovider.js')
 
 module.exports = RpcSource
 
+inherits(RpcSource, Subprovider)
 
-function RpcSource(opts){
+function RpcSource(opts) {
   const self = this
   self.rpcUrl = opts.rpcUrl
-  self.methods = [
-    'eth_gasPrice',
-    'eth_blockNumber',
-    'eth_getBalance',
-    'eth_getBlockByHash',
-    'eth_getBlockByNumber',
-    'eth_getBlockTransactionCountByHash',
-    'eth_getBlockTransactionCountByNumber',
-    'eth_getCode',
-    'eth_getStorageAt',
-    'eth_getTransactionByBlockHashAndIndex',
-    'eth_getTransactionByBlockNumberAndIndex',
-    'eth_getTransactionByHash',
-    'eth_getTransactionCount',
-    'eth_getTransactionReceipt',
-    'eth_getUncleByBlockHashAndIndex',
-    'eth_getUncleByBlockNumberAndIndex',
-    'eth_getUncleCountByBlockHash',
-    'eth_getUncleCountByBlockNumber',
-    'eth_sendRawTransaction',
-    'eth_getLogs',
-  ]
 }
 
-RpcSource.prototype.sendAsync = function(payload, cb){
+RpcSource.prototype.handleRequest = function(payload, next, end){
   const self = this
   var targetUrl = self.rpcUrl
   var method = payload.method
@@ -63,12 +36,7 @@ RpcSource.prototype.sendAsync = function(payload, cb){
     body: JSON.stringify(newPayload),
     rejectUnauthorized: false,
   }, function(err, res, body) {
-    if (err) return cb(err)
-
-    var resultObj = {
-      id: payload.id,
-      jsonrpc: payload.jsonrpc,
-    }
+    if (err) return end(err)
 
     // parse response into raw account
     var data
@@ -76,19 +44,19 @@ RpcSource.prototype.sendAsync = function(payload, cb){
       data = JSON.parse(body)
     } catch (err) {
       console.error(err.stack)
-      return cb(err)
+      return end(err)
     }
 
-    // console.log('network:', payload.method, payload.params, '->', data.result)
+    // // console.log('network:', payload.method, payload.params, '->', data.result)
+    //
+    // if (data.error) {
+    //   resultObj.error = data.error
+    //   // return cb(new Error(data.error.message))
+    // } else {
+    //   resultObj.result = data.result
+    // }
 
-    if (data.error) {
-      resultObj.error = data.error
-      // return cb(new Error(data.error.message))
-    } else {
-      resultObj.result = data.result
-    }
-    
-    cb(null, resultObj)
+    end(data.error, data.result);
   })
-  
+
 }

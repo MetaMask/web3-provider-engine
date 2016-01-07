@@ -8,60 +8,55 @@ const FakeMerklePatriciaTree = require('fake-merkle-patricia-tree')
 const ethUtil = require('ethereumjs-util')
 const createPayload = require('../util/create-payload.js')
 const Semaphore = require('semaphore')
+const Subprovider = require('./subprovider.js')
 
 module.exports = VmSubprovider
 
+// handles the following RPC methods:
+//   eth_call
+//   eth_estimateGas
+
+
+inherits(VmSubprovider, Subprovider)
 
 function VmSubprovider(opts){
   const self = this
   self.methods = ['eth_call', 'eth_estimateGas']
-  self.rootProvider = opts.rootProvider
-  self.currentBlock = 'latest'
   // readiness lock, used to keep vm calls down to 1 at a time
   self.lock = Semaphore(1)
 }
 
-VmSubprovider.prototype.sendAsync = function(payload, cb){
+VmSubprovider.prototype.handleRequest = function(payload, next, end) {
+  if (this.methods.indexOf(payload.method) < 0) {
+    return next()
+  }
+
   const self = this
   // console.log('VmSubprovider - runVm init', arguments)
   self.runVm(payload, function(err, results){
     // console.log('VmSubprovider - runVm return', arguments)
-    if (err) return cb(err)
-
-    var resultObj = {
-      id: payload.id,
-      jsonrpc: payload.jsonrpc,
-    }
+    if (err) return end(err)
 
     switch (payload.method) {
-      
+
       case 'eth_call':
-        var returnValue = '0x'
-        if (results.error) {
-          returnValue = '0x'
-        } else if (results.vm.return) {
-          returnValue = ethUtil.addHexPrefix(results.vm.return.toString('hex'))
+        var result = '0x'
+        if (!results.error && results.vm.return) {
+          // console.log(results.vm.return.toString('hex'))
+          result = ethUtil.addHexPrefix(results.vm.return.toString('hex'))
         }
-        resultObj.result = returnValue
-        return cb(null, resultObj)
-      
+        return end(null, result)
+
       case 'eth_estimateGas':
-        // i considered transforming request to eth_call
+        // since eth_estimateGas is just eth_call with
+        // a different part of the results,
+        // I considered transforming request to eth_call
         // to reduce the cache area, but we'd need to store
-        // metadata somewhere or something, instead of just
-        // the simple return value
+        // the full vm result somewhere, instead of just
+        // the return value. so instead we just run it again.
 
-        // self.rootProvider.sendAsync(createPayload({
-        //   method: 'eth_call',
-        //   params: payload.params,
-        // }), function(err, results){
-        //   // if (err) return cb(err)
-        //   console.log('gas -> call results:', results)
-        // })
-
-        var returnValue = ethUtil.addHexPrefix(results.gasUsed.toString('hex'))
-        resultObj.result = returnValue
-        return cb(null, resultObj)
+        var result = ethUtil.addHexPrefix(results.gasUsed.toString('hex'))
+        return end(null, result)
 
     }
   })
@@ -71,8 +66,8 @@ VmSubprovider.prototype.runVm = function(payload, cb){
   const self = this
   // lock processing - one vm at a time
   self.lock.take(function(){
-    
-    var blockData = self.rootProvider.currentBlock
+
+    var blockData = self.currentBlock
     var block = blockFromBlockData(blockData)
     var blockNumber = ethUtil.addHexPrefix(blockData.number.toString('hex'))
 
@@ -97,13 +92,6 @@ VmSubprovider.prototype.runVm = function(payload, cb){
     })
     tx.from = ethUtil.toBuffer(txParams.from)
 
-    // vm.on('step', function(data, cb){
-    //   var name = data.opcode
-    //   console.warn('op coooodes:', name, data)
-    //   // debugger
-    //   cb()
-    // })
-
     vm.runTx({
       tx: tx,
       block: block,
@@ -122,7 +110,7 @@ VmSubprovider.prototype.runVm = function(payload, cb){
       }
 
       cb(null, results)
-    });
+    })
 
   })
 }
@@ -161,7 +149,7 @@ VmSubprovider.prototype._fetchAccount = function(blockNumber, address, cb){
 
 VmSubprovider.prototype._fetchAccountStorage = function(address, key, blockNumber, cb){
   const self = this
-  self._emitPayload({ method: 'eth_getStorageAt', params: [address, key, blockNumber] }, function(err, results){
+  self.emitPayload({ method: 'eth_getStorageAt', params: [address, key, blockNumber] }, function(err, results){
     if (err) return cb(err)
     cb(null, results.result)
   })
@@ -169,7 +157,7 @@ VmSubprovider.prototype._fetchAccountStorage = function(address, key, blockNumbe
 
 VmSubprovider.prototype._fetchAccountBalance = function(address, blockNumber, cb){
   const self = this
-  self._emitPayload({ method: 'eth_getBalance', params: [address, blockNumber] }, function(err, results){
+  self.emitPayload({ method: 'eth_getBalance', params: [address, blockNumber] }, function(err, results){
     if (err) return cb(err)
     cb(null, results.result)
   })
@@ -177,7 +165,7 @@ VmSubprovider.prototype._fetchAccountBalance = function(address, blockNumber, cb
 
 VmSubprovider.prototype._fetchAccountNonce = function(address, blockNumber, cb){
   const self = this
-  self._emitPayload({ method: 'eth_getTransactionCount', params: [address, blockNumber] }, function(err, results){
+  self.emitPayload({ method: 'eth_getTransactionCount', params: [address, blockNumber] }, function(err, results){
     if (err) return cb(err)
     cb(null, results.result)
   })
@@ -185,21 +173,10 @@ VmSubprovider.prototype._fetchAccountNonce = function(address, blockNumber, cb){
 
 VmSubprovider.prototype._fetchAccountCode = function(address, blockNumber, cb){
   const self = this
-  self._emitPayload({ method: 'eth_getCode', params: [address, blockNumber] }, function(err, results){
+  self.emitPayload({ method: 'eth_getCode', params: [address, blockNumber] }, function(err, results){
     if (err) return cb(err)
     cb(null, results.result)
   })
-}
-
-VmSubprovider.prototype._emitPayload = function(payload, cb){
-  const self = this
-  // console.log('emit payload!', payload)
-  self.rootProvider.sendAsync(createPayload(payload), cb)
-  // self.rootProvider.sendAsync(createPayload(payload), function(){
-  //   // console.log('payload return!', arguments)
-  //   cb.apply(null, arguments)
-  // })
-
 }
 
 
@@ -222,12 +199,12 @@ function FallbackStorageTrie(opts) {
 FallbackStorageTrie.prototype.get = function(key, cb){
   const self = this
   var _super = FakeMerklePatriciaTree.prototype.get.bind(self)
-  
+
   _super(key, function(err, value){
     if (err) return cb(err)
     if (value) return cb(null, value)
     // if value not in tree, try network
-    var keyHex = key.toString('hex')  
+    var keyHex = key.toString('hex')
     self._fetchStorage(keyHex, function(err, rawValue){
       if (err) return cb(err)
       var value = ethUtil.toBuffer(rawValue)
@@ -292,6 +269,7 @@ function isNormalVmError(message){
 function blockFromBlockData(blockData){
   var block = new Block()
   // block.header.hash = ethUtil.addHexPrefix(blockData.hash.toString('hex'))
+
   block.header.parentHash = blockData.parentHash
   block.header.uncleHash = blockData.sha3Uncles
   block.header.coinbase = blockData.miner
