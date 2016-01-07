@@ -1,4 +1,5 @@
 const ProviderEngine = require('./index.js')
+const CacheSubprovider = require('./subproviders/cache.js')
 const RpcSubprovider = require('./subproviders/rpc.js')
 const VmSubprovider = require('./subproviders/vm.js')
 const FilterSubprovider = require('./subproviders/filters.js')
@@ -13,6 +14,10 @@ function zeroClientProvider(opts){
   opts = opts || {}
 
   var engine = new ProviderEngine()
+
+  // cache layer
+  var cacheSubprovider = new CacheSubprovider()
+  engine.addProvider(cacheSubprovider)
 
   // static
   var staticSubprovider = new DefaultStatic()

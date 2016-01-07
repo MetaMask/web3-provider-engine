@@ -13,7 +13,8 @@ The provider engine also handles caching of rpc request results.
 
 ```js
 const ProviderEngine = require('web3-provider-engine')
-const StaticProvider = require('web3-provider-engine/subproviders/static.js')
+const CacheSubprovider = require('web3-provider-engine/subproviders/cache.js')
+const StaticSubprovider = require('web3-provider-engine/subproviders/static.js')
 const FilterSubprovider = require('web3-provider-engine/subproviders/filters.js')
 const VmSubprovider = require('web3-provider-engine/subproviders/vm.js')
 const LightWalletSubprovider = require('web3-provider-engine/subproviders/lightwallet.js')
@@ -22,8 +23,11 @@ const RpcSubprovider = require('web3-provider-engine/subproviders/rpc.js')
 var engine = new ProviderEngine()
 var web3 = new Web3(engine)
 
-// static - e.g.: web3_clientVersion
-engine.addProvider(new StaticProvider({
+// cache layer
+engine.addProvider(new CacheSubprovider())
+
+// static results
+engine.addProvider(new StaticSubprovider({
   web3_clientVersion: 'MetaMask-ProviderEngine/v0.0.0/javascript',
   net_listening: true,
   eth_hashrate: '0x0',
@@ -62,7 +66,7 @@ engine.start()
 ### Built For Zero-Clients
 
 The [Ethereum JSON RPC](https://github.com/ethereum/wiki/wiki/JSON-RPC) was not designed to have one node service many clients.
-However a smaller, lighter subset of the JSON RPC can be used to provide the blockchain data an Ethereum 'zero-client' node would need to function.
+However a smaller, lighter subset of the JSON RPC can be used to provide the blockchain data that an Ethereum 'zero-client' node would need to function.
 We handle as many types of requests locally as possible, and just let data lookups fallback to some data source ( hosted rpc, blockchain api, etc ).
 Categorically, we don’t want / can’t have the following types of RPC calls go to the network:
 * id mgmt + tx signing (requires private data)
