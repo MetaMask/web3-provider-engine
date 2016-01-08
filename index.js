@@ -74,6 +74,8 @@ Web3ProviderEngine.prototype._handleAsync = function(payload, finished) {
 
   var stack = []
 
+  next()
+
   function next(after) {
     currentProvider += 1
     stack.unshift(after)
@@ -97,7 +99,7 @@ Web3ProviderEngine.prototype._handleAsync = function(payload, finished) {
     result = r
 
     async.eachSeries(stack, function(fn, callback) {
-      if (fn != null) {
+      if (fn) {
         fn(error, result, callback)
       } else {
         callback()
@@ -120,8 +122,6 @@ Web3ProviderEngine.prototype._handleAsync = function(payload, finished) {
       }
     })
   }
-
-  next()
 }
 
 //

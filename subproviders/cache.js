@@ -7,17 +7,34 @@ module.exports = BlockCacheProvider
 
 inherits(BlockCacheProvider, Subprovider)
 
-function BlockCacheProvider() {
+function BlockCacheProvider(opts) {
   const self = this
+  opts = opts || {}
   self._blockCache = {}
   self._permaCache = {}
+  self.cacheLength = opts.cacheLength || 4
+}
+
+BlockCacheProvider.prototype.setEngine = function(engine) {
+  const self = this
+  Subprovider.setEngine.call(self, engine)
+  engine.on('block', function(block) {
+    self.cacheRollOff()
+  })
+}
+
+BlockCacheProvider.prototype.cacheRollOff = function(){
+  const self = this
+  var currentNumber = bufferToInt(self.currentBlock.number)
+  var previousHex = ethUtil.intToHex(currentNumber-1)
+  delete self._blockCache[previousHex]
 }
 
 BlockCacheProvider.prototype.handleRequest = function(payload, next, end){
   const self = this
 
+  // skip cache if told to do so
   if (payload.cache === false) {
-    //throw new Error('Skipping cache')
     return next()
   }
 
@@ -26,6 +43,7 @@ BlockCacheProvider.prototype.handleRequest = function(payload, next, end){
     return next()
   }
 
+  // if we dont have a current block yet, skip caching
   if (!self.currentBlock) {
     return next()
   }
@@ -34,10 +52,13 @@ BlockCacheProvider.prototype.handleRequest = function(payload, next, end){
   var blockTag = cacheUtils.blockTagForPayload(payload)
   // rewrite 'latest' blockTags to block number
   if (!blockTag || blockTag === 'latest') blockTag = bufferToHex(self.currentBlock.number)
-
-  // first try cache
   var blockCache = self._cacheForBlockTag(blockTag)
   var cacheIdentifier = cacheUtils.cacheIdentifierForPayload(payload)
+
+  //
+  // read from cache
+  //
+
   if (cacheIdentifier) {
     var result = null
     if (cacheUtils.canPermaCache(payload)) {
@@ -45,6 +66,7 @@ BlockCacheProvider.prototype.handleRequest = function(payload, next, end){
     } else if (blockCache) {
       result = blockCache[cacheIdentifier]
     }
+    
     // if cache had a value, return it
     // note: null is legitimate value (e.g. coinbase thats not set)
     if (result !== undefined) {
@@ -55,21 +77,30 @@ BlockCacheProvider.prototype.handleRequest = function(payload, next, end){
     }
   }
 
-  // continue down provider chain, caching the result on the way back up.
+  //
+  // populate cache
+  //
+
+  // fallthrough to provider chain, caching the result on the way back up.
   next(function(err, result, cb) {
+    // err is already handled by engine
     if (err) return cb()
 
     // populate cache with result
-    if (cacheIdentifier && result) {
-      if (cacheUtils.canPermaCache(payload)) {
+    if (cacheIdentifier && result !== undefined) {
+      // cache permanently (only truthy values)
+      if (result && cacheUtils.canPermaCache(payload)) {
         self._permaCache[cacheIdentifier] = result
         // console.log('CACHE POPULATE:', 'PERMA', cacheIdentifier, '->', resultObj.result)
+      // cache for block (any value)
       } else if (blockCache && cacheUtils.canBlockCache(payload)) {
         blockCache[cacheIdentifier] = result
         // console.log('CACHE POPULATE:', blockTag, cacheIdentifier, '->', resultObj.result)
+      // cache miss
       } else {
         // console.warn('CACHE POPULATE MISS:', blockTag, cacheIdentifier)
       }
+    // cache not possible
     } else {
       // console.log('CACHE SKIP:', payload.method, resultObj)
     }
@@ -90,4 +121,8 @@ BlockCacheProvider.prototype._cacheForBlockTag = function(blockTag){
 // TODO: This should be in utils somewhere.
 function bufferToHex(buffer){
   return ethUtil.addHexPrefix(buffer.toString('hex'))
+}
+
+function bufferToInt(buffer){
+  return parseInt(self.currentBlock.number.toString('hex'), 16)
 }
