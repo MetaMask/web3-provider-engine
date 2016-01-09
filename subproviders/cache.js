@@ -17,7 +17,7 @@ function BlockCacheProvider(opts) {
 
 BlockCacheProvider.prototype.setEngine = function(engine) {
   const self = this
-  Subprovider.setEngine.call(self, engine)
+  Subprovider.prototype.setEngine.call(self, engine)
   engine.on('block', function(block) {
     self.cacheRollOff()
   })
