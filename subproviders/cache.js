@@ -25,7 +25,7 @@ BlockCacheProvider.prototype.setEngine = function(engine) {
 
 BlockCacheProvider.prototype.cacheRollOff = function(){
   const self = this
-  var currentNumber = bufferToInt(self.currentBlock.number)
+  var currentNumber = ethUtil.bufferToInt(self.currentBlock.number)
   var previousHex = ethUtil.intToHex(currentNumber-1)
   delete self._blockCache[previousHex]
 }
@@ -121,8 +121,4 @@ BlockCacheProvider.prototype._cacheForBlockTag = function(blockTag){
 // TODO: This should be in utils somewhere.
 function bufferToHex(buffer){
   return ethUtil.addHexPrefix(buffer.toString('hex'))
-}
-
-function bufferToInt(buffer){
-  return parseInt(self.currentBlock.number.toString('hex'), 16)
 }
