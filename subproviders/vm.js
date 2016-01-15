@@ -101,6 +101,9 @@ VmSubprovider.prototype.runVm = function(payload, cb){
       self.lock.leave()
 
       if (err) {
+        // these errors often get gobbled up, so logging for easy debugging
+        console.error('VmSubprovider encountered an error running "'+payload.method+'":')
+        console.error(err)
         if (isNormalVmError(err.message)) {
           return cb(null, { error: err })
         } else {
