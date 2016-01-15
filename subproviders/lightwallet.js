@@ -20,6 +20,12 @@ function LightWalletSubprovider(opts){
 
   // hardcoded password is temporary, obviously
   var password = 'secret_password_shhhhh'
+
+}
+
+LightWalletSubprovider.prototype.initialize = function(password){
+  const self = this
+
   var serializedKeystore = localStorage['lightwallet']
   // returning user
   if (serializedKeystore) {
@@ -28,7 +34,7 @@ function LightWalletSubprovider(opts){
   } else {
     var secretSeed = KeyStore.generateRandomSeed()
     self.keystore = new KeyStore(secretSeed, password)
-    self.keystore.generateNewAddress(password, 1)
+    self.keystore.generateNewAddress(password, 3)
     self.save()
   }
   self.keystore.passwordProvider = self.unlock.bind(self)
