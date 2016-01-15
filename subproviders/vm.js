@@ -101,7 +101,6 @@ VmSubprovider.prototype.runVm = function(payload, cb){
       self.lock.leave()
 
       if (err) {
-        debugger
         if (isNormalVmError(err.message)) {
           return cb(null, { error: err })
         } else {
