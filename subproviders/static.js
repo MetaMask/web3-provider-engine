@@ -9,13 +9,14 @@ function StaticProvider(staticResponses){
   const self = this
   staticResponses = staticResponses || {}
   self.staticResponses = staticResponses
-  self.methods = Object.keys(staticResponses)
 }
 
 StaticProvider.prototype.handleRequest = function(payload, next, end){
-  if (typeof this.staticResponses[payload.method] != 'undefined') {
-    end(null, staticResponses[payload.method]);
+  const self = this
+  var staticResponse = self.staticResponses[payload.method]
+  if (staticResponse !== undefined) {
+    end(null, staticResponse)
   } else {
-    next();
+    next()
   }
 }
