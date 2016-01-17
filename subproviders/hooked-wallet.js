@@ -47,13 +47,13 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
         if (err) return end(err)
         self.signTransaction(fullTxData, function(err, rawTx){
           if (err) return end(err)
+          // console.log('sending rawTx:', rawTx)
           self.emitPayload({
             method: 'eth_sendRawTransaction',
-            params: [{
-              data: rawTx,
-            }]
+            params: [rawTx],
           }, function(err, result){
             if (err) return end(err)
+            // console.log('signed tx submitted:', result)
             end(null, result.result)
           })
         })
@@ -74,17 +74,20 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
 }
 
 HookedWalletSubprovider.prototype.fillInTxExtras = function(txData, cb){
+  const self = this
   var address = txData.from
+  // console.log('fillInTxExtras - address:', address)
   async.parallel({
     gasPrice: self.emitPayload.bind(self, { method: 'eth_gasPrice', params: [] }),
     nonce:    self.emitPayload.bind(self, { method: 'eth_getTransactionCount', params: [address, 'pending'] }),
     // gas:      self.emitPayload.bind(self, { method: 'eth_estimateGas', params: [] }),
   }, function(err, result){
     if (err) return cb(err)
+    // console.log('fillInTxExtras - result:', result)
     var fullTxData = extend({
       gasPrice: result.gasPrice.result,
       nonce: result.nonce.result,
-      gas: '0x2328',
+      gas: '0x9000',
       // gas: result.nonce.gas,
     }, txData)
     cb(null, fullTxData)
