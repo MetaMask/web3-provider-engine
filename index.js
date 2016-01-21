@@ -144,7 +144,7 @@ Web3ProviderEngine.prototype._stopPolling = function(){
 }
 
 Web3ProviderEngine.prototype._fetchLatestBlock = function(cb) {
-  if (!cb) cb = function(err) { if (err) throw err}
+  if (!cb) cb = function(err) { if (err) return console.error(err) }
 
   const self = this
 
