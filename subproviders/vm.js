@@ -7,7 +7,6 @@ const Transaction = require('ethereumjs-tx')
 const FakeMerklePatriciaTree = require('fake-merkle-patricia-tree')
 const ethUtil = require('ethereumjs-util')
 const createPayload = require('../util/create-payload.js')
-const Semaphore = require('semaphore')
 const Subprovider = require('./subprovider.js')
 
 module.exports = VmSubprovider
@@ -22,8 +21,6 @@ inherits(VmSubprovider, Subprovider)
 function VmSubprovider(opts){
   const self = this
   self.methods = ['eth_call', 'eth_estimateGas']
-  // readiness lock, used to keep vm calls down to 1 at a time
-  self.lock = Semaphore(1)
 }
 
 VmSubprovider.prototype.handleRequest = function(payload, next, end) {
@@ -64,57 +61,52 @@ VmSubprovider.prototype.handleRequest = function(payload, next, end) {
 
 VmSubprovider.prototype.runVm = function(payload, cb){
   const self = this
-  // lock processing - one vm at a time
-  self.lock.take(function(){
 
-    var blockData = self.currentBlock
-    var block = blockFromBlockData(blockData)
-    var blockNumber = ethUtil.addHexPrefix(blockData.number.toString('hex'))
+  var blockData = self.currentBlock
+  var block = blockFromBlockData(blockData)
+  var blockNumber = ethUtil.addHexPrefix(blockData.number.toString('hex'))
 
-    // create vm with state lookup intercepted
-    var vm = self.vm = new VM()
-    vm.stateManager._lookupStorageTrie = self._createAccountStorageTrie.bind(self, blockNumber)
-    vm.stateManager.cache._lookupAccount = self._fetchAccount.bind(self, blockNumber)
-    var codeStore = new FallbackAsyncStore(function(address, cb){ self._fetchAccountCode(address, blockNumber, cb) })
-    vm.stateManager.getContractCode = codeStore.get.bind(codeStore)
-    vm.stateManager.setContractCode = codeStore.set.bind(codeStore)
-    // create tx
-    var txParams = payload.params[0]
-    // console.log('params:', payload.params)
-    var tx = new Transaction({
-      to: txParams.to,
-      from: txParams.from,
-      value: txParams.value,
-      data: txParams.data,
-      gasLimit: txParams.gas || block.header.gasLimit,
-      gasPrice: txParams.gasPrice,
-      nonce: txParams.nonce,
-    })
-    tx.from = ethUtil.toBuffer(txParams.from)
-
-    vm.runTx({
-      tx: tx,
-      block: block,
-      skipNonce: !txParams.nonce,
-    }, function(err, results) {
-      // unlock vm
-      self.lock.leave()
-
-      if (err) {
-        // these errors often get gobbled up, so logging for easy debugging
-        console.error('VmSubprovider encountered an error running "'+payload.method+'":')
-        console.error(err)
-        if (isNormalVmError(err.message)) {
-          return cb(null, { error: err })
-        } else {
-          return cb(err)
-        }
-      }
-
-      cb(null, results)
-    })
-
+  // create vm with state lookup intercepted
+  var vm = self.vm = new VM()
+  vm.stateManager._lookupStorageTrie = self._createAccountStorageTrie.bind(self, blockNumber)
+  vm.stateManager.cache._lookupAccount = self._fetchAccount.bind(self, blockNumber)
+  var codeStore = new FallbackAsyncStore(function(address, cb){ self._fetchAccountCode(address, blockNumber, cb) })
+  vm.stateManager.getContractCode = codeStore.get.bind(codeStore)
+  vm.stateManager.setContractCode = codeStore.set.bind(codeStore)
+  // create tx
+  var txParams = payload.params[0]
+  // console.log('params:', payload.params)
+  var tx = new Transaction({
+    to: txParams.to,
+    from: txParams.from,
+    value: txParams.value,
+    data: txParams.data,
+    gasLimit: txParams.gas || block.header.gasLimit,
+    gasPrice: txParams.gasPrice,
+    nonce: txParams.nonce,
   })
+  tx.from = ethUtil.toBuffer(txParams.from)
+
+  vm.runTx({
+    tx: tx,
+    block: block,
+    skipNonce: !txParams.nonce,
+  }, function(err, results) {
+
+    if (err) {
+      // these errors often get gobbled up, so logging for easy debugging
+      console.error('VmSubprovider encountered an error running "'+payload.method+'":')
+      console.error(err)
+      if (isNormalVmError(err.message)) {
+        return cb(null, { error: err })
+      } else {
+        return cb(err)
+      }
+    }
+
+    cb(null, results)
+  })
+
 }
 
 VmSubprovider.prototype._createAccountStorageTrie = function(blockNumber, address, cb){
