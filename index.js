@@ -115,7 +115,10 @@ Web3ProviderEngine.prototype._handleAsync = function(payload, finished) {
       }
 
       if (error != null) {
-        resultObj.error = error.stack || error.message || error
+        resultObj.error = {
+          message: error.stack || error.message || error,
+          code: -32000
+        };
         finished(null, resultObj)
       } else {
         self._inspectResponseForNewBlock(payload, resultObj, finished)
@@ -204,7 +207,7 @@ Web3ProviderEngine.prototype._fetchBlock = function(number, cb){
 }
 
 Web3ProviderEngine.prototype._inspectResponseForNewBlock = function(payload, resultObj, cb) {
-  
+
   // these methods return responses with a block reference
   if (payload.method != 'eth_getTransactionByHash'
    && payload.method != 'eth_getTransactionReceipt') {
