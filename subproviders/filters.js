@@ -1,4 +1,5 @@
 const inherits = require('util').inherits
+const ethUtil = require('ethereumjs-util')
 const Subprovider = require('./subprovider.js')
 
 module.exports = FilterSubprovider
@@ -17,7 +18,6 @@ function FilterSubprovider(opts) {
   self.filterIndex = 0
   self.filters = {}
   self.filterDestroyHandlers = {}
-  self.blockeventhandlers = {}
 }
 
 FilterSubprovider.prototype.handleRequest = function(payload, next, end){
@@ -55,6 +55,7 @@ FilterSubprovider.prototype.newBlockFilter = function(cb) {
 
   self._getBlockNumber(function(err, blockNumber){
     if (err) return cb(err)
+    
     var filter = new BlockFilter({
       blockNumber: blockNumber,
     })
@@ -81,16 +82,14 @@ FilterSubprovider.prototype.newFilter = function(opts, cb) {
   self._getBlockNumber(function(err, blockNumber){
     if (err) return cb(err)
 
-    console.log(opts);
-
     var filter = new LogFilter(opts)
     var newLogHandler = filter.update.bind(filter)
     var logHandlerWrapper = function(block){
       self._logsForBlock(block, function(err, logs){
-        if (err) return cb(err);
+        if (err) return console.error(err)
         logs.forEach(newLogHandler)
       })
-    };
+    }
     var destroyHandler = function(){
       self.engine.removeListener('block', logHandlerWrapper)
     }
@@ -134,7 +133,7 @@ FilterSubprovider.prototype.uninstallFilter = function(filterId, cb) {
   const self = this
 
   var filter = self.filters[filterId]
-  if (filter == null) {
+  if (!filter) {
     cb(null, false)
     return
   }
@@ -166,7 +165,7 @@ FilterSubprovider.prototype._logsForBlock = function(block, cb) {
     }],
   }, function(err, results){
     if (err) return cb(err)
-    if (results.error != null) return cb(results.error);
+    if (results.error) return cb(results.error)
     cb(null, results.result)
   })
 
@@ -223,26 +222,34 @@ LogFilter.prototype.validateLog = function(log){
   // console.log('LogFilter - validateLog:', log)
   const self = this
 
-  // block number
+  // check if block number in bounds:
   //console.log('LogFilter - validateLog - blockNumber', self.fromBlock, self.toBlock)
   if (blockTagIsNumber(self.fromBlock) && hexToInt(self.fromBlock) >= hexToInt(log.blockNumber)) return false
   if (blockTagIsNumber(self.toBlock) && hexToInt(self.toBlock) <= hexToInt(log.blockNumber)) return false
 
-  // address
+  // address is correct:
   // console.log('LogFilter - validateLog - address', self.address)
   if (self.address && self.address !== log.address) return false
 
-  // topics
-  // topics can be nested to represent `and` then `or` [[a || b] && c]
+  // topics match:
   // topics are position-dependant
+  // topics can be nested to represent `or` [[a || b], c]
+  // topics can be null, representing a wild card for that position
   // console.log('LogFilter - validateLog - topics', self.topics)
-  var topicsMatch = self.topics.reduce(function(previousMatched, topic){
+  var topicsMatch = self.topics.reduce(function(previousMatched, topicPattern, index){
+    // abort in progress
     if (!previousMatched) return false
-    var subtopics = Array.isArray(topic) ? topic : [topic]
-    var topicMatches = subtopics.filter(function(topic){
-      return log.topics.indexOf(topic) !== -1
+    // wild card
+    if (!topicPattern) return true
+    // pattern is longer than actual topics
+    var logTopic = log.topics[index]
+    if (!logTopic) return false
+    // check each possible matching topic
+    var subtopicsToMatch = Array.isArray(topicPattern) ? topicPattern : [topicPattern]
+    var topicDoesMatch = subtopicsToMatch.filter(function(subTopic){
+      return logTopic === subTopic
     }).length > 0
-    return topicMatches
+    return topicDoesMatch
   }, true)
 
   // console.log('LogFilter - validateLog - approved!')
@@ -253,10 +260,8 @@ LogFilter.prototype.update = function(log){
   // console.log('LogFilter - update')
   const self = this
   // validate filter match
-  var validated = self.validateLog(log);
-  if (!validated) {
-    return
-  }
+  var validated = self.validateLog(log)
+  if (!validated) return
   // add to results
   self.updates.push(log)
   self.allResults.push(log)
@@ -286,19 +291,11 @@ LogFilter.prototype.clearChanges = function(){
 // util
 
 function intToHex(value) {
-  var hexString = value.toString(16)
-  var isNegative = value < 0
-  if (isNegative) hexString = hexString.slice(1)
-  if (hexString.length%2 !== 0) hexString = '0'+hexString
-  hexString = '0x' + hexString
-  if (isNegative) hexString = '-'+hexString
-  return hexString
+  return '0x'+ethUtil.intToHex(value)
 }
 
 function hexToInt(hexString) {
-  if (hexString.slice(0,2) === '0x') hexString = hexString.slice(2)
-  else if (hexString.slice(0,3) === '-0x') hexString = '-'+hexString.slice(3)
-  return parseInt(hexString, 16)
+  return Number(hexString)
 }
 
 function bufferToHex(buffer) {
