@@ -26,7 +26,7 @@ test('fallthrough test', function(t){
 
   engine.start()
   engine.sendAsync(createPayload({ method: 'test_rpc' }), function(err, response){
-    t.notOk(err, 'did not error')
+    t.ifError(err, 'did not error')
     t.ok(response, 'has response')
 
     t.equal(providerA.getWitnessed('test_rpc').length, 1, 'providerA did see "test_rpc"')

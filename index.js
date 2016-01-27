@@ -19,7 +19,9 @@ function Web3ProviderEngine(opts) {
   // set initialization blocker
   self._ready = new Stoplight()
   // unblock initialization after first block
-  self.once('block', function(){ self._ready.go() })
+  self.once('block', function(){
+    self._ready.go()
+  })
   // local state
   self.currentBlock = null
   self._providers = []
@@ -115,8 +117,9 @@ Web3ProviderEngine.prototype._handleAsync = function(payload, finished) {
       }
 
       if (error != null) {
-        resultObj.error = error.stack || error.message || error
-        finished(null, resultObj)
+        // resultObj.error = error.stack || error.message || error
+        // finished(null, resultObj)
+        finished(error)
       } else {
         self._inspectResponseForNewBlock(payload, resultObj, finished)
       }

@@ -18,7 +18,7 @@ function TestBlockProvider(methods){
 
 function createDummyBlock(number) {
   return {
-    number: number || '0x1234',
+    number: number || '0x0001',
     hash: '0x1234',
     parentHash: '0x1234',
     nonce: '0x1234',
