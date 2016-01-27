@@ -1,5 +1,5 @@
 const inherits = require('util').inherits
-const StaticProvider = require('../../subproviders/static.js')
+const FixtureProvider = require('../../subproviders/fixture.js')
 
 module.exports = PassthroughProvider
 
@@ -8,8 +8,8 @@ module.exports = PassthroughProvider
 // mostly useless
 //
 
-inherits(PassthroughProvider, StaticProvider)
+inherits(PassthroughProvider, FixtureProvider)
 function PassthroughProvider(methods){
   const self = this
-  StaticProvider.call(self, {})
+  FixtureProvider.call(self, {})
 }
