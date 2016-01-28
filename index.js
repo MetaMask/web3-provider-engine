@@ -6,7 +6,6 @@ const BN = ethUtil.BN
 const Stoplight = require('./util/stoplight.js')
 const cacheUtils = require('./util/rpc-cache-utils.js')
 const createPayload = require('./util/create-payload.js')
-const POLLING_INTERVAL = 4000
 
 module.exports = Web3ProviderEngine
 
@@ -22,6 +21,9 @@ function Web3ProviderEngine(opts) {
   self.once('block', function(){
     self._ready.go()
   })
+  // parse options
+  opts = opts || {}
+  self._pollingInterval = opts.pollingInterval || 4000
   // local state
   self.currentBlock = null
   self._providers = []
@@ -138,7 +140,7 @@ Web3ProviderEngine.prototype._startPolling = function(){
 
   self._pollIntervalId = setInterval(function() {
     self._fetchLatestBlock()
-  }, POLLING_INTERVAL)
+  }, self._pollingInterval)
 }
 
 Web3ProviderEngine.prototype._stopPolling = function(){
@@ -152,7 +154,7 @@ Web3ProviderEngine.prototype._fetchLatestBlock = function(cb) {
   const self = this
 
   self._fetchBlock('latest', function(err, block) {
-    if (err || !block) return cb(err)
+    if (err) return cb(err)
 
     if (!self.currentBlock || 0 !== self.currentBlock.hash.compare(block.hash)) {
       self._setCurrentBlock(block)

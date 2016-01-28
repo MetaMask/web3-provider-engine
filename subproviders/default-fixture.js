@@ -1,11 +1,11 @@
 const inherits = require('util').inherits
-const StaticProvider = require('./static.js')
+const FixtureProvider = require('./fixture.js')
 
-module.exports = DefaultStatic
+module.exports = DefaultFixtures
 
-inherits(DefaultStatic, StaticProvider)
+inherits(DefaultFixtures, FixtureProvider)
 
-function DefaultStatic() {
+function DefaultFixtures() {
   const self = this
   var responses = {
     web3_clientVersion: 'MetaMask-ZeroClient/v0.0.0/javascript',
@@ -17,5 +17,5 @@ function DefaultStatic() {
     eth_mining: false,
     eth_syncing: true,
   }
-  StaticProvider.call(self, responses)
+  FixtureProvider.call(self, responses)
 }

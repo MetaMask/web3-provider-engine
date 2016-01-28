@@ -1,7 +1,7 @@
 const test = require('tape')
 const ProviderEngine = require('../index.js')
 const PassthroughProvider = require('./util/passthrough.js')
-const StaticProvider = require('../subproviders/static.js')
+const FixtureProvider = require('../subproviders/fixture.js')
 const TestBlockProvider = require('./util/block.js')
 const createPayload = require('../util/create-payload.js')
 const injectMetrics = require('./util/inject-metrics')
@@ -13,9 +13,9 @@ test('fallthrough test', function(t){
   // handle nothing
   var providerA = injectMetrics(new PassthroughProvider())
   // handle "test_rpc"
-  var providerB = injectMetrics(new StaticProvider({
-      test_rpc: true,
-    }))
+  var providerB = injectMetrics(new FixtureProvider({
+    test_rpc: true,
+  }))
   // handle block requests
   var providerC = injectMetrics(new TestBlockProvider())
 

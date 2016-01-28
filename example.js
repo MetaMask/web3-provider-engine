@@ -3,7 +3,7 @@ const CacheSubprovider = require('./subproviders/cache.js')
 const RpcSubprovider = require('./subproviders/rpc.js')
 const VmSubprovider = require('./subproviders/vm.js')
 const FilterSubprovider = require('./subproviders/filters.js')
-const DefaultStatic = require('./subproviders/default-static.js')
+const DefaultFixture = require('./subproviders/default-fixture.js')
 const LightWalletSubprovider = require('./subproviders/lightwallet.js')
 
 module.exports = zeroClientProvider
@@ -20,7 +20,7 @@ function zeroClientProvider(opts){
   engine.addProvider(cacheSubprovider)
 
   // static
-  var staticSubprovider = new DefaultStatic()
+  var staticSubprovider = new DefaultFixture()
   engine.addProvider(staticSubprovider)
 
   // filters

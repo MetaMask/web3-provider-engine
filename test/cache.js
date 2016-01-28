@@ -1,6 +1,6 @@
 const test = require('tape')
 const ProviderEngine = require('../index.js')
-const StaticProvider = require('../subproviders/static.js')
+const FixtureProvider = require('../subproviders/fixture.js')
 const CacheProvider = require('../subproviders/cache.js')
 const TestBlockProvider = require('./util/block.js')
 const createPayload = require('../util/create-payload.js')
@@ -30,7 +30,7 @@ function cacheTest(label, payload){
     // cache layer
     var cacheProvider = injectMetrics(new CacheProvider())
     // handle balance
-    var dataProvider = injectMetrics(new StaticProvider({
+    var dataProvider = injectMetrics(new FixtureProvider({
       eth_getBalance: '0xdeadbeef',
     }))
     // handle dummy block
