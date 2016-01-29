@@ -1,3 +1,4 @@
+const async = require("../util/async.js");
 const inherits = require('util').inherits
 const ethUtil = require('ethereumjs-util')
 const Subprovider = require('./subprovider.js')
@@ -32,7 +33,7 @@ function FilterSubprovider(opts) {
       // update filters
       var updaters = valuesFor(self.logFilterHandlers)
       .map(function(fn){ return fn.bind(null, block) })
-      self.engine.parallel(updaters, function(err){
+      async.parallel(updaters, function(err){
         if (err) console.error(err)
         // unpause processing
         self._ready.go()

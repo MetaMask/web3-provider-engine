@@ -1,3 +1,4 @@
+const async = require("../util/async.js");
 const inherits = require('util').inherits
 const extend = require('xtend')
 const Subprovider = require('./subprovider.js')
@@ -76,7 +77,7 @@ HookedWalletSubprovider.prototype.fillInTxExtras = function(txData, cb){
   const self = this
   var address = txData.from
   // console.log('fillInTxExtras - address:', address)
-  self.engine.parallel({
+  async.parallel({
     gasPrice: self.emitPayload.bind(self, { method: 'eth_gasPrice', params: [] }),
     // we actually want the pending txCount
     // but pending is broken in provider-engine

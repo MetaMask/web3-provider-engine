@@ -3,6 +3,7 @@ const inherits = require('util').inherits
 const Stoplight = require('./util/stoplight.js')
 const cacheUtils = require('./util/rpc-cache-utils.js')
 const createPayload = require('./util/create-payload.js')
+const async = require("./util/async.js");
 
 module.exports = Web3ProviderEngine
 
@@ -46,84 +47,6 @@ Web3ProviderEngine.prototype.addProvider = function(source){
   source.setEngine(this)
 }
 
-// Works the same as async.parallel
-Web3ProviderEngine.prototype.parallel = function(fns, done) {
-  done = done || function() {};
-  this.map(fns, function(fn, callback) {
-    fn(callback);
-  }, done);
-}
-
-// Works the same as async.map
-Web3ProviderEngine.prototype.map = function(items, iterator, done) {
-  done = done || function() {};
-  var results = [];
-  var failure = false;
-  var expected = items.length;
-  var actual = 0;
-  var createIntermediary = function(index) {
-    return function(err, result) {
-      // Return if we found a failure anywhere.
-      // We can't stop execution of functions since they've already
-      // been fired off; but we can prevent excessive handling of callbacks.
-      if (failure != false) {
-        return;
-      }
-
-      if (err != null) {
-        failure = true;
-        done(err, result);
-        return;
-      }
-
-      actual += 1;
-
-      if (actual == expected) {
-        done(null, results);
-      }
-    };
-  };
-
-  for (var i = 0; i < items.length; i++) {
-    var item = items[i];
-    iterator(item, createIntermediary(i));
-  }
-
-  if (items.length == 0) {
-    done(null, []);
-  }
-};
-
-// Works like async.eachSeries
-Web3ProviderEngine.prototype.eachSeries = function(items, iterator, done) {
-  done = done || function() {};
-  var results = [];
-  var failure = false;
-  var expected = items.length;
-  var current = -1;
-
-  function callback(err, result) {
-    if (err) return done(err);
-
-    results.push(result);
-
-    if (current == expected) {
-      return done(null, results);
-    } else {
-      next();
-    }
-  };
-
-  function next() {
-    current += 1;
-
-    var item = items[current];
-    iterator(item, callback);
-  };
-
-  next()
-};
-
 Web3ProviderEngine.prototype.send = function(payload){
   throw new Error('Web3ProviderEngine does not support synchronous requests.')
 }
@@ -134,7 +57,7 @@ Web3ProviderEngine.prototype.sendAsync = function(payload, cb){
 
     if (Array.isArray(payload)) {
       // handle batch
-      this.map(payload, self._handleAsync.bind(self), cb)
+      async.map(payload, self._handleAsync.bind(self), cb)
     } else {
       // handle single
       self._handleAsync(payload, cb)
@@ -177,7 +100,7 @@ Web3ProviderEngine.prototype._handleAsync = function(payload, finished) {
     error = e
     result = r
 
-    self.eachSeries(stack, function(fn, callback) {
+    async.eachSeries(stack, function(fn, callback) {
       if (fn) {
         fn(error, result, callback)
       } else {
