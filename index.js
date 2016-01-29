@@ -46,10 +46,17 @@ Web3ProviderEngine.prototype.addProvider = function(source){
   source.setEngine(this)
 }
 
-// The functions must have only one parameter, which is a standard callback.
-// Note that if your functions don't include any asynchronous IO, then
-// the functions will still be run in series (i.e., Javascript remains single threaded).
-Web3ProviderEngine.prototype.parallel = function(items, iterator, done) {
+// Works the same as async.parallel
+Web3ProviderEngine.prototype.parallel = function(fns, done) {
+  done = done || function() {};
+  this.map(fns, function(fn, callback) {
+    fn(callback);
+  }, done);
+}
+
+// Works the same as async.map
+Web3ProviderEngine.prototype.map = function(items, iterator, done) {
+  done = done || function() {};
   var results = [];
   var failure = false;
   var expected = items.length;
@@ -81,9 +88,15 @@ Web3ProviderEngine.prototype.parallel = function(items, iterator, done) {
     var item = items[i];
     iterator(item, createIntermediary(i));
   }
+
+  if (items.length == 0) {
+    done(null, []);
+  }
 };
 
-Web3ProviderEngine.prototype.series = function(items, iterator, done) {
+// Works like async.eachSeries
+Web3ProviderEngine.prototype.eachSeries = function(items, iterator, done) {
+  done = done || function() {};
   var results = [];
   var failure = false;
   var expected = items.length;
@@ -121,7 +134,7 @@ Web3ProviderEngine.prototype.sendAsync = function(payload, cb){
 
     if (Array.isArray(payload)) {
       // handle batch
-      this.parallel(payload, self._handleAsync.bind(self), cb)
+      this.map(payload, self._handleAsync.bind(self), cb)
     } else {
       // handle single
       self._handleAsync(payload, cb)
@@ -164,7 +177,7 @@ Web3ProviderEngine.prototype._handleAsync = function(payload, finished) {
     error = e
     result = r
 
-    self.series(stack, function(fn, callback) {
+    self.eachSeries(stack, function(fn, callback) {
       if (fn) {
         fn(error, result, callback)
       } else {

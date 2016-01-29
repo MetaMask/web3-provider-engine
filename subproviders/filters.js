@@ -1,5 +1,4 @@
 const inherits = require('util').inherits
-const async = require('async')
 const ethUtil = require('ethereumjs-util')
 const Subprovider = require('./subprovider.js')
 const Stoplight = require('../util/stoplight.js')
@@ -33,7 +32,7 @@ function FilterSubprovider(opts) {
       // update filters
       var updaters = valuesFor(self.logFilterHandlers)
       .map(function(fn){ return fn.bind(null, block) })
-      async.parallel(updaters, function(err){
+      self.engine.parallel(updaters, function(err){
         if (err) console.error(err)
         // unpause processing
         self._ready.go()
@@ -83,7 +82,7 @@ FilterSubprovider.prototype.newBlockFilter = function(cb) {
 
   self._getBlockNumber(function(err, blockNumber){
     if (err) return cb(err)
-    
+
     var filter = new BlockFilter({
       blockNumber: blockNumber,
     })

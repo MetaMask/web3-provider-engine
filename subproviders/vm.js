@@ -1,5 +1,4 @@
 const inherits = require('util').inherits
-const async = require('async')
 const VM = require('ethereumjs-vm')
 const Block = require('ethereumjs-block')
 const Account = require('ethereumjs-account')
@@ -125,7 +124,7 @@ VmSubprovider.prototype._createAccountStorageTrie = function(blockNumber, addres
 VmSubprovider.prototype._fetchAccount = function(blockNumber, address, cb){
   const self = this
   var addressHex = ethUtil.addHexPrefix(address.toString('hex'))
-  async.parallel({
+  this.engine.parallel({
     nonce: self._fetchAccountNonce.bind(self, addressHex, blockNumber),
     balance: self._fetchAccountBalance.bind(self, addressHex, blockNumber),
   }, function(err, results){
