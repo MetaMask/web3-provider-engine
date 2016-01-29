@@ -1,8 +1,5 @@
-const async = require('async')
 const EventEmitter = require('events').EventEmitter
 const inherits = require('util').inherits
-const ethUtil = require('ethereumjs-util')
-const BN = ethUtil.BN
 const Stoplight = require('./util/stoplight.js')
 const cacheUtils = require('./util/rpc-cache-utils.js')
 const createPayload = require('./util/create-payload.js')
@@ -49,6 +46,71 @@ Web3ProviderEngine.prototype.addProvider = function(source){
   source.setEngine(this)
 }
 
+// The functions must have only one parameter, which is a standard callback.
+// Note that if your functions don't include any asynchronous IO, then
+// the functions will still be run in series (i.e., Javascript remains single threaded).
+Web3ProviderEngine.prototype.parallel = function(items, iterator, callback) {
+  var results = [];
+  var failure = false;
+  var expected = items.length;
+  var actual = 0;
+  var createIntermediary = function(index) {
+    return function(err, result) {
+      // Return if we found a failure anywhere.
+      // We can't stop execution of functions since they've already
+      // been fired off; but we can prevent excessive handling of callbacks.
+      if (failure != false) {
+        return;
+      }
+
+      if (err != null) {
+        failure = true;
+        callback(err, result);
+        return;
+      }
+
+      actual += 1;
+
+      if (actual == expected) {
+        callback(null, results);
+      }
+    };
+  };
+
+  for (var i = 0; i < items.length; i++) {
+    var item = items[i];
+    iterator(item, createIntermediary(i));
+  }
+};
+
+Web3ProviderEngine.prototype.series = function(items, iterator, done) {
+  var results = [];
+  var failure = false;
+  var expected = items.length;
+  var current = -1;
+
+  function callback(err, result) {
+    if (err) return done(err);
+
+    results.push(result);
+
+    if (current == expected) {
+      return done(null, results);
+    } else {
+      next();
+    }
+  };
+
+  function next() {
+    current += 1;
+
+    var item = items[current];
+    iterator(item, callback);
+  };
+
+  next()
+};
+
 Web3ProviderEngine.prototype.send = function(payload){
   throw new Error('Web3ProviderEngine does not support synchronous requests.')
 }
@@ -59,7 +121,7 @@ Web3ProviderEngine.prototype.sendAsync = function(payload, cb){
 
     if (Array.isArray(payload)) {
       // handle batch
-      async.map(payload, self._handleAsync.bind(self), cb)
+      this.parallel(payload, self._handleAsync.bind(self), cb)
     } else {
       // handle single
       self._handleAsync(payload, cb)
@@ -102,7 +164,7 @@ Web3ProviderEngine.prototype._handleAsync = function(payload, finished) {
     error = e
     result = r
 
-    async.eachSeries(stack, function(fn, callback) {
+    self.series(stack, function(fn, callback) {
       if (fn) {
         fn(error, result, callback)
       } else {
@@ -246,13 +308,24 @@ function SourceNotFoundError(payload){
   return new Error('Source for RPC method "'+payload.method+'" not found.')
 }
 
+function stripHexPrefix(hexString) {
+  return hexString.replace("0x", "");
+}
+
+function addHexPrefix(str) {
+  if (str.indexOf("0x") < 0) {
+    str = "0x" + str;
+  }
+  return str;
+}
+
 function hexToBuffer(hexString){
-  hexString = ethUtil.stripHexPrefix(hexString)
+  hexString = stripHexPrefix(hexString)
   if (hexString.length%2) hexString = '0'+hexString
   return new Buffer(hexString, 'hex')
 }
 
 // TODO: This should be in utils somewhere.
 function bufferToHex(buffer){
-  return ethUtil.addHexPrefix(buffer.toString('hex'))
+  return addHexPrefix(buffer.toString('hex'))
 }
