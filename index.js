@@ -49,7 +49,7 @@ Web3ProviderEngine.prototype.addProvider = function(source){
 // The functions must have only one parameter, which is a standard callback.
 // Note that if your functions don't include any asynchronous IO, then
 // the functions will still be run in series (i.e., Javascript remains single threaded).
-Web3ProviderEngine.prototype.parallel = function(items, iterator, callback) {
+Web3ProviderEngine.prototype.parallel = function(items, iterator, done) {
   var results = [];
   var failure = false;
   var expected = items.length;
@@ -65,14 +65,14 @@ Web3ProviderEngine.prototype.parallel = function(items, iterator, callback) {
 
       if (err != null) {
         failure = true;
-        callback(err, result);
+        done(err, result);
         return;
       }
 
       actual += 1;
 
       if (actual == expected) {
-        callback(null, results);
+        done(null, results);
       }
     };
   };
