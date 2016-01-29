@@ -1,11 +1,9 @@
-const async = require('async')
 const EventEmitter = require('events').EventEmitter
 const inherits = require('util').inherits
-const ethUtil = require('ethereumjs-util')
-const BN = ethUtil.BN
 const Stoplight = require('./util/stoplight.js')
 const cacheUtils = require('./util/rpc-cache-utils.js')
 const createPayload = require('./util/create-payload.js')
+const async = require("./util/async.js");
 
 module.exports = Web3ProviderEngine
 
@@ -246,13 +244,24 @@ function SourceNotFoundError(payload){
   return new Error('Source for RPC method "'+payload.method+'" not found.')
 }
 
+function stripHexPrefix(hexString) {
+  return hexString.replace("0x", "");
+}
+
+function addHexPrefix(str) {
+  if (str.indexOf("0x") < 0) {
+    str = "0x" + str;
+  }
+  return str;
+}
+
 function hexToBuffer(hexString){
-  hexString = ethUtil.stripHexPrefix(hexString)
+  hexString = stripHexPrefix(hexString)
   if (hexString.length%2) hexString = '0'+hexString
   return new Buffer(hexString, 'hex')
 }
 
 // TODO: This should be in utils somewhere.
 function bufferToHex(buffer){
-  return ethUtil.addHexPrefix(buffer.toString('hex'))
+  return addHexPrefix(buffer.toString('hex'))
 }

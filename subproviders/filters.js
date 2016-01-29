@@ -1,5 +1,5 @@
+const async = require("../util/async.js");
 const inherits = require('util').inherits
-const async = require('async')
 const ethUtil = require('ethereumjs-util')
 const Subprovider = require('./subprovider.js')
 const Stoplight = require('../util/stoplight.js')
@@ -83,7 +83,7 @@ FilterSubprovider.prototype.newBlockFilter = function(cb) {
 
   self._getBlockNumber(function(err, blockNumber){
     if (err) return cb(err)
-    
+
     var filter = new BlockFilter({
       blockNumber: blockNumber,
     })

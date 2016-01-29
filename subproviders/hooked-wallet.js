@@ -1,4 +1,4 @@
-const async = require('async')
+const async = require("../util/async.js");
 const inherits = require('util').inherits
 const extend = require('xtend')
 const Subprovider = require('./subprovider.js')
