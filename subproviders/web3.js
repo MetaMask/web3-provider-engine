@@ -1,15 +1,15 @@
 const inherits = require('util').inherits
 const Subprovider = require('./subprovider.js')
 
-module.exports = HttpSubprovider
+module.exports = Web3Subprovider
 
-inherits(HttpSubprovider, Subprovider)
+inherits(Web3Subprovider, Subprovider)
 
-function HttpSubprovider(httpprovider){
-  this.provider = httpprovider;
+function Web3Subprovider(provider){
+  this.provider = provider;
 }
 
-HttpSubprovider.prototype.handleRequest = function(payload, next, end){
+Web3Subprovider.prototype.handleRequest = function(payload, next, end){
   this.provider.sendAsync(payload, function(err, response) {
     if (err != null) return end(err);
     if (response.error != null) return end(new Error(response.error.message));
