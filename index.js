@@ -119,7 +119,7 @@ Web3ProviderEngine.prototype._handleAsync = function(payload, finished) {
       if (error != null) {
         resultObj.error = {
           message: error.stack || error.message || error,
-          code: -32000,
+          code: -32000
         }
         finished(null, resultObj)
       } else {
