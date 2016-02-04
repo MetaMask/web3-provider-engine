@@ -16,11 +16,11 @@ function TestBlockProvider(methods){
   self._currentBlock = createBlock()
   self._pendingTxs = []
   FixtureProvider.call(self, {
-    eth_getBlockByNumber: function(cb){
-      cb(null, self._currentBlock)
+    eth_getBlockByNumber: function(payload, next, end){
+      end(null, self._currentBlock)
     },
-    eth_getLogs: function(cb){
-      cb(null, self._currentBlock.transactions)
+    eth_getLogs: function(payload, next, end){
+      end(null, self._currentBlock.transactions)
     },
   })
 }

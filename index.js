@@ -216,7 +216,7 @@ Web3ProviderEngine.prototype._inspectResponseForNewBlock = function(payload, res
     return cb(null, resultObj)
   }
 
-  if (resultObj.result !== null) {
+  if (resultObj.result == null || resultObj.result.blockNumber == null) {
     return cb(null, resultObj)
   }
 

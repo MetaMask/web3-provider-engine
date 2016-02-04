@@ -31,10 +31,10 @@ test('fallthrough test', function(t){
 
     t.equal(providerA.getWitnessed('test_rpc').length, 1, 'providerA did see "test_rpc"')
     t.equal(providerA.getHandled('test_rpc').length, 0, 'providerA did NOT handle "test_rpc"')
-    
+
     t.equal(providerB.getWitnessed('test_rpc').length, 1, 'providerB did see "test_rpc"')
     t.equal(providerB.getHandled('test_rpc').length, 1, 'providerB did handle "test_rpc"')
-    
+
     t.equal(providerC.getWitnessed('test_rpc').length, 0, 'providerC did NOT see "test_rpc"')
     t.equal(providerC.getHandled('test_rpc').length, 0, 'providerC did NOT handle "test_rpc"')
 

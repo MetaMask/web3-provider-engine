@@ -1,7 +1,5 @@
 module.exports = {
   cacheIdentifierForPayload: cacheIdentifierForPayload,
-  canBlockCache: canBlockCache,
-  canPermaCache: canPermaCache,
   canCache: canCache,
   blockTagForPayload: blockTagForPayload,
   paramsWithoutBlockTag: paramsWithoutBlockTag,
@@ -16,15 +14,6 @@ function cacheIdentifierForPayload(payload){
   } else {
     return null
   }
-}
-
-function canBlockCache(payload){
-  var type = cacheTypeForPayload(payload)
-  return type === 'perma' || type === 'fork' || type === 'block'
-}
-
-function canPermaCache(payload){
-  return cacheTypeForPayload(payload) === 'perma'
 }
 
 function canCache(payload){
@@ -90,7 +79,7 @@ function cacheTypeForPayload(payload) {
     case 'eth_getCode':
     case 'eth_sign':
     case 'eth_getBlockByHash':
-    case 'eth_getTransactionByHash':
+
     case 'eth_getTransactionByBlockHashAndIndex':
     case 'eth_getTransactionReceipt':
     case 'eth_getUncleByBlockHashAndIndex':
@@ -100,6 +89,9 @@ function cacheTypeForPayload(payload) {
     case 'eth_compileSerpent':
     case 'shh_version':
       return 'perma'
+
+    case 'eth_getTransactionByHash':
+      return 'conditional'
 
     // cache until fork
     case 'eth_getBlockByNumber':
