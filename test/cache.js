@@ -36,7 +36,6 @@ cacheTest('getTransactionByHash for mined transaction', {
   params: ['0x00000000000000000000000000000000000000000000000000deadbeefcafe02'],
 }, true)
 
-
 cacheTest('getCode for latest block, then for earliest block, should not return cached response on second request', [
   {
     method: 'eth_getCode',
@@ -47,6 +46,28 @@ cacheTest('getCode for latest block, then for earliest block, should not return 
     params: ['0x1234', 'earliest'],
   }
 ], false)
+
+cacheTest('getCode for a specific block, then for the one before it, should not return cached response on second request', [
+  {
+    method: 'eth_getCode',
+    params: ['0x1234', '0x3'],
+  },
+  {
+    method: 'eth_getCode',
+    params: ['0x1234', '0x2'],
+  }
+], false)
+
+cacheTest('getCode for a specific block, then the one after it, should return cached response on second request', [
+  {
+    method: 'eth_getCode',
+    params: ['0x1234', '0x2'],
+  },
+  {
+    method: 'eth_getCode',
+    params: ['0x1234', '0x3'],
+  }
+], true)
 
 
 function cacheTest(label, payloads, shouldHitOnSecondRequest){
