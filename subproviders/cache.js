@@ -11,12 +11,10 @@ inherits(BlockCacheProvider, Subprovider)
 function BlockCacheProvider(opts) {
   const self = this
   opts = opts || {}
-  self.cacheLength = opts.cacheLength || 4
   // set initialization blocker
   self._ready = new Stoplight()
   self.strategies = {
-    perma: new PermaCacheStrategy(),
-    conditional: new ConditionalPermaCacheStrategy({
+    perma: new ConditionalPermaCacheStrategy({
       eth_getTransactionByHash: function(result) {
         if (result && result.blockHash != null) {
           return true;
@@ -39,8 +37,8 @@ BlockCacheProvider.prototype.setEngine = function(engine) {
   })
   // empty old cache
   engine.on('block', function(block) {
-    self.strategies.block.cacheRollOff()
-    self.strategies.fork.cacheRollOff()
+    self.strategies.block.cacheRollOff(block)
+    self.strategies.fork.cacheRollOff(block)
   })
 }
 
@@ -82,13 +80,29 @@ BlockCacheProvider.prototype._handleRequest = function(payload, next, end){
     return next();
   }
 
+  var blockTag = cacheUtils.blockTagForPayload(payload);
+  var requestedBlockNumber = bufferToBN(this.currentBlock.number);
+
+  if (blockTag != null) {
+    if (blockTag == "earliest") {
+      requestedBlockNumber = new ethUtil.BN("0", "hex");
+    } else if (blockTag == "latest") {
+      // already set to latest
+    } else {
+      // We have a hex number
+      requestedBlockNumber = new ethUtil.BN(blockTag, "hex");
+    }
+  }
+
+  //console.log("REQUEST at block 0x" + requestedBlockNumber.toString("hex"));
+
   // end on a hit, continue on a miss
-  strategy.hitCheck(payload, end, function() {
+  strategy.hitCheck(payload, requestedBlockNumber, end, function() {
     // miss; fallthrough to provider chain, caching the result on the way back up.
     next(function(err, result, cb) {
       // err is already handled by engine
       if (err) return cb()
-      strategy.cacheResult(payload, result, cb);
+      strategy.cacheResult(payload, result, requestedBlockNumber, cb);
     })
   });
 }
@@ -98,26 +112,37 @@ function bufferToHex(buffer){
   return ethUtil.addHexPrefix(buffer.toString('hex'))
 }
 
+function bufferToBN(buffer) {
+  return new ethUtil.BN(buffer.toString('hex'), "hex");
+}
+
 function PermaCacheStrategy() {
   this.cache = {};
 }
 
-PermaCacheStrategy.prototype.hitCheck = function(payload, hit, miss) {
+PermaCacheStrategy.prototype.hitCheck = function(payload, requestedBlockNumber, hit, miss) {
   var identifier = cacheUtils.cacheIdentifierForPayload(payload)
   var cached = this.cache[identifier];
 
-  if (cached != null) {
-    return hit(null, cached);
+  if (cached != null && requestedBlockNumber.gte(cached.blockNumber)) {
+    // If the block number we're requesting at is greater than or
+    // equal to the block where we cached a previous response, return
+    // the previous response. If it's less than the current block,
+    // send it back down to the client where it will be recached.
+    return hit(null, cached.result);
   } else {
     return miss();
   }
 };
 
-PermaCacheStrategy.prototype.cacheResult = function(payload, result, callback) {
+PermaCacheStrategy.prototype.cacheResult = function(payload, result, requestedBlockNumber, callback) {
   var identifier = cacheUtils.cacheIdentifierForPayload(payload)
 
   if (result != null) {
-    this.cache[identifier] = result;
+    this.cache[identifier] = {
+      blockNumber: requestedBlockNumber,
+      result: result
+    };
   }
 
   callback();
@@ -132,17 +157,22 @@ function ConditionalPermaCacheStrategy(conditionals) {
   this.conditionals = conditionals;
 }
 
-ConditionalPermaCacheStrategy.prototype.hitCheck = function(payload, hit, miss) {
-  return this.strategy.hitCheck(payload, hit, miss);
+ConditionalPermaCacheStrategy.prototype.hitCheck = function(payload, requestedBlockNumber, hit, miss) {
+  return this.strategy.hitCheck(payload, requestedBlockNumber, hit, miss);
 }
 
-ConditionalPermaCacheStrategy.prototype.cacheResult = function(payload, result, callback) {
+ConditionalPermaCacheStrategy.prototype.cacheResult = function(payload, result, requestedBlockNumber, callback) {
   var conditional = this.conditionals[payload.method];
 
-  if (conditional && conditional(result)) {
-    this.strategy.cacheResult(payload, result, callback);
+  if (conditional != null) {
+    if (conditional(result)) {
+      this.strategy.cacheResult(payload, result, requestedBlockNumber, callback);
+    } else {
+      callback();
+    }
   } else {
-    callback();
+    // Cache all requests that don't have a conditional
+    this.strategy.cacheResult(payload, result, requestedBlockNumber, callback);
   }
 }
 
@@ -150,20 +180,15 @@ ConditionalPermaCacheStrategy.prototype.canCache = function(payload) {
   return this.strategy.canCache(payload);
 }
 
-function BlockCacheStrategy(subprovider) {
+function BlockCacheStrategy() {
   this.cache = {};
-  this.subprovider = subprovider;
 };
 
-BlockCacheStrategy.prototype.getBlockCache = function(payload) {
+BlockCacheStrategy.prototype.getBlockCacheForPayload = function(payload, currentBlockNumber) {
   var blockTag = cacheUtils.blockTagForPayload(payload)
 
-  if (blockTag == "pending") {
-    return null;
-  }
-
   // rewrite 'latest' blockTag to current block number
-  if (!blockTag || blockTag === 'latest') blockTag = bufferToHex(this.subprovider.currentBlock.number)
+  if (!blockTag || blockTag === 'latest') blockTag = "0x" + currentBlockNumber.toString("hex")
 
   var blockCache = this.cache[blockTag]
   // create new cache if necesary
@@ -172,8 +197,8 @@ BlockCacheStrategy.prototype.getBlockCache = function(payload) {
   return blockCache;
 }
 
-BlockCacheStrategy.prototype.hitCheck = function(payload, hit, miss) {
-  var blockCache = this.getBlockCache(payload);
+BlockCacheStrategy.prototype.hitCheck = function(payload, requestedBlockNumber, hit, miss) {
+  var blockCache = this.getBlockCacheForPayload(payload, requestedBlockNumber);
 
   if (blockCache == null) {
     return miss();
@@ -189,9 +214,9 @@ BlockCacheStrategy.prototype.hitCheck = function(payload, hit, miss) {
   }
 };
 
-BlockCacheStrategy.prototype.cacheResult = function(payload, result, callback) {
+BlockCacheStrategy.prototype.cacheResult = function(payload, result, requestedBlockNumber, callback) {
   if (result != null) {
-    var blockCache = this.getBlockCache(payload);
+    var blockCache = this.getBlockCacheForPayload(payload, requestedBlockNumber);
     var identifier = cacheUtils.cacheIdentifierForPayload(payload);
     blockCache[identifier] = result;
   }
@@ -213,9 +238,9 @@ BlockCacheStrategy.prototype.canCache = function(payload) {
 }
 
 // naively removes older block caches
-BlockCacheStrategy.prototype.cacheRollOff = function(){
+BlockCacheStrategy.prototype.cacheRollOff = function(currentBlock){
   const self = this
-  var currentNumber = ethUtil.bufferToInt(self.subprovider.currentBlock.number)
+  var currentNumber = ethUtil.bufferToInt(currentBlock.number)
   var previousHex = ethUtil.intToHex(currentNumber-1)
   delete self.cache[previousHex]
 }

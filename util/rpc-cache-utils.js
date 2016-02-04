@@ -79,7 +79,7 @@ function cacheTypeForPayload(payload) {
     case 'eth_getCode':
     case 'eth_sign':
     case 'eth_getBlockByHash':
-
+    case 'eth_getTransactionByHash':
     case 'eth_getTransactionByBlockHashAndIndex':
     case 'eth_getTransactionReceipt':
     case 'eth_getUncleByBlockHashAndIndex':
@@ -89,9 +89,6 @@ function cacheTypeForPayload(payload) {
     case 'eth_compileSerpent':
     case 'shh_version':
       return 'perma'
-
-    case 'eth_getTransactionByHash':
-      return 'conditional'
 
     // cache until fork
     case 'eth_getBlockByNumber':

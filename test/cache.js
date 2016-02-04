@@ -37,7 +37,19 @@ cacheTest('getTransactionByHash for mined transaction', {
 }, true)
 
 
-function cacheTest(label, payload, shouldCache){
+cacheTest('getCode for latest block, then for earliest block, should not return cached response on second request', [
+  {
+    method: 'eth_getCode',
+    params: ['0x1234', 'latest'],
+  },
+  {
+    method: 'eth_getCode',
+    params: ['0x1234', 'earliest'],
+  }
+], false)
+
+
+function cacheTest(label, payloads, shouldHitOnSecondRequest){
 
   test('cache - '+label, function(t){
     t.plan(12)
@@ -47,6 +59,7 @@ function cacheTest(label, payload, shouldCache){
     // handle balance
     var dataProvider = injectMetrics(new FixtureProvider({
       eth_getBalance: '0xdeadbeef',
+      eth_getCode: '6060604052600560005560408060156000396000f3606060405260e060020a60003504633fa4f245811460245780635524107714602c575b005b603660005481565b6004356000556022565b6060908152602090f3',
       eth_getTransactionByHash: function(payload, next, end) {
         // Test; meant to represent a pending trasnaction
         if (payload.params[0] == "0x00000000000000000000000000000000000000000000000000deadbeefcafe00") {
@@ -92,14 +105,18 @@ function cacheTest(label, payload, shouldCache){
 
     engine.start()
 
-    cacheCheck(t, engine, cacheProvider, dataProvider, payload, function(err, response){
+    cacheCheck(t, engine, cacheProvider, dataProvider, payloads, function(err, response) {
       engine.stop()
       t.end()
     })
 
-    function cacheCheck(t, engine, cacheProvider, dataProvider, payload, cb){
-      var method = payload.method
-      requestTwice(payload, function(err, response){
+    function cacheCheck(t, engine, cacheProvider, dataProvider, payloads, cb) {
+      if (payloads instanceof Array == false) {
+        payloads = [payloads, payloads];
+      }
+
+      var method = payloads[0].method
+      requestTwice(payloads, function(err, response){
         // first request
         t.ifError(err || response.error, 'did not error')
         t.ok(response, 'has response')
@@ -115,7 +132,7 @@ function cacheTest(label, payload, shouldCache){
         t.notOk(err || response.error, 'did not error')
         t.ok(response, 'has response')
 
-        if (shouldCache == true) {
+        if (shouldHitOnSecondRequest == true) {
           t.equal(cacheProvider.getWitnessed(method).length, 2, 'cacheProvider did see "'+method+'"')
           t.equal(cacheProvider.getHandled(method).length, 1, 'cacheProvider did handle "'+method+'"')
 
@@ -133,10 +150,10 @@ function cacheTest(label, payload, shouldCache){
       })
     }
 
-    function requestTwice(payload, afterFirst, afterSecond){
-      engine.sendAsync(createPayload(payload), function(err, result){
+    function requestTwice(payloads, afterFirst, afterSecond){
+      engine.sendAsync(createPayload(payloads[0]), function(err, result){
         afterFirst(err, result)
-        engine.sendAsync(createPayload(payload), afterSecond)
+        engine.sendAsync(createPayload(payloads[1]), afterSecond)
       })
     }
 
