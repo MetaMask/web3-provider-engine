@@ -69,6 +69,17 @@ cacheTest('getCode for a specific block, then the one after it, should return ca
   }
 ], true)
 
+cacheTest('getCode for an unspecified block, then for the latest, should return cached response on second request', [
+  {
+    method: 'eth_getCode',
+    params: ['0x1234'],
+  },
+  {
+    method: 'eth_getCode',
+    params: ['0x1234', 'latest'],
+  }
+], true)
+
 
 function cacheTest(label, payloads, shouldHitOnSecondRequest){
 
