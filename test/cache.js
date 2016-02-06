@@ -6,6 +6,7 @@ const TestBlockProvider = require('./util/block.js')
 const createPayload = require('../util/create-payload.js')
 const injectMetrics = require('./util/inject-metrics')
 
+// skip cache
 
 cacheTest('skipCache - true', {
   method: 'eth_getBalance',
@@ -16,6 +17,8 @@ cacheTest('skipCache - false', {
   method: 'eth_getBalance',
   skipCache: false,
 }, true)
+
+// block tags
 
 cacheTest('getBalance + undefined blockTag', {
   method: 'eth_getBalance',
@@ -32,6 +35,8 @@ cacheTest('getBalance + pending blockTag', {
   params: ['0x1234', 'pending'],
 }, false)
 
+// tx by hash
+
 cacheTest('getTransactionByHash for transaction that doesn\'t exist', {
   method: 'eth_getTransactionByHash',
   params: ['0x00000000000000000000000000000000000000000000000000deadbeefcafe00'],
@@ -46,6 +51,8 @@ cacheTest('getTransactionByHash for mined transaction', {
   method: 'eth_getTransactionByHash',
   params: ['0x00000000000000000000000000000000000000000000000000deadbeefcafe02'],
 }, true)
+
+// code
 
 cacheTest('getCode for latest block, then for earliest block, should not return cached response on second request', [{
   method: 'eth_getCode',
