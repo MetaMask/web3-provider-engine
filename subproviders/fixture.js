@@ -16,7 +16,7 @@ FixtureProvider.prototype.handleRequest = function(payload, next, end){
   var staticResponse = self.staticResponses[payload.method]
   // async function
   if ('function' === typeof staticResponse) {
-    staticResponse(end)
+    staticResponse(payload, next, end)
   // static response - null is valid response
   } else if (staticResponse !== undefined) {
     end(null, staticResponse)

@@ -1,7 +1,5 @@
 module.exports = {
   cacheIdentifierForPayload: cacheIdentifierForPayload,
-  canBlockCache: canBlockCache,
-  canPermaCache: canPermaCache,
   canCache: canCache,
   blockTagForPayload: blockTagForPayload,
   paramsWithoutBlockTag: paramsWithoutBlockTag,
@@ -18,57 +16,42 @@ function cacheIdentifierForPayload(payload){
   }
 }
 
-function canBlockCache(payload){
-  var type = cacheTypeForPayload(payload)
-  return type === 'perma' || type === 'fork' || type === 'block'
-}
-
-function canPermaCache(payload){
-  return cacheTypeForPayload(payload) === 'perma'
-}
-
 function canCache(payload){
   return cacheTypeForPayload(payload) !== 'never'
 }
 
 function blockTagForPayload(payload){
-  switch(blockTagParamIndex(payload)) {
-    // blockTag is first param
-    case 0:
-      return payload.params[0]
-    // blockTag is last param
-    case -1:
-      return payload.params[payload.params.length-1]
-    // there is no blockTag
-    default:
-      return null
+  var index = blockTagParamIndex(payload);
+
+  // Block tag param not passed.
+  if (index >= payload.params.length) {
+    return null;
   }
+
+  return payload.params[index];
 }
 
 function paramsWithoutBlockTag(payload){
-  switch(blockTagParamIndex(payload)) {
-    // blockTag is first param
-    case 0:
-      return payload.params.slice(1)
-    // blockTag is last param
-    case -1:
-      return payload.params.slice(0,-1)
-    // there is no blockTag
-    default:
-      return payload.params.slice()
+  var index = blockTagParamIndex(payload);
+
+  // Block tag param not passed.
+  if (index >= payload.params.length) {
+    return payload.params;
   }
+
+  return payload.params.slice(0,index);
 }
 
 function blockTagParamIndex(payload){
   switch(payload.method) {
-    // blockTag is last param
+    // blockTag is second param
     case 'eth_getBalance':
     case 'eth_getCode':
     case 'eth_getTransactionCount':
     case 'eth_getStorageAt':
     case 'eth_call':
     case 'eth_estimateGas':
-      return -1
+      return 1
     // blockTag is first param
     case 'eth_getBlockByNumber':
       return 0

@@ -3,7 +3,7 @@ const inherits = require('util').inherits
 const Stoplight = require('./util/stoplight.js')
 const cacheUtils = require('./util/rpc-cache-utils.js')
 const createPayload = require('./util/create-payload.js')
-const async = require("./util/async.js");
+const async = require('./util/async.js');
 
 module.exports = Web3ProviderEngine
 
@@ -216,7 +216,7 @@ Web3ProviderEngine.prototype._inspectResponseForNewBlock = function(payload, res
     return cb(null, resultObj)
   }
 
-  if (resultObj.result !== null) {
+  if (resultObj.result == null || resultObj.result.blockNumber == null) {
     return cb(null, resultObj)
   }
 
@@ -245,12 +245,12 @@ function SourceNotFoundError(payload){
 }
 
 function stripHexPrefix(hexString) {
-  return hexString.replace("0x", "");
+  return hexString.replace('0x', '');
 }
 
 function addHexPrefix(str) {
-  if (str.indexOf("0x") < 0) {
-    str = "0x" + str;
+  if (str.indexOf('0x') < 0) {
+    str = '0x' + str;
   }
   return str;
 }
