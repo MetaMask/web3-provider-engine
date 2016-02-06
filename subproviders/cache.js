@@ -84,7 +84,6 @@ BlockCacheProvider.prototype._handleRequest = function(payload, next, end){
   if (blockTag === 'earliest') {
     requestedBlockNumber = '0x00'
   } else if (blockTag === 'latest') {
-    // TODO: rewrite 'latest' blockTag to block number on payload
     requestedBlockNumber = bufferToHex(self.currentBlock.number)
   } else {
     // We have a hex number
