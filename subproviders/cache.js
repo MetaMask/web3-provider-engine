@@ -43,7 +43,7 @@ BlockCacheProvider.prototype.handleRequest = function(payload, next, end){
   const self = this
 
   // skip cache if told to do so
-  if (payload.cache === false) {
+  if (payload.skipCache) {
     // console.log('CACHE SKIP - skip cache if told to do so')
     return next()
   }
@@ -78,17 +78,17 @@ BlockCacheProvider.prototype._handleRequest = function(payload, next, end){
   }
 
   var blockTag = cacheUtils.blockTagForPayload(payload)
-  var requestedBlockNumber = bufferToBN(this.currentBlock.number)
+  if (!blockTag) blockTag = 'latest'
+  var requestedBlockNumber
 
-  if (blockTag) {
-    if (blockTag === 'earliest') {
-      requestedBlockNumber = new ethUtil.BN('0', 'hex')
-    } else if (blockTag === 'latest') {
-      // already set to latest
-    } else {
-      // We have a hex number
-      requestedBlockNumber = new ethUtil.BN(blockTag, 'hex')
-    }
+  if (blockTag === 'earliest') {
+    requestedBlockNumber = '0x00'
+  } else if (blockTag === 'latest') {
+    // TODO: rewrite 'latest' blockTag to block number on payload
+    requestedBlockNumber = bufferToHex(self.currentBlock.number)
+  } else {
+    // We have a hex number
+    requestedBlockNumber = blockTag
   }
 
   //console.log('REQUEST at block 0x' + requestedBlockNumber.toString('hex'))
@@ -104,14 +104,9 @@ BlockCacheProvider.prototype._handleRequest = function(payload, next, end){
   })
 }
 
-// TODO: This should be in utils somewhere.
-function bufferToHex(buffer){
-  return ethUtil.addHexPrefix(buffer.toString('hex'))
-}
-
-function bufferToBN(buffer) {
-  return new ethUtil.BN(buffer.toString('hex'), 'hex')
-}
+//
+// Cache Strategies
+//
 
 function PermaCacheStrategy() {
   this.cache = {}
@@ -121,11 +116,14 @@ PermaCacheStrategy.prototype.hitCheck = function(payload, requestedBlockNumber, 
   var identifier = cacheUtils.cacheIdentifierForPayload(payload)
   var cached = this.cache[identifier]
 
-  if (cached && requestedBlockNumber.gte(cached.blockNumber)) {
-    // If the block number we're requesting at is greater than or
-    // equal to the block where we cached a previous response, return
-    // the previous response. If it's less than the current block,
-    // send it back down to the client where it will be recached.
+  if (!cached) return miss()
+
+  // If the block number we're requesting at is greater than or
+  // equal to the block where we cached a previous response,
+  // the cache is valid. If it's from earlier than the cache,
+  // send it back down to the client (where it will be recached.)
+  var cacheIsEarlyEnough = compareHex(requestedBlockNumber, cached.blockNumber) >= 0
+  if (cacheIsEarlyEnough) {
     return hit(null, cached.result)
   } else {
     return miss()
@@ -148,6 +146,10 @@ PermaCacheStrategy.prototype.cacheResult = function(payload, result, requestedBl
 PermaCacheStrategy.prototype.canCache = function(payload) {
   return cacheUtils.canCache(payload)
 }
+
+//
+// ConditionalPermaCacheStrategy
+//
 
 function ConditionalPermaCacheStrategy(conditionals) {
   this.strategy = new PermaCacheStrategy()
@@ -177,19 +179,19 @@ ConditionalPermaCacheStrategy.prototype.canCache = function(payload) {
   return this.strategy.canCache(payload)
 }
 
+//
+// BlockCacheStrategy
+//
+
 function BlockCacheStrategy() {
   this.cache = {}
 }
 
-BlockCacheStrategy.prototype.getBlockCacheForPayload = function(payload, currentBlockNumber) {
+BlockCacheStrategy.prototype.getBlockCacheForPayload = function(payload, blockNumber) {
   var blockTag = cacheUtils.blockTagForPayload(payload)
-
-  // rewrite 'latest' blockTag to current block number
-  if (!blockTag || blockTag === 'latest') blockTag = '0x' + currentBlockNumber.toString('hex')
-
-  var blockCache = this.cache[blockTag]
+  var blockCache = this.cache[blockNumber]
   // create new cache if necesary
-  if (!blockCache) blockCache = this.cache[blockTag] = {}
+  if (!blockCache) blockCache = this.cache[blockNumber] = {}
 
   return blockCache
 }
@@ -236,4 +238,17 @@ BlockCacheStrategy.prototype.cacheRollOff = function(currentBlock){
   var currentNumber = ethUtil.bufferToInt(currentBlock.number)
   var previousHex = ethUtil.intToHex(currentNumber-1)
   delete self.cache[previousHex]
+}
+
+
+// util
+
+function bufferToHex(buffer){
+  return ethUtil.addHexPrefix(buffer.toString('hex'))
+}
+
+function compareHex(hexA, hexB){
+  var numA = parseInt(hexA, 16)
+  var numB = parseInt(hexB, 16)
+  return numA === numB ? 0 : (numA > numB ? 1 : -1 )
 }

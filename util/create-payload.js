@@ -1,13 +1,15 @@
 const getRandomId = require('./random-id.js')
+const extend = require('xtend')
 
 module.exports = createPayload
 
 
 function createPayload(data){
-  return {
-    id: data.id === undefined ? getRandomId() : data.id,
-    jsonrpc: data.jsonrpc  === undefined ? '2.0' : data.jsonrpc,
-    method: data.method,
-    params: data.params || [],
-  }
+  return extend({
+    // defaults
+    id: getRandomId(),
+    jsonrpc: '2.0',
+    params: [],
+    // user-specified
+  }, data)
 }

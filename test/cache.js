@@ -7,6 +7,16 @@ const createPayload = require('../util/create-payload.js')
 const injectMetrics = require('./util/inject-metrics')
 
 
+cacheTest('skipCache - true', {
+  method: 'eth_getBalance',
+  skipCache: true,
+}, false)
+
+cacheTest('skipCache - false', {
+  method: 'eth_getBalance',
+  skipCache: false,
+}, true)
+
 cacheTest('getBalance + undefined blockTag', {
   method: 'eth_getBalance',
   params: ['0x1234'],
@@ -75,7 +85,7 @@ cacheTest('getCode for an unspecified block, then for the latest, should return 
 // 3. Performs second request
 // 4. checks if cache hit or missed 
 
-function cacheTest(label, payloads, shouldHitOnSecondRequest){
+function cacheTest(label, payloads, shouldHitCacheOnSecondRequest){
 
   test('cache - '+label, function(t){
     t.plan(12)
@@ -144,7 +154,7 @@ function cacheTest(label, payloads, shouldHitOnSecondRequest){
       var method = payloads[0].method
       requestTwice(payloads, function(err, response){
         // first request
-        t.ifError(err || response.error, 'did not error')
+        t.ifError(err || response.error && response.error.message, 'did not error')
         t.ok(response, 'has response')
 
         t.equal(cacheProvider.getWitnessed(method).length, 1, 'cacheProvider did see "'+method+'"')
@@ -155,10 +165,10 @@ function cacheTest(label, payloads, shouldHitOnSecondRequest){
 
       }, function(err, response){
         // second request
-        t.notOk(err || response.error, 'did not error')
+        t.ifError(err || response.error && response.error.message, 'did not error')
         t.ok(response, 'has response')
 
-        if (shouldHitOnSecondRequest) {
+        if (shouldHitCacheOnSecondRequest) {
           t.equal(cacheProvider.getWitnessed(method).length, 2, 'cacheProvider did see "'+method+'"')
           t.equal(cacheProvider.getHandled(method).length, 1, 'cacheProvider did handle "'+method+'"')
 
