@@ -81,11 +81,7 @@ HookedWalletSubprovider.prototype.fillInTxExtras = function(txData, cb){
   // console.log('fillInTxExtras - address:', address)
   async.parallel({
     gasPrice: self.emitPayload.bind(self, { method: 'eth_gasPrice', params: [] }),
-    // we actually want the pending txCount
-    // but pending is broken in provider-engine
-    // https://github.com/MetaMask/provider-engine/issues/11
     nonce:    self.emitPayload.bind(self, { method: 'eth_getTransactionCount', params: [address, 'pending'] }),
-    // nonce:    self.emitPayload.bind(self, { method: 'eth_getTransactionCount', params: [address, 'latest'] }),
     // gas:      self.emitPayload.bind(self, { method: 'eth_estimateGas', params: [] }),
   }, function(err, result){
     if (err) return cb(err)
