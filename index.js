@@ -13,6 +13,7 @@ inherits(Web3ProviderEngine, EventEmitter)
 function Web3ProviderEngine(opts) {
   const self = this
   EventEmitter.call(self)
+  self.setMaxListeners(30)
   // set initialization blocker
   self._ready = new Stoplight()
   // unblock initialization after first block
