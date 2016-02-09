@@ -1,4 +1,4 @@
-const async = require("../util/async.js");
+const async = require('async')
 const inherits = require('util').inherits
 const ethUtil = require('ethereumjs-util')
 const Subprovider = require('./subprovider.js')

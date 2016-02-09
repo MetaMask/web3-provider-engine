@@ -1,4 +1,4 @@
-const async = require("../util/async.js");
+const async = require('async')
 const inherits = require('util').inherits
 const VM = require('ethereumjs-vm')
 const Block = require('ethereumjs-block')

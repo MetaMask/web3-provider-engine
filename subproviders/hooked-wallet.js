@@ -1,4 +1,4 @@
-const async = require("../util/async.js");
+const async = require('async')
 const inherits = require('util').inherits
 const extend = require('xtend')
 const Subprovider = require('./subprovider.js')
@@ -43,7 +43,9 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
 
     case 'eth_sendTransaction':
       var txData = payload.params[0]
+      // console.log('eth_sendTransaction', txData)
       self.fillInTxExtras(txData, function(err, fullTxData){
+        // console.log('with extras', txData)
         if (err) return end(err)
         self.signTransaction(fullTxData, function(err, rawTx){
           if (err) return end(err)
@@ -82,8 +84,8 @@ HookedWalletSubprovider.prototype.fillInTxExtras = function(txData, cb){
     // we actually want the pending txCount
     // but pending is broken in provider-engine
     // https://github.com/MetaMask/provider-engine/issues/11
-    // nonce:    self.emitPayload.bind(self, { method: 'eth_getTransactionCount', params: [address, 'pending'] }),
-    nonce:    self.emitPayload.bind(self, { method: 'eth_getTransactionCount', params: [address, 'latest'] }),
+    nonce:    self.emitPayload.bind(self, { method: 'eth_getTransactionCount', params: [address, 'pending'] }),
+    // nonce:    self.emitPayload.bind(self, { method: 'eth_getTransactionCount', params: [address, 'latest'] }),
     // gas:      self.emitPayload.bind(self, { method: 'eth_estimateGas', params: [] }),
   }, function(err, result){
     if (err) return cb(err)

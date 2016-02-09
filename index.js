@@ -3,7 +3,7 @@ const inherits = require('util').inherits
 const Stoplight = require('./util/stoplight.js')
 const cacheUtils = require('./util/rpc-cache-utils.js')
 const createPayload = require('./util/create-payload.js')
-const async = require('./util/async.js');
+const async = require('async')
 
 module.exports = Web3ProviderEngine
 
