@@ -98,7 +98,7 @@ VmSubprovider.prototype.runVm = function(payload, cb){
   vm.runTx({
     tx: tx,
     block: block,
-    skipNonce: !txParams.nonce,
+    skipNonce: true,
   }, function(err, results) {
     if (err) {
       if (isNormalVmError(err.message)) {
