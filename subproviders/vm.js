@@ -20,6 +20,7 @@ inherits(VmSubprovider, Subprovider)
 
 function VmSubprovider(opts){
   const self = this
+  self.opts = opts || {};
   self.methods = ['eth_call', 'eth_estimateGas']
 }
 
@@ -68,6 +69,13 @@ VmSubprovider.prototype.runVm = function(payload, cb){
 
   // create vm with state lookup intercepted
   var vm = self.vm = new VM()
+
+  if (self.opts.debug === true) {
+    vm.on('step', function (data) {
+      console.log(data.opcode.name)
+    })
+  }
+
   vm.stateManager._lookupStorageTrie = self._createAccountStorageTrie.bind(self, blockNumber)
   vm.stateManager.cache._lookupAccount = self._fetchAccount.bind(self, blockNumber)
   var codeStore = new FallbackAsyncStore(function(address, cb){ self._fetchAccountCode(address, blockNumber, cb) })
@@ -92,16 +100,20 @@ VmSubprovider.prototype.runVm = function(payload, cb){
     block: block,
     skipNonce: !txParams.nonce,
   }, function(err, results) {
-
     if (err) {
-      // these errors often get gobbled up, so logging for easy debugging
-      console.error('VmSubprovider encountered an error running "'+payload.method+'":')
-      console.error(err)
       if (isNormalVmError(err.message)) {
         return cb(null, { error: err })
       } else {
         return cb(err)
       }
+    }
+
+    if (results.error != null) {
+      return cb(new Error("VM error: " + results.error));
+    }
+
+    if (results.vm.exception != 1) {
+      return cb(new Error("VM Exception while executing " + payload.method + ": " + results.vm.exceptionError));
     }
 
     cb(null, results)
@@ -145,6 +157,8 @@ VmSubprovider.prototype._fetchAccountStorage = function(address, key, blockNumbe
   const self = this
   self.emitPayload({ method: 'eth_getStorageAt', params: [address, key, blockNumber] }, function(err, results){
     if (err) return cb(err)
+    if (results.error) return cb(results.error.message)
+
     cb(null, results.result)
   })
 }
@@ -153,6 +167,7 @@ VmSubprovider.prototype._fetchAccountBalance = function(address, blockNumber, cb
   const self = this
   self.emitPayload({ method: 'eth_getBalance', params: [address, blockNumber] }, function(err, results){
     if (err) return cb(err)
+    if (results.error) return cb(results.error.message)
     cb(null, results.result)
   })
 }
@@ -161,6 +176,7 @@ VmSubprovider.prototype._fetchAccountNonce = function(address, blockNumber, cb){
   const self = this
   self.emitPayload({ method: 'eth_getTransactionCount', params: [address, blockNumber] }, function(err, results){
     if (err) return cb(err)
+    if (results.error) return cb(results.error.message);
     cb(null, results.result)
   })
 }
@@ -169,6 +185,7 @@ VmSubprovider.prototype._fetchAccountCode = function(address, blockNumber, cb){
   const self = this
   self.emitPayload({ method: 'eth_getCode', params: [address, blockNumber] }, function(err, results){
     if (err) return cb(err)
+    if (results.error) return cb(results.error.message);
     cb(null, results.result)
   })
 }
@@ -234,8 +251,9 @@ FallbackAsyncStore.prototype.get = function(address, cb){
     self.fetch(addressHex, function(err, value){
       // console.log('FallbackAsyncStore - fetch return', arguments)
       if (err) return cb(err)
+      value = ethUtil.toBuffer(value);
       self.cache[addressHex] = value
-      cb(null, ethUtil.toBuffer(value))
+      cb(null, value)
     })
   }
 }
