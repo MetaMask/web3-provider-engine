@@ -70,7 +70,7 @@ VmSubprovider.prototype.runVm = function(payload, cb){
   // create vm with state lookup intercepted
   var vm = self.vm = new VM()
 
-  if (self.opts.debug === true) {
+  if (self.opts.debug) {
     vm.on('step', function (data) {
       console.log(data.opcode.name)
     })
