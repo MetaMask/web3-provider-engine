@@ -1,4 +1,5 @@
 const ProviderEngine = require('./index.js')
+const NonceTrackerSubprovider = require('./subproviders/nonce-tracker.js')
 const CacheSubprovider = require('./subproviders/cache.js')
 const RpcSubprovider = require('./subproviders/rpc.js')
 const VmSubprovider = require('./subproviders/vm.js')
@@ -13,6 +14,9 @@ function ZeroClientProvider(opts){
   opts = opts || {}
 
   var engine = new ProviderEngine()
+
+  // nonce tracker
+  engine.addProvider(new NonceTrackerSubprovider())
 
   // cache layer
   var cacheSubprovider = new CacheSubprovider()
