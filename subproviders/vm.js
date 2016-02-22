@@ -100,23 +100,15 @@ VmSubprovider.prototype.runVm = function(payload, cb){
     block: block,
     skipNonce: true,
   }, function(err, results) {
-    if (err) {
-      if (isNormalVmError(err.message)) {
-        return cb(null, { error: err })
-      } else {
-        return cb(err)
-      }
-    }
-
-    if (results.error != null) {
+    if (results && results.error != null) {
       return cb(new Error("VM error: " + results.error));
     }
 
-    if (results.vm.exception != 1) {
+    if (results && results.vm && results.vm.exception != 1) {
       return cb(new Error("VM Exception while executing " + payload.method + ": " + results.vm.exceptionError));
     }
 
-    cb(null, results)
+    cb(err, results)
   })
 
 }
