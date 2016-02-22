@@ -84,33 +84,67 @@ VmSubprovider.prototype.runVm = function(payload, cb){
   // create tx
   var txParams = payload.params[0]
   // console.log('params:', payload.params)
-  var tx = new Transaction({
-    to: txParams.to,
-    from: txParams.from,
-    value: txParams.value,
-    data: txParams.data,
-    gasLimit: txParams.gas || block.header.gasLimit,
-    gasPrice: txParams.gasPrice,
-    nonce: txParams.nonce,
+  var tx = {
+    from: ethUtil.toBuffer(txParams.from),
+    value: ethUtil.toBuffer(txParams.value || "0x0"),
+    data: ethUtil.toBuffer(txParams.data),
+    gasLimit: ethUtil.toBuffer(txParams.gas || block.header.gasLimit),
+    gasPrice: ethUtil.toBuffer(txParams.gasPrice),
+  };
+
+  if (txParams.to) {
+    tx.to = ethUtil.toBuffer(txParams.to);
+  }
+
+  // Get the code ourselves because runCall gets the to address from cache,
+  // which isn't returning useful data because nothing is in the cache.
+  vm.stateManager.getContractCode(tx.to, function(err, code, comp) {
+    if (err) return cb(err);
+
+    var params = {
+      block: block,
+      caller: tx.from,
+      code: code,
+      data: tx.data,
+      gasLimit: tx.gasLimit,
+      gasPrice: tx.gasPrice,
+      origin: tx.from,
+      to: tx.to,
+      value: tx.value
+    };
+
+    vm.runCall(params, function(err, results) {
+      if (results && results.error != null) {
+        return cb(new Error("VM error: " + results.error));
+      }
+
+      if (results && results.vm && results.vm.exception != 1) {
+        return cb(new Error("VM Exception while executing " + payload.method + ": " + results.vm.exceptionError));
+      }
+
+      // Use ethereumjs-tx to calculate the basefee of this transaction.
+      var transaction = new Transaction(tx);
+      var basefee = transaction.getBaseFee();
+
+      // Calculate the total gas used
+      // WARNING! This and the next block of code are directly copied from
+      // runTx() within ethereumjs-vm. It was the only way to get the right
+      // fee while still using runCall directly.
+      results.gasUsed = results.gasUsed.add(basefee);
+
+      // refund the accoun.stateManagert
+      var gasRefund = results.vm.gasRefund
+      if (gasRefund) {
+        if (gasRefund.cmp(results.gasUsed.divn(2)) === -1) {
+          results.gasUsed.isub(gasRefund)
+        } else {
+          results.gasUsed.isub(results.gasUsed.divn(2))
+        }
+      }
+
+      cb(err, results)
+    });
   })
-  tx.from = ethUtil.toBuffer(txParams.from)
-
-  vm.runTx({
-    tx: tx,
-    block: block,
-    skipNonce: true,
-  }, function(err, results) {
-    if (results && results.error != null) {
-      return cb(new Error("VM error: " + results.error));
-    }
-
-    if (results && results.vm && results.vm.exception != 1) {
-      return cb(new Error("VM Exception while executing " + payload.method + ": " + results.vm.exceptionError));
-    }
-
-    cb(err, results)
-  })
-
 }
 
 VmSubprovider.prototype._createAccountStorageTrie = function(blockNumber, address, cb){
