@@ -99,6 +99,7 @@ VmSubprovider.prototype.runVm = function(payload, cb){
     tx: tx,
     block: block,
     skipNonce: true,
+    skipBalance: true,
   }, function(err, results) {
     if (err) return cb(err)
     if (results.error != null) {
