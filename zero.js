@@ -1,11 +1,11 @@
 const ProviderEngine = require('./index.js')
+const DefaultFixture = require('./subproviders/default-fixture.js')
 const NonceTrackerSubprovider = require('./subproviders/nonce-tracker.js')
 const CacheSubprovider = require('./subproviders/cache.js')
-const RpcSubprovider = require('./subproviders/rpc.js')
-const VmSubprovider = require('./subproviders/vm.js')
 const FilterSubprovider = require('./subproviders/filters.js')
-const DefaultFixture = require('./subproviders/default-fixture.js')
-const LightWalletSubprovider = require('./subproviders/lightwallet.js')
+const HookedWalletSubprovider = require('./subproviders/hooked-wallet.js')
+const RpcSubprovider = require('./subproviders/rpc.js')
+
 
 module.exports = ZeroClientProvider
 
@@ -15,6 +15,10 @@ function ZeroClientProvider(opts){
 
   var engine = new ProviderEngine()
 
+  // static
+  var staticSubprovider = new DefaultFixture()
+  engine.addProvider(staticSubprovider)
+
   // nonce tracker
   engine.addProvider(new NonceTrackerSubprovider())
 
@@ -22,20 +26,15 @@ function ZeroClientProvider(opts){
   var cacheSubprovider = new CacheSubprovider()
   engine.addProvider(cacheSubprovider)
 
-  // static
-  var staticSubprovider = new DefaultFixture()
-  engine.addProvider(staticSubprovider)
-
   // filters
   var filterSubprovider = new FilterSubprovider()
   engine.addProvider(filterSubprovider)
 
-  // vm
-  var vmSubprovider = new VmSubprovider()
-  engine.addProvider(vmSubprovider)
-
   // id mgmt
-  var idmgmtSubprovider = new LightWalletSubprovider()
+  var idmgmtSubprovider = new HookedWalletSubprovider({
+    approveTx: opts.approveTx,
+    signTransaction: opts.signTransaction,
+  })
   engine.addProvider(idmgmtSubprovider)
 
   // data source
