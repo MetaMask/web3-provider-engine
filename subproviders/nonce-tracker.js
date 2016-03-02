@@ -8,6 +8,8 @@ module.exports = NonceTrackerSubprovider
 
 // handles the following RPC methods:
 //   eth_getTransactionCount (pending only)
+// observes the following RPC methods:
+//   eth_sendRawTransaction
 
 
 inherits(NonceTrackerSubprovider, Subprovider)
@@ -50,7 +52,6 @@ NonceTrackerSubprovider.prototype.handleRequest = function(payload, next, end){
     case 'eth_sendRawTransaction':
       // parse raw tx
       var rawTx = payload.params[0]
-      console.log('eth_sendRawTransaction:', rawTx)
       var stripped = ethUtil.stripHexPrefix(rawTx)
       var rawData = new Buffer(ethUtil.stripHexPrefix(rawTx), 'hex')
       var tx = new Transaction(new Buffer(ethUtil.stripHexPrefix(rawTx), 'hex'))
@@ -65,6 +66,8 @@ NonceTrackerSubprovider.prototype.handleRequest = function(payload, next, end){
       hexNonce = '0x'+hexNonce
       // update cache
       self.nonceCache[address] = hexNonce
+      // allow the request to continue normally
+      next()
       return
 
     default:

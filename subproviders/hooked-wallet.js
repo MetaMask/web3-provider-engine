@@ -18,6 +18,8 @@ function HookedWalletSubprovider(opts){
   const self = this
 
   self.getAccounts = opts.getAccounts
+  // default to auto-approve
+  self.approveTx = opts.approveTx || function(txParams, cb){ cb(null, true) }
   self.signTransaction = opts.signTransaction
 }
 
@@ -42,21 +44,19 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
       return
 
     case 'eth_sendTransaction':
-      var txData = payload.params[0]
-      // console.log('eth_sendTransaction', txData)
-      self.fillInTxExtras(txData, function(err, fullTxData){
-        // console.log('with extras', txData)
+      var txParams = payload.params[0]
+      // approve
+      self.approveTx(txParams, function(err, didApprove){
         if (err) return end(err)
-        self.signTransaction(fullTxData, function(err, rawTx){
+        if (!didApprove) return end(new Error('User denied transaction.'))
+        // autofill
+        self.fillInTxExtras(txParams, function(err, fullTxParams){
           if (err) return end(err)
-          // console.log('sending rawTx:', rawTx)
-          self.emitPayload({
-            method: 'eth_sendRawTransaction',
-            params: [rawTx],
-          }, function(err, result){
+          // sign
+          self.signTransaction(fullTxParams, function(err, rawTx){
             if (err) return end(err)
-            // console.log('signed tx submitted:', result)
-            end(null, result.result)
+            // submit
+            self.submitTx(rawTx, end)
           })
         })
       })
@@ -73,6 +73,17 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
       return
 
   }
+}
+
+HookedWalletSubprovider.prototype.submitTx = function(rawTx, cb) {
+  const self = this
+  self.emitPayload({
+    method: 'eth_sendRawTransaction',
+    params: [rawTx],
+  }, function(err, result){
+    if (err) return cb(err)
+    cb(null, result.result)
+  })
 }
 
 HookedWalletSubprovider.prototype.fillInTxExtras = function(txData, cb){
