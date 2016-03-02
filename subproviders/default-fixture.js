@@ -13,7 +13,7 @@ function DefaultFixtures() {
     net_listening: true,
     net_peerCount: '0xc',
     eth_protocolVersion: '63',
-    eth_hashrate: '0x0',
+    eth_hashrate: '0x00',
     eth_mining: false,
     eth_syncing: true,
   }
