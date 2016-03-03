@@ -87,9 +87,9 @@ function createBlock(blockParams, prevBlock, txs) {
 }
 
 function incrementHex(hexString){
-  return '0x'+ethUtil.intToHex(Number(hexString)+1)
+  return ethUtil.intToHex(Number(hexString)+1)
 }
 
 function randomHash(){
-  return '0x'+ethUtil.intToHex(Math.floor(Math.random()*Number.MAX_SAFE_INTEGER))
+  return ethUtil.intToHex(Math.floor(Math.random()*Number.MAX_SAFE_INTEGER))
 }

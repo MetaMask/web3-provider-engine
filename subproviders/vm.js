@@ -3,7 +3,7 @@ const inherits = require('util').inherits
 const VM = require('ethereumjs-vm')
 const Block = require('ethereumjs-block')
 const Account = require('ethereumjs-account')
-const Transaction = require('ethereumjs-tx')
+const FakeTransaction = require('ethereumjs-tx/fake.js')
 const FakeMerklePatriciaTree = require('fake-merkle-patricia-tree')
 const ethUtil = require('ethereumjs-util')
 const createPayload = require('../util/create-payload.js')
@@ -84,7 +84,8 @@ VmSubprovider.prototype.runVm = function(payload, cb){
   // create tx
   var txParams = payload.params[0]
   // console.log('params:', payload.params)
-  var tx = new Transaction({
+
+  var tx = new FakeTransaction({
     to: txParams.to,
     from: txParams.from,
     value: txParams.value,
@@ -93,12 +94,12 @@ VmSubprovider.prototype.runVm = function(payload, cb){
     gasPrice: txParams.gasPrice,
     nonce: txParams.nonce,
   })
-  tx.from = ethUtil.toBuffer(txParams.from)
 
   vm.runTx({
     tx: tx,
     block: block,
     skipNonce: true,
+    skipBalance: true
   }, function(err, results) {
     if (err) return cb(err)
     if (results.error != null) {
