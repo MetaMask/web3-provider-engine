@@ -86,23 +86,22 @@ HookedWalletSubprovider.prototype.submitTx = function(rawTx, cb) {
   })
 }
 
-HookedWalletSubprovider.prototype.fillInTxExtras = function(txData, cb){
+HookedWalletSubprovider.prototype.fillInTxExtras = function(txParams, cb){
   const self = this
-  var address = txData.from
+  var address = txParams.from
   // console.log('fillInTxExtras - address:', address)
   async.parallel({
-    gasPrice: self.emitPayload.bind(self, { method: 'eth_gasPrice', params: [] }),
     nonce:    self.emitPayload.bind(self, { method: 'eth_getTransactionCount', params: [address, 'pending'] }),
-    // gas:      self.emitPayload.bind(self, { method: 'eth_estimateGas', params: [] }),
+    gas:      self.emitPayload.bind(self, { method: 'eth_estimateGas', params: [txParams] }),
+    gasPrice: self.emitPayload.bind(self, { method: 'eth_gasPrice', params: [] }),
   }, function(err, result){
     if (err) return cb(err)
     // console.log('fillInTxExtras - result:', result)
-    var fullTxData = extend({
-      gasPrice: result.gasPrice.result,
+    var fullTxParams = extend({
       nonce: result.nonce.result,
-      gas: '0x9000',
-      // gas: result.nonce.gas,
-    }, txData)
-    cb(null, fullTxData)
+      gas: result.gas.result,
+      gasPrice: result.gasPrice.result,
+    }, txParams)
+    cb(null, fullTxParams)
   })
 }
