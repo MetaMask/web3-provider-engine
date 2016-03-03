@@ -9,7 +9,7 @@ module.exports = HookedWalletSubprovider
 //   eth_coinbase
 //   eth_accounts
 //   eth_sendTransaction
-//   eth_sign *pending
+//   * eth_sign (TODO)
 
 
 inherits(HookedWalletSubprovider, Subprovider)
@@ -19,7 +19,7 @@ function HookedWalletSubprovider(opts){
 
   self.getAccounts = opts.getAccounts
   // default to auto-approve
-  self.approveTx = opts.approveTx || function(txParams, cb){ cb(null, true) }
+  self.approveTransaction = opts.approveTransaction || function(txParams, cb){ cb(null, true) }
   self.signTransaction = opts.signTransaction
 }
 
@@ -46,7 +46,7 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
     case 'eth_sendTransaction':
       var txParams = payload.params[0]
       // approve
-      self.approveTx(txParams, function(err, didApprove){
+      self.approveTransaction(txParams, function(err, didApprove){
         if (err) return end(err)
         if (!didApprove) return end(new Error('User denied transaction.'))
         // autofill

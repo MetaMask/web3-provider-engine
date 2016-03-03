@@ -47,7 +47,8 @@ engine.addProvider(new VmSubprovider())
 
 // id mgmt
 engine.addProvider(new HookedWalletSubprovider({
-  approveTx: function(cb){ ... },
+  getAccounts: function(cb){ ... },
+  approveTransaction: function(cb){ ... },
   signTransaction: function(cb){ ... },
 }))
 
