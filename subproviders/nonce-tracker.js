@@ -56,7 +56,7 @@ NonceTrackerSubprovider.prototype.handleRequest = function(payload, next, end){
       var rawData = new Buffer(ethUtil.stripHexPrefix(rawTx), 'hex')
       var tx = new Transaction(new Buffer(ethUtil.stripHexPrefix(rawTx), 'hex'))
       // extract address
-      var address = '0x'+tx.from.toString('hex')
+      var address = '0x'+tx.getSenderAddress().toString('hex')
       // extract nonce and increment
       var nonce = ethUtil.bufferToInt(tx.nonce)
       nonce++

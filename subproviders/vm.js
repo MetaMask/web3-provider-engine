@@ -93,7 +93,7 @@ VmSubprovider.prototype.runVm = function(payload, cb){
     gasPrice: txParams.gasPrice,
     nonce: txParams.nonce,
   })
-  tx.from = ethUtil.toBuffer(txParams.from)
+  tx._from = ethUtil.toBuffer(txParams.from)
 
   vm.runTx({
     tx: tx,
