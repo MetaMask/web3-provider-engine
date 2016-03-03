@@ -17,32 +17,40 @@ const CacheSubprovider = require('web3-provider-engine/subproviders/cache.js')
 const FixtureSubprovider = require('web3-provider-engine/subproviders/fixture.js')
 const FilterSubprovider = require('web3-provider-engine/subproviders/filters.js')
 const VmSubprovider = require('web3-provider-engine/subproviders/vm.js')
-const LightWalletSubprovider = require('web3-provider-engine/subproviders/lightwallet.js')
+const HookedWalletSubprovider = require('web3-provider-engine/subproviders/hooked-wallet.js')
+const NonceSubprovider = require('web3-provider-engine/subproviders/nonce-tracker.js')
 const RpcSubprovider = require('web3-provider-engine/subproviders/rpc.js')
 
 var engine = new ProviderEngine()
 var web3 = new Web3(engine)
 
-// cache layer
-engine.addProvider(new CacheSubprovider())
-
 // static results
 engine.addProvider(new FixtureSubprovider({
-  web3_clientVersion: 'MetaMask-ProviderEngine/v0.0.0/javascript',
+  web3_clientVersion: 'ProviderEngine/v0.0.0/javascript',
   net_listening: true,
-  eth_hashrate: '0x0',
+  eth_hashrate: '0x00',
   eth_mining: false,
   eth_syncing: true,
 })
 
+// cache layer
+engine.addProvider(new CacheSubprovider())
+
 // filters
 engine.addProvider(new FilterSubprovider())
+
+// pending nonce
+engine.addProvider(new NonceSubprovider())
 
 // vm
 engine.addProvider(new VmSubprovider())
 
 // id mgmt
-engine.addProvider(new LightWalletSubprovider())
+engine.addProvider(new HookedWalletSubprovider({
+  getAccounts: function(cb){ ... },
+  approveTransaction: function(cb){ ... },
+  signTransaction: function(cb){ ... },
+}))
 
 // data source
 engine.addProvider(new RpcSubprovider({
