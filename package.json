@@ -12,7 +12,7 @@
     "async": "^1.5.2",
     "ethereumjs-account": "^1.0.5",
     "ethereumjs-block": "^1.0.4",
-    "ethereumjs-tx": "^0.6.11",
+    "ethereumjs-tx": "^1.0.0",
     "ethereumjs-util": "^2.3.1",
     "ethereumjs-vm": "1.2.0",
     "fake-merkle-patricia-tree": "^1.0.1",
