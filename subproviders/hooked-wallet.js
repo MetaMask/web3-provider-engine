@@ -1,3 +1,11 @@
+/*
+ * Emulate 'eth_accounts' / 'eth_sendTransaction' using 'eth_sendRawTransaction'
+ *
+ * The two callbacks a user needs to implement are:
+ * - getAccounts() -- array of addresses supported
+ * - signTransaction(tx) -- sign a raw transaction object
+ */
+
 const async = require('async')
 const inherits = require('util').inherits
 const extend = require('xtend')
@@ -90,18 +98,36 @@ HookedWalletSubprovider.prototype.fillInTxExtras = function(txParams, cb){
   const self = this
   var address = txParams.from
   // console.log('fillInTxExtras - address:', address)
-  async.parallel({
-    nonce:    self.emitPayload.bind(self, { method: 'eth_getTransactionCount', params: [address, 'pending'] }),
-    gas:      self.emitPayload.bind(self, { method: 'eth_estimateGas', params: [txParams] }),
-    gasPrice: self.emitPayload.bind(self, { method: 'eth_gasPrice', params: [] }),
-  }, function(err, result){
+
+  var reqs = {}
+
+  if (txParams.gasPrice === undefined) {
+    // console.log("need to get gasprice")
+    reqs.gasPrice = self.emitPayload.bind(self, { method: 'eth_gasPrice', params: [] })
+  }
+
+  if (txParams.nonce === undefined) {
+    // console.log("need to get nonce")
+    reqs.nonce = self.emitPayload.bind(self, { method: 'eth_getTransactionCount', params: [address, 'pending'] })
+  }
+
+  if (txParams.gas === undefined) {
+    // console.log("need to get gas")
+    reqs.gas = self.emitPayload.bind(self, { method: 'eth_estimateGas', params: [ txParams, 'pending'] })
+  }
+
+  async.parallel(reqs, function(err, result) {
     if (err) return cb(err)
     // console.log('fillInTxExtras - result:', result)
-    var fullTxParams = extend({
-      nonce: result.nonce.result,
-      gas: result.gas.result,
-      gasPrice: result.gasPrice.result,
-    }, txParams)
-    cb(null, fullTxParams)
+
+    var res = { }
+    if (result.gasPrice)
+      res.gasPrice = result.gasPrice.result
+    if (result.nonce)
+      res.nonce = result.nonce.result
+    if (result.gas)
+      res.gas = result.gas.result
+
+    cb(null, extend(res, txParams))
   })
 }
