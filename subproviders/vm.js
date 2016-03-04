@@ -1,5 +1,6 @@
 const async = require('async')
 const inherits = require('util').inherits
+const Stoplight = require('../util/stoplight.js')
 const VM = require('ethereumjs-vm')
 const Block = require('ethereumjs-block')
 const Account = require('ethereumjs-account')
@@ -22,6 +23,18 @@ function VmSubprovider(opts){
   const self = this
   self.opts = opts || {};
   self.methods = ['eth_call', 'eth_estimateGas']
+  // set initialization blocker
+  self._ready = new Stoplight()
+}
+
+// setup a block listener on 'setEngine'
+VmSubprovider.prototype.setEngine = function(engine) {
+  const self = this
+  Subprovider.prototype.setEngine.call(self, engine)
+  // unblock initialization after first block
+  engine.once('block', function(block) {
+    self._ready.go()
+  })
 }
 
 VmSubprovider.prototype.handleRequest = function(payload, next, end) {
