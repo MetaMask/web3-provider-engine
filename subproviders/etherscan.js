@@ -24,7 +24,9 @@ module.exports = EtherscanProvider
 
 inherits(EtherscanProvider, Subprovider)
 
-function EtherscanProvider() {
+function EtherscanProvider(opts) {
+  opts = opts || {}
+  this.proto = (opts.https || false) ? 'https' : 'http'
 }
 
 EtherscanProvider.prototype.handleRequest = function(payload, next, end){
@@ -32,35 +34,35 @@ EtherscanProvider.prototype.handleRequest = function(payload, next, end){
 
   switch(payload.method) {
     case 'eth_blockNumber':
-      etherscanXHR('proxy', 'eth_blockNumber', {}, end)
+      etherscanXHR(this.proto, 'proxy', 'eth_blockNumber', {}, end)
       return
 
     case 'eth_getBlockByNumber':
-      etherscanXHR('proxy', 'eth_getBlockByNumber', {
+      etherscanXHR(this.proto, 'proxy', 'eth_getBlockByNumber', {
         tag: payload.params[0],
         boolean: payload.params[1] }, end)
       return
 
     case 'eth_getBalance':
-      etherscanXHR('account', 'balance', {
+      etherscanXHR(this.proto, 'account', 'balance', {
         address: payload.params[0],
         tag: payload.params[1] }, end)
       return
 
     case 'eth_call':
-      etherscanXHR('proxy', 'eth_call', payload.params[0], end)
+      etherscanXHR(this.proto, 'proxy', 'eth_call', payload.params[0], end)
       return
 
     case 'eth_sendRawTransaction':
-      etherscanXHR('proxy', 'eth_sendRawTransaction', { hex: payload.params[0] }, end)
+      etherscanXHR(this.proto, 'proxy', 'eth_sendRawTransaction', { hex: payload.params[0] }, end)
       return
 
     case 'eth_getTransactionReceipt':
-      etherscanXHR('proxy', 'eth_getTransactionReceipt', { txhash: payload.params[0] }, end)
+      etherscanXHR(this.proto, 'proxy', 'eth_getTransactionReceipt', { txhash: payload.params[0] }, end)
       return
 
     case 'eth_getTransactionCount':
-      etherscanXHR('account', 'txlist', {
+      etherscanXHR(this.proto, 'account', 'txlist', {
         sort: 'desc',
         page: 0,
         offset: 0,
@@ -86,8 +88,8 @@ function toQueryString(params) {
   }).join('&')
 }
 
-function etherscanXHR(module, action, params, end) {
-  var uri = 'http://api.etherscan.io/api?' + toQueryString({ module: module, action: action }) + '&' + toQueryString(params)
+function etherscanXHR(proto, module, action, params, end) {
+  var uri = proto + '://api.etherscan.io/api?' + toQueryString({ module: module, action: action }) + '&' + toQueryString(params)
   // console.log('[etherscan] request: ', uri)
 
   xhr({
