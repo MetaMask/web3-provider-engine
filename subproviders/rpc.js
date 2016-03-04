@@ -42,21 +42,15 @@ RpcSource.prototype.handleRequest = function(payload, next, end){
     var data
     try {
       data = JSON.parse(body)
+      if (data.error) return end(data.error)
     } catch (err) {
       console.error(err.stack)
       return end(err)
     }
 
-    // // console.log('network:', payload.method, payload.params, '->', data.result)
-    //
-    // if (data.error) {
-    //   resultObj.error = data.error
-    //   // return cb(new Error(data.error.message))
-    // } else {
-    //   resultObj.result = data.result
-    // }
+    // console.log('network:', payload.method, payload.params, '->', data.result)
 
-    end(data.error, data.result);
+    end(null, data.result)
   })
 
 }
