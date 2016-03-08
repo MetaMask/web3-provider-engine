@@ -50,24 +50,29 @@ NonceTrackerSubprovider.prototype.handleRequest = function(payload, next, end){
       return
 
     case 'eth_sendRawTransaction':
-      // parse raw tx
-      var rawTx = payload.params[0]
-      var stripped = ethUtil.stripHexPrefix(rawTx)
-      var rawData = new Buffer(ethUtil.stripHexPrefix(rawTx), 'hex')
-      var tx = new Transaction(new Buffer(ethUtil.stripHexPrefix(rawTx), 'hex'))
-      // extract address
-      var address = '0x'+tx.getSenderAddress().toString('hex')
-      // extract nonce and increment
-      var nonce = ethUtil.bufferToInt(tx.nonce)
-      nonce++
-      // hexify and normalize
-      var hexNonce = nonce.toString(16)
-      if (hexNonce.length%2) hexNonce = '0'+hexNonce
-      hexNonce = '0x'+hexNonce
-      // update cache
-      self.nonceCache[address] = hexNonce
       // allow the request to continue normally
-      next()
+      next(function(err, result, cb){
+        // only update local nonce if tx was submitted correctly
+        if (err) return cb()
+        // parse raw tx
+        var rawTx = payload.params[0]
+        var stripped = ethUtil.stripHexPrefix(rawTx)
+        var rawData = new Buffer(ethUtil.stripHexPrefix(rawTx), 'hex')
+        var tx = new Transaction(new Buffer(ethUtil.stripHexPrefix(rawTx), 'hex'))
+        // extract address
+        var address = '0x'+tx.getSenderAddress().toString('hex')
+        // extract nonce and increment
+        var nonce = ethUtil.bufferToInt(tx.nonce)
+        nonce++
+        // hexify and normalize
+        var hexNonce = nonce.toString(16)
+        if (hexNonce.length%2) hexNonce = '0'+hexNonce
+        hexNonce = '0x'+hexNonce
+        // dont update our record on the nonce until the submit was successful
+        // update cache
+        self.nonceCache[address] = hexNonce
+        cb()
+      })
       return
 
     default:
