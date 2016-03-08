@@ -97,9 +97,9 @@ Web3ProviderEngine.prototype._handleAsync = function(payload, finished) {
     }
   }
 
-  function end(e, r) {
-    error = e
-    result = r
+  function end(_error, _result) {
+    error = _error
+    result = _result
 
     async.eachSeries(stack, function(fn, callback) {
       if (fn) {
@@ -122,7 +122,8 @@ Web3ProviderEngine.prototype._handleAsync = function(payload, finished) {
           message: error.stack || error.message || error,
           code: -32000
         }
-        finished(null, resultObj)
+        // respond with both error formats
+        finished(error, resultObj)
       } else {
         self._inspectResponseForNewBlock(payload, resultObj, finished)
       }

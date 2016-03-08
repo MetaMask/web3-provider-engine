@@ -11,7 +11,7 @@ const injectMetrics = require('./util/inject-metrics')
 
 
 test('tx sig', function(t){
-  t.plan(10)
+  t.plan(12)
 
   var privateKey = new Buffer('cccd8f4d88de61f92f3747e4a9604a0395e6ad5138add4bec4a2ddf231ee24f9', 'hex')
   var address = new Buffer('1234362ef32bcd26d3dd18ca749378213625ba0b', 'hex')
@@ -55,6 +55,7 @@ test('tx sig', function(t){
       from: addressHex,
       to: addressHex,
       value: '0x01',
+      gas: '0x1234567890',
     }]
   }
 
@@ -76,6 +77,10 @@ test('tx sig', function(t){
     // gas price
     t.equal(providerC.getWitnessed('eth_gasPrice').length, 1, 'providerB did see "eth_gasPrice"')
     t.equal(providerC.getHandled('eth_gasPrice').length, 1, 'providerB did handle "eth_gasPrice"')  
+
+    // send raw tx
+    t.equal(providerC.getWitnessed('eth_sendRawTransaction').length, 1, 'providerC did see "eth_sendRawTransaction"')
+    t.equal(providerC.getHandled('eth_sendRawTransaction').length, 1, 'providerC did handle "eth_sendRawTransaction"')
 
     engine.stop()
     t.end()
