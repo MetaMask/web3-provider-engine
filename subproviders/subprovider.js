@@ -23,9 +23,5 @@ SubProvider.prototype.handleRequest = function(payload, next, end) {
 
 SubProvider.prototype.emitPayload = function(payload, cb){
   const self = this
-  self.engine.sendAsync(createPayload(payload), function(err, result){
-    if (err) return cb(err)
-    if (result.error) return cb(result.error)
-    cb(null, result)
-  })
+  self.engine.sendAsync(createPayload(payload), cb)
 }
