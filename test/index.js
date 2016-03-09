@@ -1,4 +1,5 @@
 require('./basic')
 require('./cache')
 require('./filters')
+require('./solc')
 require('./wallet')
