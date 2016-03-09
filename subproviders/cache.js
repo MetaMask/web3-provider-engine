@@ -235,8 +235,10 @@ BlockCacheStrategy.prototype.canCache = function(payload) {
 BlockCacheStrategy.prototype.cacheRollOff = function(currentBlock){
   const self = this
   var currentNumber = ethUtil.bufferToInt(currentBlock.number)
-  var previousHex = ethUtil.intToHex(currentNumber-1)
-  delete self.cache[previousHex]
+  if (currentNumber > 0) {
+    var previousHex = ethUtil.intToHex(currentNumber-1)
+    delete self.cache[previousHex]
+  }
 }
 
 
