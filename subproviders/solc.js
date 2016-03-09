@@ -7,6 +7,11 @@ module.exports = SolcSubprovider
 inherits(SolcSubprovider, Subprovider)
 
 function SolcSubprovider(opts) {
+  if (opts && opts.version) {
+    this.solc = solc.useVersion(opts.version)
+  } else {
+    this.solc = solc
+  }
 }
 
 SolcSubprovider.prototype.handleRequest = function(payload, next, end) {
@@ -16,7 +21,7 @@ SolcSubprovider.prototype.handleRequest = function(payload, next, end) {
       break
 
     case 'eth_compileSolidity':
-      compileSolidity(payload, end)
+      this._compileSolidity(payload, end)
       break;
 
     default:
@@ -25,9 +30,9 @@ SolcSubprovider.prototype.handleRequest = function(payload, next, end) {
 }
 
 // Conforms to https://github.com/ethereum/wiki/wiki/JSON-RPC#eth_compilesolidity
-function compileSolidity(payload, end) {
+SolcSubprovider.prototype._compileSolidity = function(payload, end) {
   // optimised
-  var output = solc.compile(payload.params[0], 1)
+  var output = this.solc.compile(payload.params[0], 1)
   if (!output) {
     end('Compilation error')
   } else if (output.errors) {
@@ -42,7 +47,7 @@ function compileSolidity(payload, end) {
         source: payload.params[0],
         language: 'Solidity',
         languageVersion: '0',
-        compilerVersion: solc.version(),
+        compilerVersion: this.solc.version(),
         abiDefinition: JSON.parse(contract.interface),
         userDoc: { methods: {} },
         developerDoc: { methods: {} }
