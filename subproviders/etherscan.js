@@ -1,5 +1,5 @@
 /*
- * Calculate gasPrice based on last blocks.
+ * Etherscan.io API connector
  * @author github.com/axic
  *
  * The etherscan.io API supports:
@@ -34,35 +34,35 @@ EtherscanProvider.prototype.handleRequest = function(payload, next, end){
 
   switch(payload.method) {
     case 'eth_blockNumber':
-      etherscanXHR(this.proto, 'proxy', 'eth_blockNumber', {}, end)
+      etherscanXHR(this.proto, true, 'proxy', 'eth_blockNumber', {}, end)
       return
 
     case 'eth_getBlockByNumber':
-      etherscanXHR(this.proto, 'proxy', 'eth_getBlockByNumber', {
+      etherscanXHR(this.proto, true, 'proxy', 'eth_getBlockByNumber', {
         tag: payload.params[0],
         boolean: payload.params[1] }, end)
       return
 
     case 'eth_getBalance':
-      etherscanXHR(this.proto, 'account', 'balance', {
+      etherscanXHR(this.proto, true, 'account', 'balance', {
         address: payload.params[0],
         tag: payload.params[1] }, end)
       return
 
     case 'eth_call':
-      etherscanXHR(this.proto, 'proxy', 'eth_call', payload.params[0], end)
+      etherscanXHR(this.proto, true, 'proxy', 'eth_call', payload.params[0], end)
       return
 
     case 'eth_sendRawTransaction':
-      etherscanXHR(this.proto, 'proxy', 'eth_sendRawTransaction', { hex: payload.params[0] }, end)
+      etherscanXHR(this.proto, true, 'proxy', 'eth_sendRawTransaction', { hex: payload.params[0] }, end)
       return
 
     case 'eth_getTransactionReceipt':
-      etherscanXHR(this.proto, 'proxy', 'eth_getTransactionReceipt', { txhash: payload.params[0] }, end)
+      etherscanXHR(this.proto, true, 'proxy', 'eth_getTransactionReceipt', { txhash: payload.params[0] }, end)
       return
 
     case 'eth_getTransactionCount':
-      etherscanXHR(this.proto, 'account', 'txlist', {
+      etherscanXHR(this.proto, true, 'account', 'txlist', {
         sort: 'desc',
         page: 0,
         offset: 0,
@@ -88,13 +88,19 @@ function toQueryString(params) {
   }).join('&')
 }
 
-function etherscanXHR(proto, module, action, params, end) {
+function etherscanXHR(proto, get, module, action, params, end) {
   var uri = proto + '://api.etherscan.io/api?' + toQueryString({ module: module, action: action }) + '&' + toQueryString(params)
   // console.log('[etherscan] request: ', uri)
 
+  // URLs have a length in many browsers, switch to POST in that case
+  // http://stackoverflow.com/questions/417142/what-is-the-maximum-length-of-a-url-in-different-browsers
+  if (uri.length > 2000) {
+    get = false
+  }
+
   xhr({
     uri: uri,
-    method: 'GET',
+    method: get ? 'GET' : 'POST',
     headers: {
       'Accept': 'application/json',
       // 'Content-Type': 'application/json',
