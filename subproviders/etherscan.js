@@ -1,19 +1,24 @@
 /*
- * Calculate gasPrice based on last blocks.
+ * Etherscan.io API connector
  * @author github.com/axic
  *
  * The etherscan.io API supports:
  *
- * 1) Natively
- * - eth_blockNumber
- * - eth_getBlockByNumber
- * - eth_sendRawTransaction
- * - eth_call
- * - eth_getTransactionReceipt
+ * 1) Natively via proxy methods
+ * - eth_blockNumber *
+ * - eth_getBlockByNumber *
+ * - eth_getBlockTransactionCountByNumber
+ * - getTransactionByHash
+ * - getTransactionByBlockNumberAndIndex
+ * - eth_getTransactionCount *
+ * - eth_sendRawTransaction *
+ * - eth_call *
+ * - eth_getTransactionReceipt *
+ * - eth_getCode *
+ * - eth_getStorageAt *
  *
  * 2) Via non-native methods
  * - eth_getBalance
- * - eth_getTransactionCount
  */
 
 const xhr = process.browser ? require('xhr') : require('request')
@@ -62,18 +67,25 @@ EtherscanProvider.prototype.handleRequest = function(payload, next, end){
       return
 
     case 'eth_getTransactionCount':
-      etherscanXHR(this.proto, 'account', 'txlist', {
-        sort: 'desc',
-        page: 0,
-        offset: 0,
-        address: payload.params[0] }, function(err, res) {
-          if (err === 'No transactions found' || res.length === 0)
-            return end(null, 0)
-          if (err) return end(err)
-          // NOTE: a bit of cheating here.
-          // Assumes the sorting did the trick and we get the last tx
-          end(null, res[0].nonce)
-        })
+      etherscanXHR(this.proto, 'proxy', 'eth_getTransactionCount', {
+        address: payload.params[0],
+        tag: payload.params[1]
+      }, end)
+      return
+
+    case 'eth_getCode':
+      etherscanXHR(this.proto, 'proxy', 'eth_getCode', {
+        address: payload.params[0],
+        tag: payload.params[1]
+      }, end)
+      return
+
+    case 'eth_getStorageAt':
+      etherscanXHR(this.proto, 'proxy', 'eth_getStorageAt', {
+        address: payload.params[0],
+        position: payload.params[1],
+        tag: payload.params[2]
+      }, end)
       return
 
     default:
