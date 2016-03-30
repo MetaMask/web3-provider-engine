@@ -116,7 +116,7 @@ function etherscanXHR(proto, module, action, params, end) {
 
   xhr({
     uri: uri,
-    method: 'GET',
+    method: 'POST',
     headers: {
       'Accept': 'application/json',
       // 'Content-Type': 'application/json',
