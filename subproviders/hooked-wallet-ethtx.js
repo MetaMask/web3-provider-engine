@@ -4,6 +4,8 @@
  * The two callbacks a user needs to implement are:
  * - getAccounts() -- array of addresses supported
  * - getPrivateKey(address) -- return private key for a given address
+ *
+ * Optionally approveTransaction() can be supplied too.
  */
 
 const inherits = require('util').inherits
@@ -15,13 +17,6 @@ module.exports = HookedWalletEthTxSubprovider
 inherits(HookedWalletEthTxSubprovider, HookedWalletProvider)
 
 function HookedWalletEthTxSubprovider(opts) {
-  // FIXME: moving to ES6 could give us classes properly
-  var self = this
-  self.getAccounts = opts.getAccounts
-  // default to auto-approve
-  self.approveTransaction = opts.approveTransaction || function(txParams, cb){ cb(null, true) }
-  self.signTransaction = opts.signTransaction
-
   self.signTransaction = function(txData, cb) {
     if (txData.gas !== undefined)
       txData.gasLimit = txData.gas
@@ -35,4 +30,6 @@ function HookedWalletEthTxSubprovider(opts) {
       cb(null, '0x' + tx.serialize().toString('hex'))
     })
   }
+
+  HookedWallethEthTxSubprovider.super_.call(this, opts)
 }
