@@ -48,6 +48,18 @@ EtherscanProvider.prototype.handleRequest = function(payload, next, end){
         boolean: payload.params[1] }, end)
       return
 
+    case 'eth_getBlockTransactionCountByNumber':
+      etherscanXHR(this.proto, 'proxy', 'eth_getBlockTransactionCountByNumber', {
+        tag: payload.params[0]
+      }, end)
+      return
+
+    case 'eth_getTransactionByHash':
+      etherscanXHR(this.proto, 'proxy', 'eth_getTransactionByHash', {
+        txhash: payload.params[0]
+      }, end)
+      return
+
     case 'eth_getBalance':
       etherscanXHR(this.proto, 'account', 'balance', {
         address: payload.params[0],
@@ -65,19 +77,19 @@ EtherscanProvider.prototype.handleRequest = function(payload, next, end){
     case 'eth_getTransactionReceipt':
       etherscanXHR(this.proto, 'proxy', 'eth_getTransactionReceipt', { txhash: payload.params[0] }, end)
       return
-      
+
     // note !! this does not support topic filtering yet, it will return all block logs
     case 'eth_getLogs':
       var payloadObject = payload.params[0],
           proto = this.proto,
           txProcessed = 0,
           logs = [];
-      
+
       etherscanXHR(proto, 'proxy', 'eth_getBlockByNumber', {
         tag: payloadObject.toBlock,
         boolean: payload.params[1] }, function(err, blockResult) {
           if(err) return end(err);
-          
+
           for(var transaction in blockResult.transactions){
             etherscanXHR(proto, 'proxy', 'eth_getTransactionReceipt', { txhash: transaction.hash }, function(err, receiptResult) {
               if(!err) logs.concat(receiptResult.logs);
@@ -113,7 +125,7 @@ EtherscanProvider.prototype.handleRequest = function(payload, next, end){
     default:
       next();
       return
-  }  
+  }
 }
 
 function toQueryString(params) {
