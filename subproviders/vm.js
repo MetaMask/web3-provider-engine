@@ -81,7 +81,9 @@ VmSubprovider.prototype.runVm = function(payload, cb){
   var blockNumber = ethUtil.addHexPrefix(blockData.number.toString('hex'))
 
   // create vm with state lookup intercepted
-  var vm = self.vm = new VM()
+  var vm = self.vm = new VM(null, null, {
+    enableHomestead: true
+  })
 
   if (self.opts.debug) {
     vm.on('step', function (data) {
