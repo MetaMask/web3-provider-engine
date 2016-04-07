@@ -34,7 +34,7 @@ function EtherscanProvider(opts) {
   this.network = (opts.network !== 'api' && opts.network !== 'testnet') ? 'api' : opts.network
   this.proto = (opts.https || false) ? 'https' : 'http'
   this.payloads = [];
-  this.payloadsPerSecond = 5;
+  this.payloadsPerSecond = isNaN(opts.payloadsPerSecond) ? 5 : opts.payloadsPerSecond;
   
   setInterval(this.handlePayloads, 1000, this);
 }
@@ -131,7 +131,7 @@ function handlePayload(proto, network, payload, next, end){
 }
 
 EtherscanProvider.prototype.handlePayloads = function(self){
-	if(self.payloads.lenght == 0) return;
+	if(self.payloads.length == 0) return;
 	
 	for(var payloadIndex = 0; payloadIndex < self.payloadsPerSecond; payloadIndex++) {
 		var payloadItem = self.payloads.shift()
