@@ -135,7 +135,7 @@ function handlePayload(proto, network, payload, next, end){
 EtherscanProvider.prototype.handleRequests = function(self){
 	if(self.requests.length == 0) return;
 	
-	console.log('Handling the next ' + self.times + ' of ' + self.requests.length + ' requests');
+	//console.log('Handling the next ' + self.times + ' of ' + self.requests.length + ' requests');
 	
 	for(var requestIndex = 0; requestIndex < self.times; requestIndex++) {
 		var requestItem = self.requests.shift()
@@ -151,9 +151,6 @@ EtherscanProvider.prototype.handleRequest = function(payload, next, end){
   
   if(this.retryFailed)
 	  requestObject.end = function(err, result){
-		  if(err === '403 - Forbidden: Access is denied.')
-			  console.log('forbidden!! retrying..');
-
 		  if(err === '403 - Forbidden: Access is denied.')
 			 self.requests.push(requestObject);
 		  else
@@ -171,7 +168,6 @@ function toQueryString(params) {
 
 function etherscanXHR(useGetMethod, proto, network, module, action, params, end) {
   var uri = proto + '://' + network + '.etherscan.io/api?' + toQueryString({ module: module, action: action }) + '&' + toQueryString(params)
-  // console.log('[etherscan] request: ', uri)
 	
   xhr({
     uri: uri,
