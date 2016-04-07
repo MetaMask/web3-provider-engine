@@ -31,6 +31,7 @@ inherits(EtherscanProvider, Subprovider)
 
 function EtherscanProvider(opts) {
   opts = opts || {}
+  this.network = (opts.network !== 'api' && opts.network !== 'testnet') ? 'api' : opts.network
   this.proto = (opts.https || false) ? 'https' : 'http'
 }
 
@@ -39,59 +40,60 @@ EtherscanProvider.prototype.handleRequest = function(payload, next, end){
 
   switch(payload.method) {
     case 'eth_blockNumber':
-      etherscanXHR(this.proto, 'proxy', 'eth_blockNumber', {}, end)
+      etherscanXHR(this.proto, this.network, 'proxy', 'eth_blockNumber', {}, end)
       return
 
     case 'eth_getBlockByNumber':
-      etherscanXHR(this.proto, 'proxy', 'eth_getBlockByNumber', {
+      etherscanXHR(this.proto, this.network, 'proxy', 'eth_getBlockByNumber', {
         tag: payload.params[0],
         boolean: payload.params[1] }, end)
       return
 
     case 'eth_getBlockTransactionCountByNumber':
-      etherscanXHR(this.proto, 'proxy', 'eth_getBlockTransactionCountByNumber', {
+      etherscanXHR(this.proto, this.network, 'proxy', 'eth_getBlockTransactionCountByNumber', {
         tag: payload.params[0]
       }, end)
       return
 
     case 'eth_getTransactionByHash':
-      etherscanXHR(this.proto, 'proxy', 'eth_getTransactionByHash', {
+      etherscanXHR(this.proto, this.network, 'proxy', 'eth_getTransactionByHash', {
         txhash: payload.params[0]
       }, end)
       return
 
     case 'eth_getBalance':
-      etherscanXHR(this.proto, 'account', 'balance', {
+      etherscanXHR(this.proto, this.network, 'account', 'balance', {
         address: payload.params[0],
         tag: payload.params[1] }, end)
       return
 
     case 'eth_call':
-      etherscanXHR(this.proto, 'proxy', 'eth_call', payload.params[0], end)
+      etherscanXHR(this.proto, this.network, 'proxy', 'eth_call', payload.params[0], end)
       return
 
     case 'eth_sendRawTransaction':
-      etherscanXHR(this.proto, 'proxy', 'eth_sendRawTransaction', { hex: payload.params[0] }, end)
+      etherscanXHR(this.proto, this.network, 'proxy', 'eth_sendRawTransaction', { hex: payload.params[0] }, end)
       return
 
     case 'eth_getTransactionReceipt':
-      etherscanXHR(this.proto, 'proxy', 'eth_getTransactionReceipt', { txhash: payload.params[0] }, end)
+      etherscanXHR(this.proto, this.network, 'proxy', 'eth_getTransactionReceipt', { txhash: payload.params[0] }, end)
       return
 
     // note !! this does not support topic filtering yet, it will return all block logs
     case 'eth_getLogs':
       var payloadObject = payload.params[0],
           proto = this.proto,
+          network = this.network,
           txProcessed = 0,
           logs = [];
 
-      etherscanXHR(proto, 'proxy', 'eth_getBlockByNumber', {
+      etherscanXHR(proto, network, 'proxy', 'eth_getBlockByNumber', {
         tag: payloadObject.toBlock,
         boolean: payload.params[1] }, function(err, blockResult) {
           if(err) return end(err);
 
           for(var transaction in blockResult.transactions){
-            etherscanXHR(proto, 'proxy', 'eth_getTransactionReceipt', { txhash: transaction.hash }, function(err, receiptResult) {
+            etherscanXHR(proto, network, 'proxy', 'eth_getTransactionReceipt', { txhash: transaction.hash }, function(err, receiptResult) {
               if(!err) logs.concat(receiptResult.logs);
               txProcessed += 1;
               if(txProcessed === blockResult.transactions.length) end(null, logs)
@@ -101,21 +103,21 @@ EtherscanProvider.prototype.handleRequest = function(payload, next, end){
       return
 
     case 'eth_getTransactionCount':
-      etherscanXHR(this.proto, 'proxy', 'eth_getTransactionCount', {
+      etherscanXHR(this.proto, this.network, 'proxy', 'eth_getTransactionCount', {
         address: payload.params[0],
         tag: payload.params[1]
       }, end)
       return
 
     case 'eth_getCode':
-      etherscanXHR(this.proto, 'proxy', 'eth_getCode', {
+      etherscanXHR(this.proto, this.network, 'proxy', 'eth_getCode', {
         address: payload.params[0],
         tag: payload.params[1]
       }, end)
       return
 
     case 'eth_getStorageAt':
-      etherscanXHR(this.proto, 'proxy', 'eth_getStorageAt', {
+      etherscanXHR(this.proto, this.network, 'proxy', 'eth_getStorageAt', {
         address: payload.params[0],
         position: payload.params[1],
         tag: payload.params[2]
@@ -134,8 +136,8 @@ function toQueryString(params) {
   }).join('&')
 }
 
-function etherscanXHR(proto, module, action, params, end) {
-  var uri = proto + '://api.etherscan.io/api?' + toQueryString({ module: module, action: action }) + '&' + toQueryString(params)
+function etherscanXHR(proto, network, module, action, params, end) {
+  var uri = proto + '://' + network + '.etherscan.io/api?' + toQueryString({ module: module, action: action }) + '&' + toQueryString(params)
   // console.log('[etherscan] request: ', uri)
 
   xhr({
