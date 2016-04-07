@@ -41,6 +41,34 @@ function EtherscanProvider(opts) {
   setInterval(this.handleRequests, this.interval, this);
 }
 
+EtherscanProvider.prototype.handleRequests = function(self){
+	if(self.requests.length == 0) return;
+	
+	//console.log('Handling the next ' + self.times + ' of ' + self.requests.length + ' requests');
+	
+	for(var requestIndex = 0; requestIndex < self.times; requestIndex++) {
+		var requestItem = self.requests.shift()
+  		
+		if(typeof requestItem !== 'undefined')
+			handlePayload(requestItem.proto, requestItem.network, requestItem.payload, requestItem.next, requestItem.end)
+	}
+}
+
+EtherscanProvider.prototype.handleRequest = function(payload, next, end){
+  var requestObject = {proto: this.proto, network: this.network, payload: payload, next: next, end: end},
+	  self = this;
+  
+  if(this.retryFailed)
+	  requestObject.end = function(err, result){
+		  if(err === '403 - Forbidden: Access is denied.')
+			 self.requests.push(requestObject);
+		  else
+			 end(err, result);
+		  };
+	
+  this.requests.push(requestObject);
+}
+
 function handlePayload(proto, network, payload, next, end){
   switch(payload.method) {
     case 'eth_blockNumber':
@@ -130,34 +158,6 @@ function handlePayload(proto, network, payload, next, end){
       next();
       return
   }
-}
-
-EtherscanProvider.prototype.handleRequests = function(self){
-	if(self.requests.length == 0) return;
-	
-	//console.log('Handling the next ' + self.times + ' of ' + self.requests.length + ' requests');
-	
-	for(var requestIndex = 0; requestIndex < self.times; requestIndex++) {
-		var requestItem = self.requests.shift()
-  		
-		if(typeof requestItem !== 'undefined')
-			handlePayload(requestItem.proto, requestItem.network, requestItem.payload, requestItem.next, requestItem.end)
-	}
-}
-
-EtherscanProvider.prototype.handleRequest = function(payload, next, end){
-  var requestObject = {proto: this.proto, network: this.network, payload: payload, next: next, end: end},
-	  self = this;
-  
-  if(this.retryFailed)
-	  requestObject.end = function(err, result){
-		  if(err === '403 - Forbidden: Access is denied.')
-			 self.requests.push(requestObject);
-		  else
-			 end(err, result);
-		  };
-	
-  this.requests.push(requestObject);
 }
 
 function toQueryString(params) {
