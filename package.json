@@ -4,7 +4,10 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "node test/index.js"
+    "test": "node test/index.js",
+    "bundle-zero": "browserify -s ZeroClientProvider -e zero.js > dist/ZeroClientProvider.js",
+    "bundle-engine": "browserify -s ProviderEngine -e index.js > dist/ProviderEngine.js",
+    "bundle": "mkdir -p ./dist && npm run bundle-engine && npm run bundle-zero"
   },
   "author": "",
   "license": "ISC",
