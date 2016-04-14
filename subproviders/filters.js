@@ -239,7 +239,7 @@ function LogFilter(opts) {
   const self = this
   self.fromBlock = opts.fromBlock || 'latest'
   self.toBlock = opts.toBlock || 'latest'
-  self.address = opts.address
+  self.address = opts.address ? normalizeHex(opts.address) : opts.address
   self.topics = opts.topics || []
   self.updates = []
   self.allResults = []
@@ -317,6 +317,10 @@ LogFilter.prototype.clearChanges = function(){
 
 
 // util
+
+function normalizeHex(hexString) {
+  return hexString.slice(0, 2) === '0x' ? hexString : '0x'+hexString
+}
 
 function intToHex(value) {
   return '0x'+ethUtil.intToHex(value)
