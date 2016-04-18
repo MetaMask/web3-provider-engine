@@ -53,18 +53,22 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
 
     case 'eth_sendTransaction':
       var txParams = payload.params[0]
-      // approve
-      self.approveTransaction(txParams, function(err, didApprove){
+      // validate
+      self.validateTransaction(txParams, function(err){
         if (err) return end(err)
-        if (!didApprove) return end(new Error('User denied transaction.'))
-        // autofill
-        self.fillInTxExtras(txParams, function(err, fullTxParams){
+        // approve
+        self.approveTransaction(txParams, function(err, didApprove){
           if (err) return end(err)
-          // sign
-          self.signTransaction(fullTxParams, function(err, rawTx){
+          if (!didApprove) return end(new Error('User denied transaction.'))
+          // autofill
+          self.fillInTxExtras(txParams, function(err, fullTxParams){
             if (err) return end(err)
-            // submit
-            self.submitTx(rawTx, end)
+            // sign
+            self.signTransaction(fullTxParams, function(err, rawTx){
+              if (err) return end(err)
+              // submit
+              self.submitTx(rawTx, end)
+            })
           })
         })
       })
@@ -91,6 +95,16 @@ HookedWalletSubprovider.prototype.submitTx = function(rawTx, cb) {
   }, function(err, result){
     if (err) return cb(err)
     cb(null, result.result)
+  })
+}
+
+HookedWalletSubprovider.prototype.validateTransaction = function(txParams, cb){
+  const self = this
+  self.getAccounts(function(err, accounts){
+    if (err) return cb(err)
+    var txFromIsValid = (accounts.indexOf(txParams.from) !== -1)
+    if (!txFromIsValid) return cb(new Error('Unknown address - unable to sign tx for this address.'))
+    cb()
   })
 }
 
