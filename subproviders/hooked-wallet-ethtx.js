@@ -17,6 +17,9 @@ module.exports = HookedWalletEthTxSubprovider
 inherits(HookedWalletEthTxSubprovider, HookedWalletProvider)
 
 function HookedWalletEthTxSubprovider(opts) {
+
+  const self = this
+
   self.signTransaction = function(txData, cb) {
     if (txData.gas !== undefined)
       txData.gasLimit = txData.gas
