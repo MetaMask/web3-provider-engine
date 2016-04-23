@@ -102,6 +102,7 @@ Web3ProviderEngine.prototype._handleAsync = function(payload, finished) {
     result = _result
 
     async.eachSeries(stack, function(fn, callback) {
+
       if (fn) {
         fn(error, result, callback)
       } else {
@@ -182,7 +183,13 @@ Web3ProviderEngine.prototype._fetchBlock = function(number, cb){
   }), function(err, resultObj){
     if (err) return cb(err)
     if (resultObj.error) return cb(resultObj.error)
-    var data = resultObj.result
+    var data;
+
+    if(!resultObj.result.result){
+      data = resultObj.result
+    } else {
+      data = resultObj.result.result
+    };
 
     // json -> buffers
     var block = {
@@ -218,11 +225,11 @@ Web3ProviderEngine.prototype._inspectResponseForNewBlock = function(payload, res
     return cb(null, resultObj)
   }
 
-  if (resultObj.result == null || resultObj.result.blockNumber == null) {
+  if (resultObj.result == null || resultObj.result.number == null) {
     return cb(null, resultObj)
   }
 
-  var blockNumber = hexToBuffer(resultObj.result.blockNumber)
+  var number = hexToBuffer(resultObj.result.number)
 
   // If we found a new block number on the result,
   // fetch the block details before returning the original response.
@@ -230,7 +237,7 @@ Web3ProviderEngine.prototype._inspectResponseForNewBlock = function(payload, res
   // and when getting a response may assume that we are on the new block and
   // try to query data from that block but would otherwise get old data due to
   // our blockTag-rewriting mechanism
-  if (0 !== this.currentBlock.number.compare(blockNumber)) {
+  if (0 !== this.currentBlock.number.compare(number)) {
     this._fetchLatestBlock(function(err, block) {
       cb(null, resultObj)
     })

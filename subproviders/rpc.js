@@ -12,6 +12,7 @@ function RpcSource(opts) {
   self.rpcUrl = opts.rpcUrl
 }
 
+
 RpcSource.prototype.handleRequest = function(payload, next, end){
   const self = this
   var targetUrl = self.rpcUrl
