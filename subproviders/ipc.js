@@ -47,9 +47,9 @@ IpcSource.prototype.handleRequest = function(payload, next, end){
     end(null, res.result);
   });
 
-  client.on('end', () => {
-    console.log('Socket Received payload');
-  });
+  // client.on('end', () => {
+  //   console.log('Socket Received payload');
+  // });
 
   client.on('error', (error) => {
     console.error(error);
