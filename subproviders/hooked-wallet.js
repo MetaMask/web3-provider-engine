@@ -53,25 +53,16 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
 
     case 'eth_sendTransaction':
       var txParams = payload.params[0]
-      // validate
-      self.validateTransaction(txParams, function(err){
-        if (err) return end(err)
-        // approve
-        self.approveTransaction(txParams, function(err, didApprove){
-          if (err) return end(err)
-          if (!didApprove) return end(new Error('User denied transaction.'))
-          // autofill
-          self.fillInTxExtras(txParams, function(err, fullTxParams){
-            if (err) return end(err)
-            // sign
-            self.signTransaction(fullTxParams, function(err, rawTx){
-              if (err) return end(err)
-              // submit
-              self.submitTx(rawTx, end)
-            })
-          })
-        })
-      })
+      async.waterfall([
+        self.validateTransaction.bind(self, txParams),
+        self.approveTransaction.bind(self, txParams),
+        function checkApproval(didApprove, cb){
+          cb( didApprove ? null : new Error('User denied transaction.') )
+        },
+        self.fillInTxExtras.bind(self, txParams),
+        self.signTransaction.bind(self),
+        self.submitTx.bind(self),
+      ], end)
       return
 
     // case 'eth_sign':
