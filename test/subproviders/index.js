@@ -1,1 +1,2 @@
 require('./etherscan')
+require('./ipc');
