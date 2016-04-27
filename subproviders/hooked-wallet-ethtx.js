@@ -5,34 +5,55 @@
  * - getAccounts() -- array of addresses supported
  * - getPrivateKey(address) -- return private key for a given address
  *
- * Optionally approveTransaction() can be supplied too.
+ * Optionally approveTransaction(), approveMessage() can be supplied too.
  */
 
 const inherits = require('util').inherits
 const HookedWalletProvider = require('./hooked-wallet.js')
 const EthTx = require('ethereumjs-tx')
+const ethUtil = require('ethereumjs-util')
 
 module.exports = HookedWalletEthTxSubprovider
 
 inherits(HookedWalletEthTxSubprovider, HookedWalletProvider)
 
 function HookedWalletEthTxSubprovider(opts) {
-
   const self = this
+  
+  HookedWalletEthTxSubprovider.super_.call(self, opts)
 
   self.signTransaction = function(txData, cb) {
-    if (txData.gas !== undefined)
-      txData.gasLimit = txData.gas
+    // defaults
+    if (txData.gas !== undefined) txData.gasLimit = txData.gas
     txData.value = txData.value || '0x00'
 
-    opts.getPrivateKey(txData.from, function(err, res) {
+    opts.getPrivateKey(txData.from, function(err, privateKey) {
       if (err) return cb(err)
 
       var tx = new EthTx(txData)
-      tx.sign(res)
+      tx.sign(privateKey)
       cb(null, '0x' + tx.serialize().toString('hex'))
     })
   }
 
-  HookedWallethEthTxSubprovider.super_.call(this, opts)
+  self.signMessage = function(msgParams, cb) {
+    opts.getPrivateKey(msgParams.from, function(err, privateKey) {
+      if (err) return cb(err)
+      var msgHash = ethUtil.sha3(msgParams.data)
+      var sig = ethUtil.ecsign(msgHash, privateKey)
+      var serialized = ethUtil.bufferToHex(concatSig(sig.v, sig.r, sig.s))
+      cb(null, serialized)
+    })
+  }
+
+}
+
+function concatSig(v, r, s) {
+  r = ethUtil.fromSigned(r)
+  s = ethUtil.fromSigned(s)
+  v = ethUtil.bufferToInt(v)
+  r = ethUtil.toUnsigned(r).toString('hex')
+  s = ethUtil.toUnsigned(s).toString('hex')
+  v = ethUtil.stripHexPrefix(ethUtil.intToHex(v))
+  return ethUtil.addHexPrefix(r.concat(s, v).toString("hex"))
 }

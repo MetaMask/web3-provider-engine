@@ -17,7 +17,7 @@ module.exports = HookedWalletSubprovider
 //   eth_coinbase
 //   eth_accounts
 //   eth_sendTransaction
-//   * eth_sign (TODO)
+//   eth_sign
 
 
 inherits(HookedWalletSubprovider, Subprovider)
@@ -25,10 +25,14 @@ inherits(HookedWalletSubprovider, Subprovider)
 function HookedWalletSubprovider(opts){
   const self = this
 
+  // data lookup
   self.getAccounts = opts.getAccounts
   // default to auto-approve
   self.approveTransaction = opts.approveTransaction || function(txParams, cb){ cb(null, true) }
+  self.approveMessage = opts.approveMessage || function(txParams, cb){ cb(null, true) }
+  // actually perform the signature
   self.signTransaction = opts.signTransaction
+  self.signMessage = opts.signMessage
 }
 
 HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
@@ -57,7 +61,7 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
         self.validateTransaction.bind(self, txParams),
         self.approveTransaction.bind(self, txParams),
         function checkApproval(didApprove, cb){
-          cb( didApprove ? null : new Error('User denied transaction.') )
+          cb( didApprove ? null : new Error('User denied transaction signature.') )
         },
         self.fillInTxExtras.bind(self, txParams),
         self.signTransaction.bind(self),
@@ -65,11 +69,22 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
       ], end)
       return
 
-    // case 'eth_sign':
-    //   var result = self.keystore.getAddresses()
-    //   resultObj.result = result
-    //   cb(null, resultObj)
-    //   return
+    case 'eth_sign':
+      var address = payload.params[0]
+      var message = payload.params[1]
+      var msgParams = {
+        from: address,
+        data: message,
+      }
+      async.waterfall([
+        self.validateMessage.bind(self, msgParams),
+        self.approveMessage.bind(self, msgParams),
+        function checkApproval(didApprove, cb){
+          cb( didApprove ? null : new Error('User denied message signature.') )
+        },
+        self.signMessage.bind(self, msgParams),
+      ], end)
+      return
 
     default:
       next()
@@ -91,11 +106,28 @@ HookedWalletSubprovider.prototype.submitTx = function(rawTx, cb) {
 
 HookedWalletSubprovider.prototype.validateTransaction = function(txParams, cb){
   const self = this
+  self.validateSender(txParams.from, function(err, senderIsValid){
+    if (err) return cb(err)
+    if (!senderIsValid) return cb(new Error('Unknown address - unable to sign transaction for this address.'))
+    cb()
+  })
+}
+
+HookedWalletSubprovider.prototype.validateMessage = function(msgParams, cb){
+  const self = this
+  self.validateSender(msgParams.from, function(err, senderIsValid){
+    if (err) return cb(err)
+    if (!senderIsValid) return cb(new Error('Unknown address - unable to sign message for this address.'))
+    cb()
+  })
+}
+
+HookedWalletSubprovider.prototype.validateSender = function(senderAddress, cb){
+  const self = this
   self.getAccounts(function(err, accounts){
     if (err) return cb(err)
-    var txFromIsValid = (accounts.indexOf(txParams.from) !== -1)
-    if (!txFromIsValid) return cb(new Error('Unknown address - unable to sign tx for this address.'))
-    cb()
+    var senderIsValid = (accounts.indexOf(senderAddress) !== -1)
+    cb(null, senderIsValid)
   })
 }
 
