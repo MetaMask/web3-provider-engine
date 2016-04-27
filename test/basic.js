@@ -1,30 +1,25 @@
 const test = require('tape')
+const BlockTracker = require('../block-tracker.js')
 const ProviderEngine = require('../index.js')
-const PassthroughProvider = require('./util/passthrough.js')
-const FixtureProvider = require('../subproviders/fixture.js')
+const Passthrough = require('./util/passthrough.js')
+const Fixture = require('../subproviders/fixture.js')
 const TestBlockProvider = require('./util/block.js')
 const createPayload = require('../util/create-payload.js')
 const injectMetrics = require('./util/inject-metrics')
 
 
 test('fallthrough test', function(t){
-  t.plan(8)
+  t.plan(6)
 
   // handle nothing
-  var providerA = injectMetrics(new PassthroughProvider())
+  var providerA = injectMetrics(new Passthrough())
   // handle "test_rpc"
-  var providerB = injectMetrics(new FixtureProvider({
-    test_rpc: true,
-  }))
-  // handle block requests
-  var providerC = injectMetrics(new TestBlockProvider())
+  var providerB = injectMetrics(new Fixture({ test_rpc: true }))
 
   var engine = new ProviderEngine()
-  engine.addProvider(providerA)
-  engine.addProvider(providerB)
-  engine.addProvider(providerC)
+  engine.use(providerA)
+  engine.use(providerB)
 
-  engine.start()
   engine.sendAsync(createPayload({ method: 'test_rpc' }), function(err, response){
     t.ifError(err, 'did not error')
     t.ok(response, 'has response')
@@ -35,10 +30,6 @@ test('fallthrough test', function(t){
     t.equal(providerB.getWitnessed('test_rpc').length, 1, 'providerB did see "test_rpc"')
     t.equal(providerB.getHandled('test_rpc').length, 1, 'providerB did handle "test_rpc"')
 
-    t.equal(providerC.getWitnessed('test_rpc').length, 0, 'providerC did NOT see "test_rpc"')
-    t.equal(providerC.getHandled('test_rpc').length, 0, 'providerC did NOT handle "test_rpc"')
-
-    engine.stop()
     t.end()
   })
 

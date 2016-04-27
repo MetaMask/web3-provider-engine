@@ -7,19 +7,19 @@ inherits(FixtureProvider, Subprovider)
 
 function FixtureProvider(staticResponses){
   const self = this
-  staticResponses = staticResponses || {}
-  self.staticResponses = staticResponses
+  self.staticResponses = staticResponses || {}
 }
 
-FixtureProvider.prototype.handleRequest = function(payload, next, end){
+FixtureProvider.prototype.handleRequest = function(req, res, next){
   const self = this
-  var staticResponse = self.staticResponses[payload.method]
+  var staticResponse = self.staticResponses[req.method]
   // async function
   if ('function' === typeof staticResponse) {
-    staticResponse(payload, next, end)
+    staticResponse(req, res, next)
   // static response - null is valid response
   } else if (staticResponse !== undefined) {
-    end(null, staticResponse)
+    res.result = staticResponse
+    next()
   // no prepared response - skip
   } else {
     next()

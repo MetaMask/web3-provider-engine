@@ -26,17 +26,24 @@ function getHandled(method){
   return witnessed
 }
 
-function handleRequest(_super, payload, next, end){
+function handleRequest(_super, req, res, next){
   const self = this
-  // mark payload witnessed
-  var witnessed = self.getWitnessed(payload.method)
-  witnessed.push(payload)
+  // mark req witnessed
+  var witnessed = self.getWitnessed(req.method)
+  witnessed.push(req)
+  // record res before handling
+  var resBefore = JSON.stringify(res)
   // continue
-  _super(payload, next, function(err, result){
-    // mark payload handled
-    var handled = self.getHandled(payload.method)
-    handled.push(payload)
+  _super(req, res, function(err, returnHandler){
+    if (err) return next(err)
+    var resAfter = JSON.stringify(res)
+    var wasHandled = resBefore !== resAfter
+    // mark req handled
+    if (wasHandled) {
+      var handled = self.getHandled(req.method)
+      handled.push(req)
+     }
     // continue
-    end(err, result)
+    next(null, returnHandler)
   })
 }

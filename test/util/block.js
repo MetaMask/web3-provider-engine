@@ -16,11 +16,14 @@ function TestBlockProvider(methods){
   self._currentBlock = createBlock()
   self._pendingTxs = []
   FixtureProvider.call(self, {
-    eth_getBlockByNumber: function(payload, next, end){
-      end(null, self._currentBlock)
+    eth_getBlockByNumber: function(req, res, next){
+      res.result = self._currentBlock
+      console.log('res.result = ', self._currentBlock)
+      next()
     },
-    eth_getLogs: function(payload, next, end){
-      end(null, self._currentBlock.transactions)
+    eth_getLogs: function(req, res, next){
+      res.result = self._currentBlock.transaction
+      next()
     },
   })
 }
