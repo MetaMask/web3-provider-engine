@@ -26047,12 +26047,22 @@ exports.intToBuffer = function (i) {
  * @return {Number}
  */
 exports.bufferToInt = function (buf) {
+  return parseInt(exports.bufferToHex(buf), 16)
+}
+
+/**
+ * Converts a `Buffer` into a hex `String`
+ * @method bufferToHex
+ * @param {Buffer} buf
+ * @return {String}
+ */
+exports.bufferToHex = function (buf) {
   buf = exports.toBuffer(buf)
   if (buf.length === 0) {
     return 0
   }
 
-  return parseInt(buf.toString('hex'), 16)
+  return '0x' + buf.toString('hex')
 }
 
 /**
@@ -26132,11 +26142,42 @@ exports.rlphash = function (a) {
 }
 
 /**
+ * Checks if the private key satisfies the rules of the curve secp256k1.
+ * @method isValidPrivate
+ * @param {Buffer} privateKey
+ * @return {Boolean}
+ */
+exports.isValidPrivate = function (privateKey) {
+  return secp256k1.privateKeyVerify(privateKey)
+}
+
+/**
+ * Checks if the public key satisfies the rules of the curve secp256k1
+ * and the requirements of Ethereum.
+ * @method isValidPublic
+ * @param {Buffer} publicKey The two points of an uncompressed key, unless sanitize is enabled
+ * @param {Boolean} [sanitize=false] Accept public keys in other formats
+ * @return {Boolean}
+ */
+exports.isValidPublic = function (publicKey, sanitize) {
+  if (publicKey.length === 64) {
+    // Convert to SEC1 for secp256k1
+    return secp256k1.publicKeyVerify(Buffer.concat([ new Buffer([4]), publicKey ]))
+  }
+
+  if (!sanitize) {
+    return false
+  }
+
+  return secp256k1.publicKeyVerify(publicKey)
+}
+
+/**
  * Returns the ethereum address of a given public key.
  * Accepts "Ethereum public keys" and SEC1 encoded keys.
  * @method publicToAddress
  * @param {Buffer} pubKey The two points of an uncompressed key, unless sanitize is enabled
- * @param {Boolean} sanitize Accept public keys in other formats
+ * @param {Boolean} [sanitize=false] Accept public keys in other formats
  * @return {Buffer}
  */
 exports.pubToAddress = exports.publicToAddress = function (pubKey, sanitize) {
@@ -26162,6 +26203,56 @@ var privateToPublic = exports.privateToPublic = function (privateKey) {
 }
 
 /**
+ * Converts a public key to the Ethereum format.
+ * @method importPublic
+ * @param {Buffer} publicKey
+ * @return {Buffer}
+ */
+exports.importPublic = function (publicKey) {
+  publicKey = exports.toBuffer(publicKey)
+  if (publicKey.length !== 64) {
+    publicKey = secp256k1.publicKeyConvert(publicKey, false).slice(1)
+  }
+  return publicKey
+}
+
+/**
+ * ECDSA sign
+ * @method ecsign
+ * @param {Buffer} msgHash
+ * @param {Buffer} privateKey
+ * @return {Object}
+ */
+exports.ecsign = function (msgHash, privateKey) {
+  var sig = secp256k1.sign(msgHash, privateKey)
+
+  var ret = {}
+  ret.r = sig.signature.slice(0, 32)
+  ret.s = sig.signature.slice(32, 64)
+  ret.v = sig.recovery + 27
+  return ret
+}
+
+/**
+ * ECDSA public key recovery from signature
+ * @method ecrecover
+ * @param {Buffer} msgHash
+ * @param {Buffer} v
+ * @param {Buffer} r
+ * @param {Buffer} s
+ * @return {Buffer} publicKey
+ */
+exports.ecrecover = function (msgHash, v, r, s) {
+  var signature = Buffer.concat([exports.setLength(r, 32), exports.setLength(s, 32)], 64)
+  var recovery = exports.bufferToInt(v) - 27
+  if (recovery !== 0 && recovery !== 1) {
+    throw new Error('Invalid signature v value')
+  }
+  var senderPubKey = secp256k1.recover(msgHash, signature, recovery)
+  return secp256k1.publicKeyConvert(senderPubKey, false).slice(1)
+}
+
+/**
  * Returns the ethereum address of a given private key
  * @method privateToAddress
  * @param {Buffer} privateKey A private key must be 256 bits wide
@@ -26169,6 +26260,48 @@ var privateToPublic = exports.privateToPublic = function (privateKey) {
  */
 exports.privateToAddress = function (privateKey) {
   return exports.publicToAddress(privateToPublic(privateKey))
+}
+
+/**
+ * Checks if the address is a valid. Accepts checksummed addresses too
+ * @method isValidAddress
+ * @param {String} address
+ * @return {Boolean}
+ */
+exports.isValidAddress = function (address) {
+  return /^0x[0-9a-fA-F]{40}$/i.test(address)
+}
+
+/**
+ * Returns a checksummed address
+ * @method toChecksumAddress
+ * @param {String} address
+ * @return {String}
+ */
+exports.toChecksumAddress = function (address) {
+  address = exports.stripHexPrefix(address).toLowerCase()
+  var hash = exports.sha3(address).toString('hex')
+  var ret = '0x'
+
+  for (var i = 0; i < address.length; i++) {
+    if (parseInt(hash[i], 16) >= 8) {
+      ret += address[i].toUpperCase()
+    } else {
+      ret += address[i]
+    }
+  }
+
+  return ret
+}
+
+/**
+ * Checks if the address is a valid checksummed address
+ * @method isValidChecksumAddress
+ * @param {Buffer} address
+ * @return {Boolean}
+ */
+exports.isValidChecksumAddress = function (address) {
+  return exports.isValidAddress(address) && (exports.toChecksumAddress(address) === address)
 }
 
 /**
@@ -26251,39 +26384,6 @@ exports.addHexPrefix = function (str) {
 exports.padToEven = function (a) {
   if (a.length % 2) a = '0' + a
   return a
-}
-
-/**
- * ECDSA sign
- * @method ecsign
- * @param {Buffer} msgHash
- * @param {Buffer} privateKey
- * @return {Object}
- */
-exports.ecsign = function (msgHash, privateKey) {
-  var sig = secp256k1.sign(msgHash, privateKey)
-
-  var ret = {}
-  ret.r = sig.signature.slice(0, 32)
-  ret.s = sig.signature.slice(32, 64)
-  ret.v = sig.recovery + 27
-  return ret
-}
-
-/**
- * ECDSA public key recovery from signature
- * @method ecrecover
- * @param {Buffer} msgHash
- * @param {Buffer} v
- * @param {Buffer} r
- * @param {Buffer} s
- * @return {Buffer} publicKey
- */
-exports.ecrecover = function (msgHash, v, r, s) {
-  var signature = Buffer.concat([exports.setLength(r, 32), exports.setLength(s, 32)], 64)
-  var recovery = exports.bufferToInt(v) - 27
-  var senderPubKey = secp256k1.recover(msgHash, signature, recovery)
-  return secp256k1.publicKeyConvert(senderPubKey, false).slice(1)
 }
 
 /**
@@ -28575,9 +28675,9 @@ module.exports = Array.isArray || function (arr) {
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
 },{}],109:[function(require,module,exports){
-module.exports = require('sha3').SHA3Hash
+module.exports = require('browserify-sha3').SHA3Hash
 
-},{"sha3":41}],110:[function(require,module,exports){
+},{"browserify-sha3":41}],110:[function(require,module,exports){
 var bn = require('bn.js');
 var brorand = require('brorand');
 
@@ -34952,7 +35052,7 @@ function extend() {
 },{}],161:[function(require,module,exports){
 module.exports={
   "name": "web3-provider-engine",
-  "version": "7.5.0",
+  "version": "7.6.0",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -34968,7 +35068,7 @@ module.exports={
     "ethereumjs-account": "^2.0.2",
     "ethereumjs-block": "^1.2.2",
     "ethereumjs-tx": "^1.1.0",
-    "ethereumjs-util": "^4.0.0",
+    "ethereumjs-util": "^4.4.0",
     "ethereumjs-vm": "^1.3.0",
     "fake-merkle-patricia-tree": "^1.0.1",
     "isomorphic-fetch": "^2.2.0",
@@ -35659,7 +35759,7 @@ module.exports = HookedWalletSubprovider
 //   eth_coinbase
 //   eth_accounts
 //   eth_sendTransaction
-//   * eth_sign (TODO)
+//   eth_sign
 
 
 inherits(HookedWalletSubprovider, Subprovider)
@@ -35667,10 +35767,14 @@ inherits(HookedWalletSubprovider, Subprovider)
 function HookedWalletSubprovider(opts){
   const self = this
 
+  // data lookup
   self.getAccounts = opts.getAccounts
   // default to auto-approve
   self.approveTransaction = opts.approveTransaction || function(txParams, cb){ cb(null, true) }
+  self.approveMessage = opts.approveMessage || function(txParams, cb){ cb(null, true) }
+  // actually perform the signature
   self.signTransaction = opts.signTransaction
+  self.signMessage = opts.signMessage
 }
 
 HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
@@ -35695,32 +35799,34 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
 
     case 'eth_sendTransaction':
       var txParams = payload.params[0]
-      // validate
-      self.validateTransaction(txParams, function(err){
-        if (err) return end(err)
-        // approve
-        self.approveTransaction(txParams, function(err, didApprove){
-          if (err) return end(err)
-          if (!didApprove) return end(new Error('User denied transaction.'))
-          // autofill
-          self.fillInTxExtras(txParams, function(err, fullTxParams){
-            if (err) return end(err)
-            // sign
-            self.signTransaction(fullTxParams, function(err, rawTx){
-              if (err) return end(err)
-              // submit
-              self.submitTx(rawTx, end)
-            })
-          })
-        })
-      })
+      async.waterfall([
+        self.validateTransaction.bind(self, txParams),
+        self.approveTransaction.bind(self, txParams),
+        function checkApproval(didApprove, cb){
+          cb( didApprove ? null : new Error('User denied transaction signature.') )
+        },
+        self.fillInTxExtras.bind(self, txParams),
+        self.signTransaction.bind(self),
+        self.submitTx.bind(self),
+      ], end)
       return
 
-    // case 'eth_sign':
-    //   var result = self.keystore.getAddresses()
-    //   resultObj.result = result
-    //   cb(null, resultObj)
-    //   return
+    case 'eth_sign':
+      var address = payload.params[0]
+      var message = payload.params[1]
+      var msgParams = {
+        from: address,
+        data: message,
+      }
+      async.waterfall([
+        self.validateMessage.bind(self, msgParams),
+        self.approveMessage.bind(self, msgParams),
+        function checkApproval(didApprove, cb){
+          cb( didApprove ? null : new Error('User denied message signature.') )
+        },
+        self.signMessage.bind(self, msgParams),
+      ], end)
+      return
 
     default:
       next()
@@ -35742,11 +35848,28 @@ HookedWalletSubprovider.prototype.submitTx = function(rawTx, cb) {
 
 HookedWalletSubprovider.prototype.validateTransaction = function(txParams, cb){
   const self = this
+  self.validateSender(txParams.from, function(err, senderIsValid){
+    if (err) return cb(err)
+    if (!senderIsValid) return cb(new Error('Unknown address - unable to sign transaction for this address.'))
+    cb()
+  })
+}
+
+HookedWalletSubprovider.prototype.validateMessage = function(msgParams, cb){
+  const self = this
+  self.validateSender(msgParams.from, function(err, senderIsValid){
+    if (err) return cb(err)
+    if (!senderIsValid) return cb(new Error('Unknown address - unable to sign message for this address.'))
+    cb()
+  })
+}
+
+HookedWalletSubprovider.prototype.validateSender = function(senderAddress, cb){
+  const self = this
   self.getAccounts(function(err, accounts){
     if (err) return cb(err)
-    var txFromIsValid = (accounts.indexOf(txParams.from) !== -1)
-    if (!txFromIsValid) return cb(new Error('Unknown address - unable to sign tx for this address.'))
-    cb()
+    var senderIsValid = (accounts.indexOf(senderAddress) !== -1)
+    cb(null, senderIsValid)
   })
 }
 
