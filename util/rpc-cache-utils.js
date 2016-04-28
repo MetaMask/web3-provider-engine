@@ -71,7 +71,6 @@ function cacheTypeForPayload(payload) {
     case 'eth_getBlockTransactionCountByHash':
     case 'eth_getUncleCountByBlockHash':
     case 'eth_getCode':
-    case 'eth_sign':
     case 'eth_getBlockByHash':
     case 'eth_getTransactionByHash':
     case 'eth_getTransactionByBlockHashAndIndex':
@@ -108,6 +107,7 @@ function cacheTypeForPayload(payload) {
     case 'net_peerCount':
     case 'net_listening':
     case 'eth_syncing':
+    case 'eth_sign':
     case 'eth_coinbase':
     case 'eth_mining':
     case 'eth_hashrate':
