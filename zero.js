@@ -35,6 +35,8 @@ function ZeroClientProvider(opts){
     getAccounts: opts.getAccounts,
     approveTransaction: opts.approveTransaction,
     signTransaction: opts.signTransaction,
+    approveMessage: opts.approveMessage,
+    signMessage: opts.signMessage,
   })
   engine.addProvider(idmgmtSubprovider)
 
