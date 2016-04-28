@@ -45,27 +45,30 @@ Web3ProviderEngine.prototype._handleAsync = function(req, done) {
   walkTheStackDown()
 
   function walkTheStackDown(){
-    console.log('stack depth:', stack.length)
-
+    // list of middleware, call and collect optional returnHandlers
     async.mapSeries(stack, function eachMiddleware(middleware, cb){
-      console.log('eachMiddleware:', middleware.constructor.name, req, res)
-      middleware.handleRequest(req, res, cb)
+      middleware(req, res, cb)
     }, walkTheStackUp)
   }
 
   function walkTheStackUp(err, returnHandlers){
     if (err) return done(err)
-    // list of returnHandlers, called in reverse
+    // list of returnHandlers, call in reverse
     var backStack = returnHandlers.filter(Boolean).reverse()
     async.mapSeries(backStack, function eachMiddlewareReturnHandler(handler, cb){
-      console.log('eachMiddlewareReturnHandler:', req, res)
       handler(req, res, cb)
     }, onComplete)
   }
 
   function onComplete(err){
     if (err) return done(err)
-    console.log('onComplete:', req, res)
+    if (res.result === undefined && res.error === undefined) {
+      res.error = {
+        code: -32601,
+        message: req.method+' method not implemented',
+      }
+      return done(new Error(res.error.message), res)
+    }
     done(null, res)
   }
 
