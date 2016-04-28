@@ -104,6 +104,7 @@ Web3ProviderEngine.prototype._handleAsync = function(payload, finished) {
     result = _result
 
     async.eachSeries(stack, function(fn, callback) {
+
       if (fn) {
         fn(error, result, callback)
       } else {
@@ -184,7 +185,8 @@ Web3ProviderEngine.prototype._fetchBlock = function(number, cb){
   }), function(err, resultObj){
     if (err) return cb(err)
     if (resultObj.error) return cb(resultObj.error)
-    var data = resultObj.result
+    var data = resultObj.result;
+
 
     // json -> buffers
     var block = {
@@ -4363,6 +4365,7 @@ function createPayload(data){
     // user-specified
   }, data)
 }
+
 },{"./random-id.js":14,"xtend":12}],14:[function(require,module,exports){
 // gotta keep it within MAX_SAFE_INTEGER
 const extraDigits = 3
@@ -4452,7 +4455,6 @@ function cacheTypeForPayload(payload) {
     case 'eth_getBlockTransactionCountByHash':
     case 'eth_getUncleCountByBlockHash':
     case 'eth_getCode':
-    case 'eth_sign':
     case 'eth_getBlockByHash':
     case 'eth_getTransactionByHash':
     case 'eth_getTransactionByBlockHashAndIndex':
@@ -4489,6 +4491,7 @@ function cacheTypeForPayload(payload) {
     case 'net_peerCount':
     case 'net_listening':
     case 'eth_syncing':
+    case 'eth_sign':
     case 'eth_coinbase':
     case 'eth_mining':
     case 'eth_hashrate':
