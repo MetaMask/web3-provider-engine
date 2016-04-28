@@ -105,6 +105,7 @@ BlockTracker.prototype._fetchBlock = function(number, cb){
   self._provider.sendAsync(createPayload({
     method: 'eth_getBlockByNumber',
     params: [number, false],
+    skipCache: true,
   }), function(err, res){
     if (err) return cb(err)
     if (res.error) return cb(res.error)
