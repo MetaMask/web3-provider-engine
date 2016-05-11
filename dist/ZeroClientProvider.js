@@ -35054,7 +35054,7 @@ function extend() {
 },{}],161:[function(require,module,exports){
 module.exports={
   "name": "web3-provider-engine",
-  "version": "7.6.2",
+  "version": "7.6.3",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -35362,7 +35362,6 @@ function DefaultFixtures() {
     net_listening: true,
     eth_hashrate: '0x00',
     eth_mining: false,
-    eth_syncing: true,
   }
   FixtureProvider.call(self, responses)
 }
