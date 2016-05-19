@@ -62,7 +62,7 @@ FilterSubprovider.prototype.handleRequest = function(payload, next, end){
 
     case 'eth_getFilterLogs':
       self._ready.await(function(){
-        self.getFilterChanges(payload.params[0], end)
+        self.getFilterLogs(payload.params[0], end)
       })
       return
 
