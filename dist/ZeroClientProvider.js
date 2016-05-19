@@ -35054,7 +35054,7 @@ function extend() {
 },{}],161:[function(require,module,exports){
 module.exports={
   "name": "web3-provider-engine",
-  "version": "7.6.4",
+  "version": "7.6.5",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -35894,7 +35894,7 @@ HookedWalletSubprovider.prototype.fillInTxExtras = function(txParams, cb){
 
   if (txParams.gas === undefined) {
     // console.log("need to get gas")
-    reqs.gas = estimateGas.bind(null, self.engine, { method: 'eth_estimateGas', params: [txParams] })
+    reqs.gas = estimateGas.bind(null, self.engine, txParams)
   }
 
   async.parallel(reqs, function(err, result) {
