@@ -151,7 +151,7 @@ HookedWalletSubprovider.prototype.fillInTxExtras = function(txParams, cb){
 
   if (txParams.gas === undefined) {
     // console.log("need to get gas")
-    reqs.gas = estimateGas.bind(null, self.engine, { method: 'eth_estimateGas', params: [txParams] })
+    reqs.gas = estimateGas.bind(null, self.engine, txParams)
   }
 
   async.parallel(reqs, function(err, result) {
