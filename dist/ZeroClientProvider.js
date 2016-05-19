@@ -273,7 +273,7 @@ function bufferToHex(buffer){
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./util/create-payload.js":170,"./util/rpc-cache-utils.js":172,"./util/stoplight.js":173,"async":17,"buffer":49,"events":92,"util":156}],2:[function(require,module,exports){
+},{"./util/create-payload.js":170,"./util/rpc-cache-utils.js":173,"./util/stoplight.js":174,"async":17,"buffer":49,"events":92,"util":156}],2:[function(require,module,exports){
 var asn1 = exports;
 
 asn1.bignum = require('bn.js');
@@ -35054,7 +35054,7 @@ function extend() {
 },{}],161:[function(require,module,exports){
 module.exports={
   "name": "web3-provider-engine",
-  "version": "7.6.3",
+  "version": "7.6.4",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -35346,7 +35346,7 @@ function compareHex(hexA, hexB){
   var numB = parseInt(hexB, 16)
   return numA === numB ? 0 : (numA > numB ? 1 : -1 )
 }
-},{"../util/rpc-cache-utils.js":172,"../util/stoplight.js":173,"./subprovider.js":169,"ethereumjs-util":91,"util":156}],163:[function(require,module,exports){
+},{"../util/rpc-cache-utils.js":173,"../util/stoplight.js":174,"./subprovider.js":169,"ethereumjs-util":91,"util":156}],163:[function(require,module,exports){
 const inherits = require('util').inherits
 const FixtureProvider = require('./fixture.js')
 const version = require('../package.json').version
@@ -35711,7 +35711,7 @@ function valuesFor(obj){
   return Object.keys(obj).map(function(key){ return obj[key] })
 }
 
-},{"../util/stoplight.js":173,"./subprovider.js":169,"async":17,"ethereumjs-util":91,"util":156}],165:[function(require,module,exports){
+},{"../util/stoplight.js":174,"./subprovider.js":169,"async":17,"ethereumjs-util":91,"util":156}],165:[function(require,module,exports){
 const inherits = require('util').inherits
 const Subprovider = require('./subprovider.js')
 
@@ -35753,6 +35753,7 @@ const async = require('async')
 const inherits = require('util').inherits
 const extend = require('xtend')
 const Subprovider = require('./subprovider.js')
+const estimateGas = require('../util/estimate-gas.js')
 
 module.exports = HookedWalletSubprovider
 
@@ -35893,28 +35894,23 @@ HookedWalletSubprovider.prototype.fillInTxExtras = function(txParams, cb){
 
   if (txParams.gas === undefined) {
     // console.log("need to get gas")
-    reqs.gas = self.emitPayload.bind(self, { method: 'eth_estimateGas', params: [ txParams, 'pending'] })
+    reqs.gas = estimateGas.bind(null, self.engine, { method: 'eth_estimateGas', params: [txParams] })
   }
 
   async.parallel(reqs, function(err, result) {
     if (err) return cb(err)
     // console.log('fillInTxExtras - result:', result)
 
-    var res = { }
-    if (result.gasPrice)
-      res.gasPrice = result.gasPrice.result
-    if (result.nonce)
-      res.nonce = result.nonce.result
-    if (result.gas)
-      // add some extra gas, just in case
-      // see https://github.com/MetaMask/metamask-plugin/issues/60
-      res.gas = Math.ceil(1.5 * parseInt(result.gas.result, 16))
+    var res = {}
+    if (result.gasPrice) res.gasPrice = result.gasPrice.result
+    if (result.nonce) res.nonce = result.nonce.result
+    if (result.gas) res.gas = result.gas
 
     cb(null, extend(res, txParams))
   })
 }
 
-},{"./subprovider.js":169,"async":17,"util":156,"xtend":160}],167:[function(require,module,exports){
+},{"../util/estimate-gas.js":171,"./subprovider.js":169,"async":17,"util":156,"xtend":160}],167:[function(require,module,exports){
 (function (Buffer){
 const inherits = require('util').inherits
 const Transaction = require('ethereumjs-tx')
@@ -36000,7 +35996,7 @@ NonceTrackerSubprovider.prototype.handleRequest = function(payload, next, end){
   }
 }
 }).call(this,require("buffer").Buffer)
-},{"../util/rpc-cache-utils":172,"./subprovider.js":169,"buffer":49,"ethereumjs-tx":90,"ethereumjs-util":91,"util":156}],168:[function(require,module,exports){
+},{"../util/rpc-cache-utils":173,"./subprovider.js":169,"buffer":49,"ethereumjs-tx":90,"ethereumjs-util":91,"util":156}],168:[function(require,module,exports){
 (function (process){
 const xhr = process.browser ? require('xhr') : require('request')
 const inherits = require('util').inherits
@@ -36106,7 +36102,35 @@ function createPayload(data){
   }, data)
 }
 
-},{"./random-id.js":171,"xtend":160}],171:[function(require,module,exports){
+},{"./random-id.js":172,"xtend":160}],171:[function(require,module,exports){
+const createPayload = require('./create-payload.js')
+
+module.exports = estimateGas
+
+/*
+
+This is a work around for https://github.com/ethereum/go-ethereum/issues/2577
+
+*/
+
+
+function estimateGas(provider, txParams, cb) {
+  provider.sendAsync(createPayload({
+    method: 'eth_estimateGas',
+    params: [txParams]
+  }), function(err, res){
+    if (err) {
+      // handle simple value transfer case
+      if (err.message === 'no contract code at given address') {
+        return cb(null, '0xcf08')
+      } else {
+        return cb(err)        
+      }
+    }
+    cb(null, res.result)
+  })
+}
+},{"./create-payload.js":170}],172:[function(require,module,exports){
 // gotta keep it within MAX_SAFE_INTEGER
 const extraDigits = 3
 
@@ -36121,7 +36145,7 @@ function createRandomId(){
   // 16 digits
   return datePart+extraPart
 }
-},{}],172:[function(require,module,exports){
+},{}],173:[function(require,module,exports){
 module.exports = {
   cacheIdentifierForPayload: cacheIdentifierForPayload,
   canCache: canCache,
@@ -36263,7 +36287,7 @@ function cacheTypeForPayload(payload) {
   }
 }
 
-},{}],173:[function(require,module,exports){
+},{}],174:[function(require,module,exports){
 const EventEmitter = require('events').EventEmitter
 const inherits = require('util').inherits
 
@@ -36298,7 +36322,7 @@ Stoplight.prototype.await = function(fn){
     setTimeout(fn)
   }
 }
-},{"events":92,"util":156}],174:[function(require,module,exports){
+},{"events":92,"util":156}],175:[function(require,module,exports){
 const ProviderEngine = require('./index.js')
 const DefaultFixture = require('./subproviders/default-fixture.js')
 const NonceTrackerSubprovider = require('./subproviders/nonce-tracker.js')
@@ -36361,5 +36385,5 @@ function ZeroClientProvider(opts){
 
 }
 
-},{"./index.js":1,"./subproviders/cache.js":162,"./subproviders/default-fixture.js":163,"./subproviders/filters.js":164,"./subproviders/hooked-wallet.js":166,"./subproviders/nonce-tracker.js":167,"./subproviders/rpc.js":168}]},{},[174])(174)
+},{"./index.js":1,"./subproviders/cache.js":162,"./subproviders/default-fixture.js":163,"./subproviders/filters.js":164,"./subproviders/hooked-wallet.js":166,"./subproviders/nonce-tracker.js":167,"./subproviders/rpc.js":168}]},{},[175])(175)
 });
