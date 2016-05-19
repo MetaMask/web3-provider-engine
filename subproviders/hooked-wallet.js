@@ -10,6 +10,7 @@ const async = require('async')
 const inherits = require('util').inherits
 const extend = require('xtend')
 const Subprovider = require('./subprovider.js')
+const estimateGas = require('../util/estimate-gas.js')
 
 module.exports = HookedWalletSubprovider
 
@@ -150,22 +151,17 @@ HookedWalletSubprovider.prototype.fillInTxExtras = function(txParams, cb){
 
   if (txParams.gas === undefined) {
     // console.log("need to get gas")
-    reqs.gas = self.emitPayload.bind(self, { method: 'eth_estimateGas', params: [ txParams, 'pending'] })
+    reqs.gas = estimateGas.bind(null, self.engine, { method: 'eth_estimateGas', params: [txParams] })
   }
 
   async.parallel(reqs, function(err, result) {
     if (err) return cb(err)
     // console.log('fillInTxExtras - result:', result)
 
-    var res = { }
-    if (result.gasPrice)
-      res.gasPrice = result.gasPrice.result
-    if (result.nonce)
-      res.nonce = result.nonce.result
-    if (result.gas)
-      // add some extra gas, just in case
-      // see https://github.com/MetaMask/metamask-plugin/issues/60
-      res.gas = Math.ceil(1.5 * parseInt(result.gas.result, 16))
+    var res = {}
+    if (result.gasPrice) res.gasPrice = result.gasPrice.result
+    if (result.nonce) res.nonce = result.nonce.result
+    if (result.gas) res.gas = result.gas
 
     cb(null, extend(res, txParams))
   })
