@@ -35054,7 +35054,7 @@ function extend() {
 },{}],161:[function(require,module,exports){
 module.exports={
   "name": "web3-provider-engine",
-  "version": "7.6.5",
+  "version": "7.6.6",
   "description": "",
   "main": "index.js",
   "scripts": {
@@ -35071,7 +35071,7 @@ module.exports={
     "ethereumjs-block": "^1.2.2",
     "ethereumjs-tx": "^1.1.0",
     "ethereumjs-util": "^4.4.0",
-    "ethereumjs-vm": "^1.3.0",
+    "ethereumjs-vm": "^1.4.0",
     "fake-merkle-patricia-tree": "^1.0.1",
     "isomorphic-fetch": "^2.2.0",
     "request": "^2.67.0",
@@ -35431,7 +35431,7 @@ FilterSubprovider.prototype.handleRequest = function(payload, next, end){
 
     case 'eth_getFilterLogs':
       self._ready.await(function(){
-        self.getFilterChanges(payload.params[0], end)
+        self.getFilterLogs(payload.params[0], end)
       })
       return
 

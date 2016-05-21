@@ -1,6 +1,6 @@
 {
   "name": "web3-provider-engine",
-  "version": "7.6.5",
+  "version": "7.6.6",
   "description": "",
   "main": "index.js",
   "scripts": {
