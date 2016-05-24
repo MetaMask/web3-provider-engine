@@ -1,5 +1,6 @@
 const inherits = require('util').inherits
 const ethUtil = require('ethereumjs-util')
+const clone = require('clone')
 const cacheUtils = require('../util/rpc-cache-utils.js')
 const Stoplight = require('../util/stoplight.js')
 const Subprovider = require('./subprovider.js')
@@ -123,7 +124,8 @@ PermaCacheStrategy.prototype.hitCheck = function(payload, requestedBlockNumber, 
   // send it back down to the client (where it will be recached.)
   var cacheIsEarlyEnough = compareHex(requestedBlockNumber, cached.blockNumber) >= 0
   if (cacheIsEarlyEnough) {
-    return hit(null, cached.result)
+    var clonedValue = clone(cached.result)
+    return hit(null, clonedValue)
   } else {
     return miss()
   }
@@ -133,9 +135,10 @@ PermaCacheStrategy.prototype.cacheResult = function(payload, result, requestedBl
   var identifier = cacheUtils.cacheIdentifierForPayload(payload)
 
   if (result) {
+    var clonedValue = clone(result)
     this.cache[identifier] = {
       blockNumber: requestedBlockNumber,
-      result: result
+      result: clonedValue,
     }
   }
 
