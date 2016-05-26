@@ -73,10 +73,13 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
     case 'eth_sign':
       var address = payload.params[0]
       var message = payload.params[1]
-      var msgParams = {
+      // non-standard "extraParams" to be appended to our "msgParams" obj
+      // good place for metadata
+      var extraParams = payload.params[2] || {}
+      var msgParams = extend(extraParams, {
         from: address,
         data: message,
-      }
+      })
       async.waterfall([
         self.validateMessage.bind(self, msgParams),
         self.approveMessage.bind(self, msgParams),
