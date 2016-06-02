@@ -227,6 +227,7 @@ FallbackStorageTrie.prototype.get = function(key, cb){
     self._fetchStorage(keyHex, function(err, rawValue){
       if (err) return cb(err)
       var value = ethUtil.toBuffer(rawValue)
+      value = ethUtil.unpad(value)
       var encodedValue = ethUtil.rlp.encode(value)
       cb(null, encodedValue)
     })
