@@ -164,11 +164,7 @@ HookedWalletSubprovider.prototype.fillInTxExtras = function(txParams, cb){
     var res = {}
     if (result.gasPrice) res.gasPrice = result.gasPrice.result
     if (result.nonce) res.nonce = result.nonce.result
-    if (result.gas) {
-      // add some extra gas, just in case
-      // see https://github.com/MetaMask/metamask-plugin/issues/60
-      res.gas = Math.ceil(3 * parseInt(result.gas, 16))
-    }
+    if (result.gas) res.gas = result.gas
 
     cb(null, extend(res, txParams))
   })
