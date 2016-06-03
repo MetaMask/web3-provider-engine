@@ -157,6 +157,7 @@ Web3ProviderEngine.prototype._fetchLatestBlock = function(cb) {
   const self = this
 
   self._fetchBlock('latest', function(err, block) {
+    self.emit('error', err)
     if (err) return cb(err)
 
     if (!self.currentBlock || 0 !== self.currentBlock.hash.compare(block.hash)) {
