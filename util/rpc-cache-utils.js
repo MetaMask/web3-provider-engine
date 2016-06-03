@@ -66,7 +66,6 @@ function cacheTypeForPayload(payload) {
     // cache permanently
     case 'web3_clientVersion':
     case 'web3_sha3':
-    case 'net_version':
     case 'eth_protocolVersion':
     case 'eth_getBlockTransactionCountByHash':
     case 'eth_getUncleCountByBlockHash':
@@ -104,6 +103,7 @@ function cacheTypeForPayload(payload) {
       return 'block'
 
     // never cache
+    case 'net_version':
     case 'net_peerCount':
     case 'net_listening':
     case 'eth_syncing':
