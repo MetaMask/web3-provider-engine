@@ -323,7 +323,7 @@ function normalizeHex(hexString) {
 }
 
 function intToHex(value) {
-  return '0x'+ethUtil.intToHex(value)
+  return ethUtil.intToHex(value)
 }
 
 function hexToInt(hexString) {
