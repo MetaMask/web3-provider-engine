@@ -130,7 +130,7 @@ HookedWalletSubprovider.prototype.validateSender = function(senderAddress, cb){
   const self = this
   self.getAccounts(function(err, accounts){
     if (err) return cb(err)
-    var senderIsValid = (accounts.indexOf(senderAddress) !== -1)
+    var senderIsValid = (accounts.indexOf(senderAddress.toLowerCase()) !== -1)
     cb(null, senderIsValid)
   })
 }
