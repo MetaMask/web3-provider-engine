@@ -128,8 +128,8 @@ HookedWalletSubprovider.prototype.validateMessage = function(msgParams, cb){
 
 HookedWalletSubprovider.prototype.validateSender = function(senderAddress, cb){
   const self = this
-  // shortcut: undefined sender is valid
-  if (senderAddress === undefined) return cb(null, true)
+  // shortcut: undefined sender is invalid
+  if (senderAddress === undefined) return cb(null, false)
   self.getAccounts(function(err, accounts){
     if (err) return cb(err)
     var senderIsValid = (accounts.indexOf(senderAddress.toLowerCase()) !== -1)
