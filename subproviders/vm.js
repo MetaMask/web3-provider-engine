@@ -106,7 +106,7 @@ VmSubprovider.prototype.runVm = function(payload, cb){
     value: txParams.value != null ? ethUtil.addHexPrefix(txParams.value) : undefined,
     data: txParams.data != null ? ethUtil.addHexPrefix(txParams.data) : undefined,
     gasLimit: txParams.gas != null ? ethUtil.addHexPrefix(txParams.data) : block.header.gasLimit,
-    gasPrice: txParams.gatPrice != null ? ethUtil.addHexPrefix(txParams.gasPrice) : undefined,
+    gasPrice: txParams.gasPrice != null ? ethUtil.addHexPrefix(txParams.gasPrice) : undefined,
     nonce: txParams.nonce != null ? ethUtil.addHexPrefix(txParams.nonce) : undefined,
   })
 
