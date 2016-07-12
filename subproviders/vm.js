@@ -101,13 +101,13 @@ VmSubprovider.prototype.runVm = function(payload, cb){
   // console.log('params:', payload.params)
 
   var tx = new FakeTransaction({
-    to: txParams.to,
-    from: txParams.from,
-    value: txParams.value,
-    data: txParams.data,
-    gasLimit: txParams.gas || block.header.gasLimit,
-    gasPrice: txParams.gasPrice,
-    nonce: txParams.nonce,
+    to: txParams.to != null ? ethUtil.addHexPrefix(txParams.to) : undefined,
+    from: txParams.from != null ? ethUtil.addHexPrefix(txParams.from) : undefined,
+    value: txParams.value != null ? ethUtil.addHexPrefix(txParams.value) : undefined,
+    data: txParams.data != null ? ethUtil.addHexPrefix(txParams.data) : undefined,
+    gasLimit: txParams.gas != null ? ethUtil.addHexPrefix(txParams.data) : block.header.gasLimit,
+    gasPrice: txParams.gatPrice != null ? ethUtil.addHexPrefix(txParams.gasPrice) : undefined,
+    nonce: txParams.nonce != null ? ethUtil.addHexPrefix(txParams.nonce) : undefined,
   })
 
   vm.runTx({
