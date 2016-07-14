@@ -101,13 +101,13 @@ VmSubprovider.prototype.runVm = function(payload, cb){
   // console.log('params:', payload.params)
 
   var tx = new FakeTransaction({
-    to: txParams.to != null ? ethUtil.addHexPrefix(txParams.to) : undefined,
-    from: txParams.from != null ? ethUtil.addHexPrefix(txParams.from) : undefined,
-    value: txParams.value != null ? ethUtil.addHexPrefix(txParams.value) : undefined,
-    data: txParams.data != null ? ethUtil.addHexPrefix(txParams.data) : undefined,
-    gasLimit: txParams.gas != null ? ethUtil.addHexPrefix(txParams.data) : block.header.gasLimit,
-    gasPrice: txParams.gasPrice != null ? ethUtil.addHexPrefix(txParams.gasPrice) : undefined,
-    nonce: txParams.nonce != null ? ethUtil.addHexPrefix(txParams.nonce) : undefined,
+    to: txParams.to ? ethUtil.addHexPrefix(txParams.to) : undefined,
+    from: txParams.from ? ethUtil.addHexPrefix(txParams.from) : undefined,
+    value: txParams.value ? ethUtil.addHexPrefix(txParams.value) : undefined,
+    data: txParams.data ? ethUtil.addHexPrefix(txParams.data) : undefined,
+    gasLimit: txParams.gas ? ethUtil.addHexPrefix(txParams.gasLimit) : block.header.gasLimit,
+    gasPrice: txParams.gasPrice ? ethUtil.addHexPrefix(txParams.gasPrice) : undefined,
+    nonce: txParams.nonce ? ethUtil.addHexPrefix(txParams.nonce) : undefined,
   })
 
   vm.runTx({
