@@ -110,18 +110,21 @@ HookedWalletSubprovider.prototype.submitTx = function(rawTx, cb) {
 
 HookedWalletSubprovider.prototype.validateTransaction = function(txParams, cb){
   const self = this
+  // shortcut: undefined sender is invalid
+  if (txParams.from === undefined) return cb(new Error(`Undefined address - from address required to sign transaction.`))
   self.validateSender(txParams.from, function(err, senderIsValid){
     if (err) return cb(err)
-    if (!senderIsValid) return cb(new Error('Unknown address - unable to sign transaction for this address.'))
+    if (!senderIsValid) return cb(new Error(`Unknown address - unable to sign transaction for this address: "${txParams.from}"`))
     cb()
   })
 }
 
 HookedWalletSubprovider.prototype.validateMessage = function(msgParams, cb){
   const self = this
+  if (msgParams.from === undefined) return cb(new Error(`Undefined address - from address required to sign message.`))
   self.validateSender(msgParams.from, function(err, senderIsValid){
     if (err) return cb(err)
-    if (!senderIsValid) return cb(new Error('Unknown address - unable to sign message for this address.'))
+    if (!senderIsValid) return cb(new Error(`Unknown address - unable to sign message for this address: "${msgParams.from}"`))
     cb()
   })
 }
