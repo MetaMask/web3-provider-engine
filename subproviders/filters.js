@@ -128,7 +128,28 @@ FilterSubprovider.prototype.newFilter = function(opts, cb) {
     self.filters[hexFilterIndex] = filter
     self.filterDestroyHandlers[hexFilterIndex] = destroyHandler
 
-    cb(null, hexFilterIndex)
+    // Fill up the results if this filter has a fromBlock in the past
+    if (opts.fromBlock && hexToInt(opts.fromBlock) <= hexToInt(blockNumber)) {
+      self.emitPayload({
+        method: 'eth_getLogs',
+        params: [{
+          topics: opts.topics,
+          address: opts.address,
+          fromBlock: opts.fromBlock,
+          toBlock: blockNumber
+        }],
+      }, function(err, response){
+        if (err) return cb(err)
+        if (response.error) return cb(response.error)
+
+        Array.prototype.push.apply(filter.allResults, response.result);
+
+        cb(null, hexFilterIndex)
+      })
+
+    } else {
+      cb(null, hexFilterIndex)
+    }
   })
 }
 
