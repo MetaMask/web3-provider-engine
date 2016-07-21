@@ -142,7 +142,8 @@ FilterSubprovider.prototype.newFilter = function(opts, cb) {
         if (err) return cb(err)
         if (response.error) return cb(response.error)
 
-        Array.prototype.push.apply(filter.allResults, response.result);
+        filter.allResults = filter.allResults.concat(response.result);
+        filter.updates = filter.updates.concat(response.result);
 
         cb(null, hexFilterIndex)
       })
