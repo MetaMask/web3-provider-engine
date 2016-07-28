@@ -9,6 +9,7 @@
 const async = require('async')
 const inherits = require('util').inherits
 const extend = require('xtend')
+const Semaphore = require('semaphore')
 const Subprovider = require('./subprovider.js')
 const estimateGas = require('../util/estimate-gas.js')
 
@@ -25,6 +26,8 @@ inherits(HookedWalletSubprovider, Subprovider)
 
 function HookedWalletSubprovider(opts){
   const self = this
+  // control flow
+  self.nonceLock = Semaphore(1)
 
   // data lookup
   self.getAccounts = opts.getAccounts
@@ -64,9 +67,7 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
         function checkApproval(didApprove, cb){
           cb( didApprove ? null : new Error('User denied transaction signature.') )
         },
-        self.fillInTxExtras.bind(self, txParams),
-        self.signTransaction.bind(self),
-        self.submitTx.bind(self),
+        self.finalizeAndSubmitTx.bind(self, txParams)
       ], end)
       return
 
@@ -95,6 +96,24 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
       return
 
   }
+}
+
+HookedWalletSubprovider.prototype.finalizeAndSubmitTx = function(txParams, cb) {
+  const self = this
+  // must fillInTxExtras + submit in serial or we may repeat the nonce
+  // provided by nonce-tracker
+  self.nonceLock.take(function(){
+    async.waterfall([
+      self.fillInTxExtras.bind(self, txParams),
+      self.signTransaction.bind(self),
+      self.submitTx.bind(self),
+    ], function(err, txHash){
+      if (err) return cb(err)
+      cb(null, txHash)
+      self.nonceLock.leave()
+    })
+  })
+  
 }
 
 HookedWalletSubprovider.prototype.submitTx = function(rawTx, cb) {
