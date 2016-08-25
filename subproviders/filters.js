@@ -226,7 +226,7 @@ FilterSubprovider.prototype.checkForPendingBlocks = function(){
       params: ['pending', true],
     }, function(err, res){
       if (err) return console.error(err)
-      onNewPendingBlock(res.result, function(err){
+      self.onNewPendingBlock(res.result, function(err){
         if (err) console.error(err)
         setTimeout(self.checkForPendingBlocks, self.pendingBlockTimeout)
       })
