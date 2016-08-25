@@ -27,6 +27,7 @@ function FilterSubprovider(opts) {
   self._ready = new Stoplight()
   self._ready.go()
   self.pendingBlockTimeout = opts.pendingBlockTimeout || 4000
+  self.checkForPendingBlocksActive = false
 
   // we dont have engine immeditately
   setTimeout(function(){
@@ -219,16 +220,23 @@ FilterSubprovider.prototype.uninstallFilter = function(filterId, cb) {
 // check for pending blocks
 FilterSubprovider.prototype.checkForPendingBlocks = function(){
   const self = this
+  if (self.checkForPendingBlocksActive) return
   var activePendingTxFilters = !!Object.keys(self.asyncPendingBlockHandlers).length
   if (activePendingTxFilters) {
+    self.checkForPendingBlocksActive = true
     self.emitPayload({
       method: 'eth_getBlockByNumber',
       params: ['pending', true],
     }, function(err, res){
-      if (err) return console.error(err)
+      if (err) {
+        self.checkForPendingBlocksActive = false
+        console.error(err)
+        return
+      }
       self.onNewPendingBlock(res.result, function(err){
         if (err) console.error(err)
-        setTimeout(self.checkForPendingBlocks, self.pendingBlockTimeout)
+        self.checkForPendingBlocksActive = false
+        setTimeout(self.checkForPendingBlocks.bind(self), self.pendingBlockTimeout)
       })
     })
   }
@@ -423,8 +431,8 @@ PendingTransactionFilter.prototype.update = function(tx){
   var validated = self.validateUnique(tx)
   if (!validated) return
   // add to results
-  self.updates.push(log)
-  self.allResults.push(log)
+  self.updates.push(tx)
+  self.allResults.push(tx)
 }
 
 PendingTransactionFilter.prototype.getChanges = function(){
