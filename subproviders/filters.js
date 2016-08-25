@@ -51,7 +51,7 @@ FilterSubprovider.prototype.handleRequest = function(payload, next, end){
       return
 
     case 'eth_newFilter':
-      self.newFilter(payload.params[0], end)
+      self.newLogFilter(payload.params[0], end)
       return
 
     case 'eth_getFilterChanges':
@@ -103,7 +103,7 @@ FilterSubprovider.prototype.newBlockFilter = function(cb) {
   })
 }
 
-FilterSubprovider.prototype.newFilter = function(opts, cb) {
+FilterSubprovider.prototype.newLogFilter = function(opts, cb) {
   const self = this
 
   self._getBlockNumber(function(err, blockNumber){
@@ -128,29 +128,7 @@ FilterSubprovider.prototype.newFilter = function(opts, cb) {
     self.filters[hexFilterIndex] = filter
     self.filterDestroyHandlers[hexFilterIndex] = destroyHandler
 
-    // Fill up the results if this filter has a fromBlock in the past
-    if (opts.fromBlock && hexToInt(opts.fromBlock) <= hexToInt(blockNumber)) {
-      self.emitPayload({
-        method: 'eth_getLogs',
-        params: [{
-          topics: opts.topics,
-          address: opts.address,
-          fromBlock: opts.fromBlock,
-          toBlock: blockNumber
-        }],
-      }, function(err, response){
-        if (err) return cb(err)
-        if (response.error) return cb(response.error)
-
-        filter.allResults = filter.allResults.concat(response.result);
-        filter.updates = filter.updates.concat(response.result);
-
-        cb(null, hexFilterIndex)
-      })
-
-    } else {
-      cb(null, hexFilterIndex)
-    }
+    cb(null, hexFilterIndex)
   })
 }
 
