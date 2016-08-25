@@ -100,7 +100,7 @@ Categorically, we don’t want / can’t have the following types of RPC calls g
 
 ##### filters
 - [x] eth_newBlockFilter
-- [ ] eth_newPendingTransactionFilter
+- [x] eth_newPendingTransactionFilter
 - [x] eth_newFilter
 - [x] eth_uninstallFilter
 - [x] eth_getFilterLogs
@@ -110,7 +110,7 @@ Categorically, we don’t want / can’t have the following types of RPC calls g
 - [x] eth_coinbase
 - [x] eth_accounts
 - [x] eth_sendTransaction
-- [ ] eth_sign ( not used in web3.js )
+- [x] eth_sign
 
 ##### vm
 - [x] eth_call

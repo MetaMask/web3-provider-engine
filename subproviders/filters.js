@@ -8,6 +8,7 @@ module.exports = FilterSubprovider
 
 // handles the following RPC methods:
 //   eth_newBlockFilter
+//   eth_newPendingTransactionFilter
 //   eth_newFilter
 //   eth_getFilterChanges
 //   eth_uninstallFilter
@@ -20,18 +21,18 @@ function FilterSubprovider(opts) {
   self.filterIndex = 0
   self.filters = {}
   self.filterDestroyHandlers = {}
-  self.logFilterHandlers = {}
+  self.asyncBlockHandlers = {}
   self._ready = new Stoplight()
   self._ready.go()
 
   // we dont have engine immeditately
   setTimeout(function(){
-    // logFilterHandlers require locking provider until updates are completed
+    // asyncBlockHandlers require locking provider until updates are completed
     self.engine.on('block', function(block){
       // pause processing
       self._ready.stop()
       // update filters
-      var updaters = valuesFor(self.logFilterHandlers)
+      var updaters = valuesFor(self.asyncBlockHandlers)
       .map(function(fn){ return fn.bind(null, block) })
       async.parallel(updaters, function(err){
         if (err) console.error(err)
@@ -48,6 +49,10 @@ FilterSubprovider.prototype.handleRequest = function(payload, next, end){
 
     case 'eth_newBlockFilter':
       self.newBlockFilter(end)
+      return
+
+    case 'eth_newPendingTransactionFilter':
+      self.newPendingTransactionFilter(end)
       return
 
     case 'eth_newFilter':
@@ -111,25 +116,42 @@ FilterSubprovider.prototype.newLogFilter = function(opts, cb) {
 
     var filter = new LogFilter(opts)
     var newLogHandler = filter.update.bind(filter)
-    var logHandlerWrapper = function(block, cb){
+    var blockHandler = function(block, cb){
       self._logsForBlock(block, function(err, logs){
         if (err) return cb(err)
         logs.forEach(newLogHandler)
         cb()
       })
     }
-    var destroyHandler = function(){
-      self.engine.removeListener('block', logHandlerWrapper)
-    }
 
     self.filterIndex++
-    self.logFilterHandlers[self.filterIndex] = logHandlerWrapper
+    self.asyncBlockHandlers[self.filterIndex] = blockHandler
     var hexFilterIndex = intToHex(self.filterIndex)
     self.filters[hexFilterIndex] = filter
-    self.filterDestroyHandlers[hexFilterIndex] = destroyHandler
 
     cb(null, hexFilterIndex)
   })
+}
+
+FilterSubprovider.prototype.newPendingTransactionFilter = function(cb) {
+  const self = this
+
+  var filter = new PendingTransactionFilter()
+  var newTxHandler = filter.update.bind(filter)
+  var blockHandler = function(block, cb){
+    self._txHashesForBlock(block, function(err, txs){
+      if (err) return cb(err)
+      txs.forEach(newTxHandler)
+      cb()
+    })
+  }
+
+  self.filterIndex++
+  self.asyncBlockHandlers[self.filterIndex] = blockHandler
+  var hexFilterIndex = intToHex(self.filterIndex)
+  self.filters[hexFilterIndex] = filter
+
+  cb(null, hexFilterIndex)
 }
 
 FilterSubprovider.prototype.getFilterChanges = function(filterId, cb) {
@@ -179,9 +201,9 @@ FilterSubprovider.prototype.uninstallFilter = function(filterId, cb) {
 
   var destroyHandler = self.filterDestroyHandlers[filterId]
   delete self.filters[filterId]
-  delete self.logFilterHandlers[filterId]
+  delete self.asyncBlockHandlers[filterId]
   delete self.filterDestroyHandlers[filterId]
-  destroyHandler()
+  if (destroyHandler) destroyHandler()
 
   cb(null, true)
 }
@@ -209,6 +231,21 @@ FilterSubprovider.prototype._logsForBlock = function(block, cb) {
     cb(null, response.result)
   })
 
+}
+
+FilterSubprovider.prototype._txHashesForBlock = function(block, cb) {
+  const self = this
+  var txs = block.transactions
+  // short circuit if empty
+  if (txs.length === 0) return cb(null, [])
+  // txs are already hashes
+  if ('string' === typeof txs[0]) {
+    cb(null, txs)
+  // txs are obj, need to map to hashes
+  } else {
+    var results = txs.map((tx) => tx.hash)
+    cb(null, results)
+  }
 }
 
 //
@@ -330,6 +367,53 @@ LogFilter.prototype.clearChanges = function(){
   self.updates = []
 }
 
+//
+// PendingTxFilter
+//
+
+function PendingTransactionFilter(){
+  // console.log('PendingTransactionFilter - new')
+  const self = this
+  self.type = 'pendingTx'
+  self.updates = []
+  self.allResults = []
+}
+
+PendingTransactionFilter.prototype.validateUnique = function(tx){
+  const self = this
+  return self.allResults.indexOf(tx) === -1
+}
+
+PendingTransactionFilter.prototype.update = function(tx){
+  // console.log('PendingTransactionFilter - update')
+  const self = this
+  // validate filter match
+  var validated = self.validateUnique(tx)
+  if (!validated) return
+  // add to results
+  self.updates.push(log)
+  self.allResults.push(log)
+}
+
+PendingTransactionFilter.prototype.getChanges = function(){
+  // console.log('PendingTransactionFilter - getChanges')
+  const self = this
+  var results = self.updates
+  return results
+}
+
+PendingTransactionFilter.prototype.getAllResults = function(){
+  // console.log('PendingTransactionFilter - getAllResults')
+  const self = this
+  var results = self.allResults
+  return results
+}
+
+PendingTransactionFilter.prototype.clearChanges = function(){
+  // console.log('PendingTransactionFilter - clearChanges')
+  const self = this
+  self.updates = []
+}
 
 // util
 
