@@ -157,7 +157,6 @@ FilterSubprovider.prototype.newFilter = function(opts, cb) {
 FilterSubprovider.prototype.getFilterChanges = function(filterId, cb) {
   const self = this
 
-  // filterId = hexToInt(filterId)
   var filter = self.filters[filterId]
   if (!filter) console.warn('FilterSubprovider - no filter with that id:', filterId)
   if (!filter) return cb(null, [])
@@ -169,12 +168,26 @@ FilterSubprovider.prototype.getFilterChanges = function(filterId, cb) {
 FilterSubprovider.prototype.getFilterLogs = function(filterId, cb) {
   const self = this
 
-  // filterId = hexToInt(filterId)
   var filter = self.filters[filterId]
   if (!filter) console.warn('FilterSubprovider - no filter with that id:', filterId)
   if (!filter) return cb(null, [])
-  var results = filter.getAllResults()
-  cb(null, results)
+  if (filter.type === 'log') {
+    self.emitPayload({
+      method: 'eth_getLogs',
+      params: [{
+        fromBlock: filter.fromBlock,
+        toBlock: filter.toBlock,
+        address: filter.address,
+        topics: filter.topics,
+      }],
+    }, function(err, res){
+      if (err) return cb(err)
+      cb(null, res.result)
+    })
+  } else {
+    var results = filter.getAllResults()
+    cb(null, results)
+  }
 }
 
 FilterSubprovider.prototype.uninstallFilter = function(filterId, cb) {
@@ -227,6 +240,7 @@ FilterSubprovider.prototype._logsForBlock = function(block, cb) {
 function BlockFilter(opts) {
   // console.log('BlockFilter - new')
   const self = this
+  self.type = 'block'
   self.engine = opts.engine
   self.blockNumber = opts.blockNumber
   self.updates = []
@@ -259,6 +273,7 @@ BlockFilter.prototype.clearChanges = function(){
 function LogFilter(opts) {
   // console.log('LogFilter - new')
   const self = this
+  self.type = 'log'
   self.fromBlock = opts.fromBlock || 'latest'
   self.toBlock = opts.toBlock || 'latest'
   self.address = opts.address ? normalizeHex(opts.address) : opts.address
