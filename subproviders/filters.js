@@ -17,13 +17,16 @@ module.exports = FilterSubprovider
 inherits(FilterSubprovider, Subprovider)
 
 function FilterSubprovider(opts) {
+  opts = opts || {}
   const self = this
   self.filterIndex = 0
   self.filters = {}
   self.filterDestroyHandlers = {}
   self.asyncBlockHandlers = {}
+  self.asyncPendingBlockHandlers = {}
   self._ready = new Stoplight()
   self._ready.go()
+  self.pendingBlockTimeout = opts.pendingBlockTimeout || 4000
 
   // we dont have engine immeditately
   setTimeout(function(){
@@ -41,6 +44,7 @@ function FilterSubprovider(opts) {
       })
     })
   })
+
 }
 
 FilterSubprovider.prototype.handleRequest = function(payload, next, end){
@@ -53,6 +57,7 @@ FilterSubprovider.prototype.handleRequest = function(payload, next, end){
 
     case 'eth_newPendingTransactionFilter':
       self.newPendingTransactionFilter(end)
+      self.checkForPendingBlocks()
       return
 
     case 'eth_newFilter':
@@ -147,7 +152,7 @@ FilterSubprovider.prototype.newPendingTransactionFilter = function(cb) {
   }
 
   self.filterIndex++
-  self.asyncBlockHandlers[self.filterIndex] = blockHandler
+  self.asyncPendingBlockHandlers[self.filterIndex] = blockHandler
   var hexFilterIndex = intToHex(self.filterIndex)
   self.filters[hexFilterIndex] = filter
 
@@ -202,6 +207,7 @@ FilterSubprovider.prototype.uninstallFilter = function(filterId, cb) {
   var destroyHandler = self.filterDestroyHandlers[filterId]
   delete self.filters[filterId]
   delete self.asyncBlockHandlers[filterId]
+  delete self.asyncPendingBlockHandlers[filterId]
   delete self.filterDestroyHandlers[filterId]
   if (destroyHandler) destroyHandler()
 
@@ -209,6 +215,32 @@ FilterSubprovider.prototype.uninstallFilter = function(filterId, cb) {
 }
 
 // private
+
+// check for pending blocks
+FilterSubprovider.prototype.checkForPendingBlocks = function(){
+  const self = this
+  var activePendingTxFilters = !!Object.keys(self.asyncPendingBlockHandlers).length
+  if (activePendingTxFilters) {
+    self.emitPayload({
+      method: 'eth_getBlockByNumber',
+      params: ['pending', true],
+    }, function(err, res){
+      if (err) return console.error(err)
+      onNewPendingBlock(res.result, function(err){
+        if (err) console.error(err)
+        setTimeout(self.checkForPendingBlocks, self.pendingBlockTimeout)
+      })
+    })
+  }
+}
+
+FilterSubprovider.prototype.onNewPendingBlock = function(block, cb){
+  const self = this
+  // update filters
+  var updaters = valuesFor(self.asyncPendingBlockHandlers)
+  .map(function(fn){ return fn.bind(null, block) })
+  async.parallel(updaters, cb)
+}
 
 FilterSubprovider.prototype._getBlockNumber = function(cb) {
   const self = this
