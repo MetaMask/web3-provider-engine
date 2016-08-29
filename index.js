@@ -144,6 +144,11 @@ Web3ProviderEngine.prototype._startPolling = function(){
   self._pollIntervalId = setInterval(function() {
     self._fetchLatestBlock()
   }, self._pollingInterval)
+
+  // Tell node that block polling shouldn't keep the process open.
+  if (self._pollIntervalId.unref) {
+    self._pollIntervalId.unref();
+  }
 }
 
 Web3ProviderEngine.prototype._stopPolling = function(){
