@@ -146,6 +146,7 @@ Web3ProviderEngine.prototype._startPolling = function(){
   }, self._pollingInterval)
 
   // Tell node that block polling shouldn't keep the process open.
+  // https://nodejs.org/api/timers.html#timers_timeout_unref
   if (self._pollIntervalId.unref) {
     self._pollIntervalId.unref();
   }
