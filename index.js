@@ -22,6 +22,7 @@ function Web3ProviderEngine(opts) {
   })
   // parse options
   opts = opts || {}
+  self._pollingShouldUnref = opts.pollingShouldUnref !== false
   self._pollingInterval = opts.pollingInterval || 4000
   // local state
   self.currentBlock = null
@@ -147,8 +148,8 @@ Web3ProviderEngine.prototype._startPolling = function(){
 
   // Tell node that block polling shouldn't keep the process open.
   // https://nodejs.org/api/timers.html#timers_timeout_unref
-  if (self._pollIntervalId.unref) {
-    self._pollIntervalId.unref();
+  if (self._pollIntervalId.unref && self._pollingShouldUnref) {
+    self._pollIntervalId.unref()
   }
 }
 

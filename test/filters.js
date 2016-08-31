@@ -206,6 +206,7 @@ function filterTest(label, filterPayload, afterInstall, filterChangesOne, filter
 
     var engine = testMeta.engine = new ProviderEngine({
       pollingInterval: 20,
+      pollingShouldUnref: false,
     })
     engine.addProvider(filterProvider)
     engine.addProvider(blockProvider)
