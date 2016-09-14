@@ -64,9 +64,7 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
       async.waterfall([
         self.validateTransaction.bind(self, txParams),
         self.approveTransaction.bind(self, txParams),
-        function checkApproval(didApprove, cb){
-          cb( didApprove ? null : new Error('User denied transaction signature.') )
-        },
+        self.checkApproval.bind(self),
         self.finalizeAndSubmitTx.bind(self, txParams)
       ], end)
       return
@@ -98,22 +96,25 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
   }
 }
 
+HookedWalletSubprovider.prototype.checkApproval = function(didApprove, cb) {
+  cb( didApprove ? null : new Error('User denied transaction signature.') )
+}
+
 HookedWalletSubprovider.prototype.finalizeAndSubmitTx = function(txParams, cb) {
   const self = this
-  // must fillInTxExtras + submit in serial or we may repeat the nonce
-  // provided by nonce-tracker
+  // must fillInTxExtras + submit in serial or we may repeat the
+  // nonce provided by nonce-tracker
   self.nonceLock.take(function(){
     async.waterfall([
       self.fillInTxExtras.bind(self, txParams),
       self.signTransaction.bind(self),
       self.submitTx.bind(self),
     ], function(err, txHash){
+      self.nonceLock.leave()
       if (err) return cb(err)
       cb(null, txHash)
-      self.nonceLock.leave()
     })
   })
-  
 }
 
 HookedWalletSubprovider.prototype.submitTx = function(rawTx, cb) {
