@@ -3,6 +3,7 @@ const inherits = require('util').inherits
 const Stoplight = require('./util/stoplight.js')
 const cacheUtils = require('./util/rpc-cache-utils.js')
 const createPayload = require('./util/create-payload.js')
+const ethUtil = require('ethereumjs-util')
 const async = require('async')
 
 module.exports = Web3ProviderEngine
@@ -198,23 +199,23 @@ Web3ProviderEngine.prototype._fetchBlock = function(number, cb){
 
     // json -> buffers
     var block = {
-      number:           hexToBuffer(data.number),
-      hash:             hexToBuffer(data.hash),
-      parentHash:       hexToBuffer(data.parentHash),
-      nonce:            hexToBuffer(data.nonce),
-      sha3Uncles:       hexToBuffer(data.sha3Uncles),
-      logsBloom:        hexToBuffer(data.logsBloom),
-      transactionsRoot: hexToBuffer(data.transactionsRoot),
-      stateRoot:        hexToBuffer(data.stateRoot),
-      receiptRoot:      hexToBuffer(data.receiptRoot),
-      miner:            hexToBuffer(data.miner),
-      difficulty:       hexToBuffer(data.difficulty),
-      totalDifficulty:  hexToBuffer(data.totalDifficulty),
-      size:             hexToBuffer(data.size),
-      extraData:        hexToBuffer(data.extraData),
-      gasLimit:         hexToBuffer(data.gasLimit),
-      gasUsed:          hexToBuffer(data.gasUsed),
-      timestamp:        hexToBuffer(data.timestamp),
+      number:           ethUtil.toBuffer(data.number),
+      hash:             ethUtil.toBuffer(data.hash),
+      parentHash:       ethUtil.toBuffer(data.parentHash),
+      nonce:            ethUtil.toBuffer(data.nonce),
+      sha3Uncles:       ethUtil.toBuffer(data.sha3Uncles),
+      logsBloom:        ethUtil.toBuffer(data.logsBloom),
+      transactionsRoot: ethUtil.toBuffer(data.transactionsRoot),
+      stateRoot:        ethUtil.toBuffer(data.stateRoot),
+      receiptRoot:      ethUtil.toBuffer(data.receiptRoot),
+      miner:            ethUtil.toBuffer(data.miner),
+      difficulty:       ethUtil.toBuffer(data.difficulty),
+      totalDifficulty:  ethUtil.toBuffer(data.totalDifficulty),
+      size:             ethUtil.toBuffer(data.size),
+      extraData:        ethUtil.toBuffer(data.extraData),
+      gasLimit:         ethUtil.toBuffer(data.gasLimit),
+      gasUsed:          ethUtil.toBuffer(data.gasUsed),
+      timestamp:        ethUtil.toBuffer(data.timestamp),
       transactions:     data.transactions,
     }
 
@@ -234,7 +235,7 @@ Web3ProviderEngine.prototype._inspectResponseForNewBlock = function(payload, res
     return cb(null, resultObj)
   }
 
-  var blockNumber = hexToBuffer(resultObj.result.blockNumber)
+  var blockNumber = ethUtil.toBuffer(resultObj.result.blockNumber)
 
   // If we found a new block number on the result,
   // fetch the block details before returning the original response.
@@ -258,24 +259,3 @@ function SourceNotFoundError(payload){
   return new Error('Source for RPC method "'+payload.method+'" not found.')
 }
 
-function stripHexPrefix(hexString) {
-  return hexString.replace('0x', '');
-}
-
-function addHexPrefix(str) {
-  if (str.indexOf('0x') < 0) {
-    str = '0x' + str;
-  }
-  return str;
-}
-
-function hexToBuffer(hexString){
-  hexString = stripHexPrefix(hexString)
-  if (hexString.length%2) hexString = '0'+hexString
-  return new Buffer(hexString, 'hex')
-}
-
-// TODO: This should be in utils somewhere.
-function bufferToHex(buffer){
-  return addHexPrefix(buffer.toString('hex'))
-}
