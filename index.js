@@ -259,19 +259,3 @@ function SourceNotFoundError(payload){
   return new Error('Source for RPC method "'+payload.method+'" not found.')
 }
 
-function stripHexPrefix(hexString) {
-  return hexString ? hexString.replace('0x', '') : hexString
-}
-
-function addHexPrefix(str) {
-  if (!str) return
-  if (str.indexOf('0x') < 0) {
-    str = '0x' + str;
-  }
-  return str;
-}
-
-// TODO: This should be in utils somewhere.
-function bufferToHex(buffer){
-  return addHexPrefix(buffer.toString('hex'))
-}
