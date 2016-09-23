@@ -179,7 +179,7 @@ HookedWalletSubprovider.prototype.fillInTxExtras = function(txParams, cb){
 
   if (txParams.gas === undefined) {
     // console.log("need to get gas")
-    reqs.gas = estimateGas.bind(null, self.engine, txParams)
+    reqs.gas = estimateGas.bind(null, self.engine, cloneTxParams(txParams))
   }
 
   async.parallel(reqs, function(err, result) {
@@ -193,4 +193,17 @@ HookedWalletSubprovider.prototype.fillInTxExtras = function(txParams, cb){
 
     cb(null, extend(res, txParams))
   })
+}
+
+// we use this to clean any custom params from the txParams
+function cloneTxParams(txParams){
+  return {
+    from: txParams.from,
+    to: txParams.to,
+    value: txParams.value,
+    data: txParams.data,
+    gas: txParams.gas,
+    gasPrice: txParams.gasPrice,
+    nonce: txParams.nonce,
+  }
 }
