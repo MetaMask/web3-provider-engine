@@ -1,53 +1,19 @@
-const EventEmitter = require('events').EventEmitter
-const inherits = require('util').inherits
-const Stoplight = require('./util/stoplight.js')
-const cacheUtils = require('./util/rpc-cache-utils.js')
-const createPayload = require('./util/create-payload.js')
-const ethUtil = require('ethereumjs-util')
 const async = require('async')
 
 module.exports = Web3ProviderEngine
 
 
-inherits(Web3ProviderEngine, EventEmitter)
-
-function Web3ProviderEngine(opts) {
+function Web3ProviderEngine() {
   const self = this
-  EventEmitter.call(self)
-  self.setMaxListeners(30)
-  // set initialization blocker
-  self._ready = new Stoplight()
-  // unblock initialization after first block
-  self.once('block', function(){
-    self._ready.go()
-  })
-  // parse options
-  opts = opts || {}
-  self._pollingShouldUnref = opts.pollingShouldUnref !== false
-  self._pollingInterval = opts.pollingInterval || 4000
   // local state
-  self.currentBlock = null
   self._providers = []
 }
 
 // public
 
-Web3ProviderEngine.prototype.start = function(){
-  const self = this
-  // start block polling
-  self._startPolling()
-}
-
-Web3ProviderEngine.prototype.stop = function(){
-  const self = this
-  // stop block polling
-  self._stopPolling()
-}
-
 Web3ProviderEngine.prototype.addProvider = function(source){
   const self = this
   self._providers.push(source)
-  source.setEngine(this)
 }
 
 Web3ProviderEngine.prototype.send = function(payload){
@@ -56,17 +22,13 @@ Web3ProviderEngine.prototype.send = function(payload){
 
 Web3ProviderEngine.prototype.sendAsync = function(payload, cb){
   const self = this
-  self._ready.await(function(){
-
-    if (Array.isArray(payload)) {
-      // handle batch
-      async.map(payload, self._handleAsync.bind(self), cb)
-    } else {
-      // handle single
-      self._handleAsync(payload, cb)
-    }
-
-  })
+  if (Array.isArray(payload)) {
+    // handle batch
+    async.map(payload, self._handleAsync.bind(self), cb)
+  } else {
+    // handle single
+    self._handleAsync(payload, cb)
+  }
 }
 
 // private
@@ -132,125 +94,6 @@ Web3ProviderEngine.prototype._handleAsync = function(payload, finished) {
       }
     })
   }
-}
-
-//
-// from remote-data
-//
-
-Web3ProviderEngine.prototype._startPolling = function(){
-  const self = this
-
-  self._fetchLatestBlock()
-
-  self._pollIntervalId = setInterval(function() {
-    self._fetchLatestBlock()
-  }, self._pollingInterval)
-
-  // Tell node that block polling shouldn't keep the process open.
-  // https://nodejs.org/api/timers.html#timers_timeout_unref
-  if (self._pollIntervalId.unref && self._pollingShouldUnref) {
-    self._pollIntervalId.unref()
-  }
-}
-
-Web3ProviderEngine.prototype._stopPolling = function(){
-  const self = this
-  clearInterval(self._pollIntervalId)
-}
-
-Web3ProviderEngine.prototype._fetchLatestBlock = function(cb) {
-  if (!cb) cb = function(err) { if (err) return console.error(err) }
-
-  const self = this
-
-  self._fetchBlock('latest', function(err, block) {
-    if (err) {
-      self.emit('error', err)
-      return cb(err)
-    }
-
-    if (!self.currentBlock || 0 !== self.currentBlock.hash.compare(block.hash)) {
-      self._setCurrentBlock(block)
-    }
-
-    cb(null, block)
-  })
-}
-
-Web3ProviderEngine.prototype._setCurrentBlock = function(block){
-  const self = this
-  self.currentBlock = block
-  self.emit('block', block)
-}
-
-Web3ProviderEngine.prototype._fetchBlock = function(number, cb){
-  const self = this
-
-  // skip: cache, readiness, block number rewrite
-  self._handleAsync(createPayload({
-    method: 'eth_getBlockByNumber',
-    params: [number, false],
-  }), function(err, resultObj){
-    if (err) return cb(err)
-    if (resultObj.error) return cb(resultObj.error)
-    var data = resultObj.result;
-
-
-    // json -> buffers
-    var block = {
-      number:           ethUtil.toBuffer(data.number),
-      hash:             ethUtil.toBuffer(data.hash),
-      parentHash:       ethUtil.toBuffer(data.parentHash),
-      nonce:            ethUtil.toBuffer(data.nonce),
-      sha3Uncles:       ethUtil.toBuffer(data.sha3Uncles),
-      logsBloom:        ethUtil.toBuffer(data.logsBloom),
-      transactionsRoot: ethUtil.toBuffer(data.transactionsRoot),
-      stateRoot:        ethUtil.toBuffer(data.stateRoot),
-      receiptRoot:      ethUtil.toBuffer(data.receiptRoot),
-      miner:            ethUtil.toBuffer(data.miner),
-      difficulty:       ethUtil.toBuffer(data.difficulty),
-      totalDifficulty:  ethUtil.toBuffer(data.totalDifficulty),
-      size:             ethUtil.toBuffer(data.size),
-      extraData:        ethUtil.toBuffer(data.extraData),
-      gasLimit:         ethUtil.toBuffer(data.gasLimit),
-      gasUsed:          ethUtil.toBuffer(data.gasUsed),
-      timestamp:        ethUtil.toBuffer(data.timestamp),
-      transactions:     data.transactions,
-    }
-
-    cb(null, block)
-  })
-}
-
-Web3ProviderEngine.prototype._inspectResponseForNewBlock = function(payload, resultObj, cb) {
-
-  // these methods return responses with a block reference
-  if (payload.method != 'eth_getTransactionByHash'
-   && payload.method != 'eth_getTransactionReceipt') {
-    return cb(null, resultObj)
-  }
-
-  if (resultObj.result == null || resultObj.result.blockNumber == null) {
-    return cb(null, resultObj)
-  }
-
-  var blockNumber = ethUtil.toBuffer(resultObj.result.blockNumber)
-
-  // If we found a new block number on the result,
-  // fetch the block details before returning the original response.
-  // We do this b/c a user might be polling for a tx by hash,
-  // and when getting a response may assume that we are on the new block and
-  // try to query data from that block but would otherwise get old data due to
-  // our blockTag-rewriting mechanism
-  if (0 !== this.currentBlock.number.compare(blockNumber)) {
-    this._fetchLatestBlock(function(err, block) {
-      cb(null, resultObj)
-    })
-  } else {
-    cb(null, resultObj)
-  }
-
 }
 
 // util
