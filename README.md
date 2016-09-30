@@ -16,6 +16,7 @@ var provider = ProviderEngine()
 provider.use(BlockTagRewriter(blockTracker))
 provider.use(CacheMiddleware(blockTracker))
 provider.use(FilterMiddleware(provider, blockTracker))
+provider.use(NonceTrackerMiddleware())
 provider.use(IdMgmtMiddleware(provider, walletController))
 provider.use(rpcSource)
 ```

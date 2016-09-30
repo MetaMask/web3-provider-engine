@@ -6,7 +6,6 @@ const FixtureProvider = require('../subproviders/fixture.js')
 const NonceTracker = require('../subproviders/nonce-tracker.js')
 const HookedWalletProvider = require('../subproviders/hooked-wallet.js')
 const HookedWalletTxProvider = require('../subproviders/hooked-wallet-ethtx.js')
-const TestBlockProvider = require('./util/block.js')
 const createPayload = require('../util/create-payload.js')
 const injectMetrics = require('./util/inject-metrics')
 
@@ -17,9 +16,11 @@ test('tx sig', function(t){
   var privateKey = new Buffer('cccd8f4d88de61f92f3747e4a9604a0395e6ad5138add4bec4a2ddf231ee24f9', 'hex')
   var address = new Buffer('1234362ef32bcd26d3dd18ca749378213625ba0b', 'hex')
   var addressHex = '0x'+address.toString('hex')
+
+  var engine = new ProviderEngine()
   
   // sign all tx's
-  var providerA = injectMetrics(new HookedWalletProvider({
+  var providerA = injectMetrics(new HookedWalletProvider(engine, {
     getAccounts: function(cb){
       cb(null, [addressHex])
     },
@@ -44,14 +45,10 @@ test('tx sig', function(t){
       done(null, hash)
     },
   }))
-  // handle block requests
-  var providerD = injectMetrics(new TestBlockProvider())
 
-  var engine = new ProviderEngine()
   engine.addProvider(providerA)
   engine.addProvider(providerB)
   engine.addProvider(providerC)
-  engine.addProvider(providerD)
 
   var txPayload = {
     method: 'eth_sendTransaction',
@@ -63,7 +60,6 @@ test('tx sig', function(t){
     }]
   }
 
-  engine.start()
   engine.sendAsync(createPayload(txPayload), function(err, response){
     t.ifError(err, 'did not error')
     t.ok(response, 'has response')
@@ -86,7 +82,6 @@ test('tx sig', function(t){
     t.equal(providerC.getWitnessed('eth_sendRawTransaction').length, 1, 'providerC did see "eth_sendRawTransaction"')
     t.equal(providerC.getHandled('eth_sendRawTransaction').length, 1, 'providerC did handle "eth_sendRawTransaction"')
 
-    engine.stop()
     t.end()
   })
 
@@ -118,14 +113,11 @@ test('no such account', function(t){
       done(null, hash)
     },
   }))
-  // handle block requests
-  var providerD = injectMetrics(new TestBlockProvider())
 
   var engine = new ProviderEngine()
   engine.addProvider(providerA)
   engine.addProvider(providerB)
   engine.addProvider(providerC)
-  engine.addProvider(providerD)
 
   var txPayload = {
     method: 'eth_sendTransaction',
@@ -137,11 +129,8 @@ test('no such account', function(t){
     }]
   }
 
-  engine.start()
   engine.sendAsync(createPayload(txPayload), function(err, response){
     t.ok(err, 'did error')
-
-    engine.stop()
     t.end()
   })
 
@@ -157,8 +146,10 @@ test('sign message', function(t){
   var messageToSign = 'haay wuurl'
   var signedResult = '0x2c865e6843caf741a694522f86281c9ee86294ade3c8cd1889c9f2c9a24e20802b2b6eb79ba49412661bdbf40245d9b01abb393a843734e5be79b38e7dd408ef1c'
 
+  var engine = new ProviderEngine()
+
   // sign all messages
-  var providerA = injectMetrics(new HookedWalletTxProvider({
+  var providerA = injectMetrics(new HookedWalletTxProvider(engine, {
     getAccounts: function(cb){
       cb(null, [addressHex])
     },
@@ -167,12 +158,7 @@ test('sign message', function(t){
     },
   }))
 
-  // handle block requests
-  var providerB = injectMetrics(new TestBlockProvider())
-
-  var engine = new ProviderEngine()
   engine.addProvider(providerA)
-  engine.addProvider(providerB)
 
   var payload = {
     method: 'eth_sign',
@@ -182,14 +168,12 @@ test('sign message', function(t){
     ],
   }
 
-  engine.start()
   engine.sendAsync(createPayload(payload), function(err, response){
     t.ifError(err, 'did not error')
     t.ok(response, 'has response')
 
     t.equal(response.result, signedResult, 'signed response is correct')
 
-    engine.stop()
     t.end()
   })
 

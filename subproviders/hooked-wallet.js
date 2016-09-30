@@ -12,6 +12,7 @@ const extend = require('xtend')
 const Semaphore = require('semaphore')
 const Subprovider = require('./subprovider.js')
 const estimateGas = require('../util/estimate-gas.js')
+const createPayload = require('../util/create-payload.js')
 
 module.exports = HookedWalletSubprovider
 
@@ -24,12 +25,15 @@ module.exports = HookedWalletSubprovider
 
 inherits(HookedWalletSubprovider, Subprovider)
 
-function HookedWalletSubprovider(opts){
+function HookedWalletSubprovider(provider, opts){
   const self = this
+  opts = opts || {}
+
   // control flow
   self.nonceLock = Semaphore(1)
 
   // data lookup
+  self.provider = provider
   self.getAccounts = opts.getAccounts
   // default to auto-approve
   self.approveTransaction = opts.approveTransaction || function(txParams, cb){ cb(null, true) }
@@ -193,6 +197,11 @@ HookedWalletSubprovider.prototype.fillInTxExtras = function(txParams, cb){
 
     cb(null, extend(res, txParams))
   })
+}
+
+HookedWalletSubprovider.prototype.emitPayload = function(payload, cb){
+  const self = this
+  self.provider.sendAsync(createPayload(payload), cb)
 }
 
 // we use this to clean any custom params from the txParams
