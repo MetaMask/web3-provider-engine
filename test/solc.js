@@ -20,7 +20,7 @@ test('solc test', function(t){
   engine.addProvider(providerA)
   engine.addProvider(providerB)
 
-  var contractSource = 'contract test { function multiply(uint a) returns(uint d) {   return a * 7;   } }'
+  var contractSource = 'pragma solidity ^0.4.2; contract test { function multiply(uint a) returns(uint d) {   return a * 7;   } }'
 
   engine.start()
   engine.sendAsync(createPayload({ method: 'eth_compileSolidity', params: [ contractSource ] }), function(err, response){
