@@ -17,10 +17,10 @@ module.exports = HookedWalletEthTxSubprovider
 
 inherits(HookedWalletEthTxSubprovider, HookedWalletProvider)
 
-function HookedWalletEthTxSubprovider(opts) {
+function HookedWalletEthTxSubprovider(provider, opts) {
   const self = this
   
-  HookedWalletEthTxSubprovider.super_.call(self, opts)
+  HookedWalletEthTxSubprovider.super_.call(self, provider, opts)
 
   self.signTransaction = function(txData, cb) {
     // defaults
