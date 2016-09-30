@@ -1,7 +1,5 @@
 const async = require('async')
-const inherits = require('util').inherits
 const ethUtil = require('ethereumjs-util')
-const Subprovider = require('./subprovider.js')
 const Stoplight = require('../util/stoplight.js')
 const createPayload = require('../util/create-payload.js')
 
@@ -14,8 +12,6 @@ module.exports = FilterSubprovider
 //   eth_getFilterChanges
 //   eth_uninstallFilter
 //   eth_getFilterLogs
-
-inherits(FilterSubprovider, Subprovider)
 
 function FilterSubprovider(provider, blockTracker, opts) {
   opts = opts || {}

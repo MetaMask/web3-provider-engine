@@ -7,10 +7,8 @@
  */
 
 const async = require('async')
-const inherits = require('util').inherits
 const extend = require('xtend')
 const Semaphore = require('semaphore')
-const Subprovider = require('./subprovider.js')
 const estimateGas = require('../util/estimate-gas.js')
 const createPayload = require('../util/create-payload.js')
 
@@ -21,9 +19,6 @@ module.exports = HookedWalletSubprovider
 //   eth_accounts
 //   eth_sendTransaction
 //   eth_sign
-
-
-inherits(HookedWalletSubprovider, Subprovider)
 
 function HookedWalletSubprovider(provider, opts){
   const self = this

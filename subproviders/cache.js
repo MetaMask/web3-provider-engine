@@ -1,13 +1,10 @@
-const inherits = require('util').inherits
 const ethUtil = require('ethereumjs-util')
 const clone = require('clone')
 const cacheUtils = require('../util/rpc-cache-utils.js')
 const Stoplight = require('../util/stoplight.js')
-const Subprovider = require('./subprovider.js')
 
 module.exports = BlockCacheProvider
 
-inherits(BlockCacheProvider, Subprovider)
 
 function BlockCacheProvider(blockTracker, opts) {
   const self = this

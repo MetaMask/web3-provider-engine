@@ -1,11 +1,8 @@
-const net = require('net');
-const inherits = require('util').inherits
+const net = require('net')
 const createPayload = require('../util/create-payload.js')
-const Subprovider = require('./subprovider.js')
 
 module.exports = IpcSource
 
-inherits(IpcSource, Subprovider)
 
 function IpcSource(opts) {
   const self = this

@@ -1,9 +1,7 @@
 const inherits = require('util').inherits
-const Subprovider = require('./subprovider.js')
 
 module.exports = FixtureProvider
 
-inherits(FixtureProvider, Subprovider)
 
 function FixtureProvider(staticResponses){
   const self = this

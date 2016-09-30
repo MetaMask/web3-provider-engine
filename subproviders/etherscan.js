@@ -22,12 +22,9 @@
  */
 
 const xhr = process.browser ? require('xhr') : require('request')
-const inherits = require('util').inherits
-const Subprovider = require('./subprovider.js')
 
 module.exports = EtherscanProvider
 
-inherits(EtherscanProvider, Subprovider)
 
 function EtherscanProvider(opts) {
   opts = opts || {}

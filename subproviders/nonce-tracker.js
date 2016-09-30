@@ -1,7 +1,5 @@
-const inherits = require('util').inherits
 const Transaction = require('ethereumjs-tx')
 const ethUtil = require('ethereumjs-util')
-const Subprovider = require('./subprovider.js')
 const blockTagForPayload = require('../util/rpc-cache-utils').blockTagForPayload
 
 module.exports = NonceTrackerSubprovider
@@ -11,8 +9,6 @@ module.exports = NonceTrackerSubprovider
 // observes the following RPC methods:
 //   eth_sendRawTransaction
 
-
-inherits(NonceTrackerSubprovider, Subprovider)
 
 function NonceTrackerSubprovider(opts){
   const self = this

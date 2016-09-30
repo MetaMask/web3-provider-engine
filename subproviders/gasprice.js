@@ -9,11 +9,9 @@
 
 const async = require('async')
 const inherits = require('util').inherits
-const Subprovider = require('./subprovider.js')
 
 module.exports = GaspriceProvider
 
-inherits(GaspriceProvider, Subprovider)
 
 function GaspriceProvider(opts) {
   opts = opts || {}

@@ -1,10 +1,7 @@
-const inherits = require('util').inherits
 const solc = require('solc')
-const Subprovider = require('./subprovider.js')
 
 module.exports = SolcSubprovider
 
-inherits(SolcSubprovider, Subprovider)
 
 function SolcSubprovider(opts) {
   if (opts && opts.version) {
