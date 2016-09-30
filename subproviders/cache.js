@@ -9,11 +9,17 @@ module.exports = BlockCacheProvider
 
 inherits(BlockCacheProvider, Subprovider)
 
-function BlockCacheProvider(opts) {
+function BlockCacheProvider(blockTracker, opts) {
   const self = this
   opts = opts || {}
   // set initialization blocker
   self._ready = new Stoplight()
+  // unblock initialization after first block
+  self.blockTracker = blockTracker
+  blockTracker.awaitFirstBlock(function() {
+    self._ready.go()
+  })
+  // set caching strategies
   self.strategies = {
     perma: new ConditionalPermaCacheStrategy({
       eth_getTransactionByHash: function(result) {
@@ -23,18 +29,8 @@ function BlockCacheProvider(opts) {
     block: new BlockCacheStrategy(self),
     fork: new BlockCacheStrategy(self),
   }
-}
-
-// setup a block listener on 'setEngine'
-BlockCacheProvider.prototype.setEngine = function(engine) {
-  const self = this
-  Subprovider.prototype.setEngine.call(self, engine)
-  // unblock initialization after first block
-  engine.once('block', function(block) {
-    self._ready.go()
-  })
   // empty old cache
-  engine.on('block', function(block) {
+  blockTracker.on('block', function(block) {
     self.strategies.block.cacheRollOff(block)
     self.strategies.fork.cacheRollOff(block)
   })
@@ -55,7 +51,7 @@ BlockCacheProvider.prototype.handleRequest = function(payload, next, end){
     return next()
   }
 
-  // wait for first block
+  // queue until first block
   self._ready.await(function(){
     // actually handle the request
     self._handleRequest(payload, next, end)
@@ -85,7 +81,7 @@ BlockCacheProvider.prototype._handleRequest = function(payload, next, end){
   if (blockTag === 'earliest') {
     requestedBlockNumber = '0x00'
   } else if (blockTag === 'latest') {
-    requestedBlockNumber = bufferToHex(self.currentBlock.number)
+    requestedBlockNumber = bufferToHex(self.blockTracker.currentBlock.number)
   } else {
     // We have a hex number
     requestedBlockNumber = blockTag

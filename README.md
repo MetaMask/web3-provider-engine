@@ -1,3 +1,37 @@
+# REFACTOR IN PROGRESS
+
+### usage
+
+```js
+// setup data source
+var rpcSource = HttpMiddleware('https://mainnet.infura.io/')
+
+// setup block tracker
+var blockTracker = BlockTracker(ProviderEngine(rpcSource))
+blockTracker.on('block', (block) => console.log(`new block: #${block.number}`))
+blockTracker.on('fork', (block) => console.log(`fork detected from #${block.number}`))
+
+// setup web3 provider
+var provider = ProviderEngine()
+provider.use(BlockTagRewriter(blockTracker))
+provider.use(CacheMiddleware(blockTracker))
+provider.use(FilterMiddleware(provider, blockTracker))
+provider.use(IdMgmtMiddleware(provider, walletController))
+provider.use(rpcSource)
+```
+
+
+
+### NOTES
+
+- need to be able to tie life cycle to dapp
+  - destroy block handlers on dapp close
+    - primarily FilterMiddleware
+
+
+---------------------------------
+
+
 # Web3 ProviderEngine
 
 Web3 ProviderEngine is a tool for composing your own [web3 providers](https://github.com/ethereum/wiki/wiki/JavaScript-API#web3).

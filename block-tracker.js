@@ -49,6 +49,22 @@ PollingBlockTracker.prototype.stop = function(){
   clearInterval(self._pollIntervalId)
 }
 
+PollingBlockTracker.prototype.awaitFirstBlock = function(cb){
+  const self = this
+  // if theres already a block, we're ready
+  if (self.currentBlock) return cb(self.currentBlock)
+  // wait for first block
+  self.once('block', cb)
+}
+
+// PollingBlockTracker.prototype.asMiddleware = function(){
+//   // add this to return handlers:
+//   self._inspectResponseForNewBlock(payload, resultObj, finished)  
+// }
+
+
+// private
+
 PollingBlockTracker.prototype._fetchLatestBlock = function(cb) {
   const self = this
 

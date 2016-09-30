@@ -1,5 +1,6 @@
 const test = require('tape')
 const ProviderEngine = require('../index.js')
+const BlockTracker = require('../block-tracker.js')
 const FilterProvider = require('../subproviders/filters.js')
 const TestBlockProvider = require('./util/block.js')
 const createPayload = require('../util/create-payload.js')
@@ -199,19 +200,21 @@ function filterTest(label, filterPayload, afterInstall, filterChangesOne, filter
 
     var testMeta = {}
 
-    // handle "test_rpc"
-    var filterProvider = testMeta.filterProvider = injectMetrics(new FilterProvider())
-    // handle block requests
-    var blockProvider = testMeta.blockProvider = injectMetrics(new TestBlockProvider())
-
-    var engine = testMeta.engine = new ProviderEngine({
+    var engine = testMeta.engine = new ProviderEngine()
+    var blockTracker = new BlockTracker(engine, {
       pollingInterval: 20,
       pollingShouldUnref: false,
     })
+
+    // handle "test_rpc"
+    var filterProvider = testMeta.filterProvider = injectMetrics(new FilterProvider(engine, blockTracker))
+    // handle block requests
+    var blockProvider = testMeta.blockProvider = injectMetrics(new TestBlockProvider())
+
     engine.addProvider(filterProvider)
     engine.addProvider(blockProvider)
-    engine.once('block', startTest)
-    engine.start()
+    blockTracker.awaitFirstBlock(startTest)
+    blockTracker.start()
 
     function startTest(){
       // install block filter
@@ -229,7 +232,7 @@ function filterTest(label, filterPayload, afterInstall, filterChangesOne, filter
         afterInstall(t, testMeta, response, function(err){
           t.ifError(err, 'did not error')
 
-          engine.once('block', continueTest)
+          blockTracker.once('block', continueTest)
         })
       })
     }
@@ -257,7 +260,7 @@ function filterTest(label, filterPayload, afterInstall, filterChangesOne, filter
 
             filterChangesTwo(t, testMeta, response, function(err){
               t.ifError(err, 'did not error')
-              engine.stop()
+              blockTracker.stop()
               t.end()
             })
           })

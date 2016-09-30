@@ -3,6 +3,7 @@ const inherits = require('util').inherits
 const ethUtil = require('ethereumjs-util')
 const Subprovider = require('./subprovider.js')
 const Stoplight = require('../util/stoplight.js')
+const createPayload = require('../util/create-payload.js')
 
 module.exports = FilterSubprovider
 
@@ -16,9 +17,11 @@ module.exports = FilterSubprovider
 
 inherits(FilterSubprovider, Subprovider)
 
-function FilterSubprovider(opts) {
+function FilterSubprovider(provider, blockTracker, opts) {
   opts = opts || {}
   const self = this
+  self.provider = provider
+  self.blockTracker = blockTracker
   self.filterIndex = 0
   self.filters = {}
   self.filterDestroyHandlers = {}
@@ -29,20 +32,17 @@ function FilterSubprovider(opts) {
   self.pendingBlockTimeout = opts.pendingBlockTimeout || 4000
   self.checkForPendingBlocksActive = false
 
-  // we dont have engine immeditately
-  setTimeout(function(){
-    // asyncBlockHandlers require locking provider until updates are completed
-    self.engine.on('block', function(block){
-      // pause processing
-      self._ready.stop()
-      // update filters
-      var updaters = valuesFor(self.asyncBlockHandlers)
-      .map(function(fn){ return fn.bind(null, block) })
-      async.parallel(updaters, function(err){
-        if (err) console.error(err)
-        // unpause processing
-        self._ready.go()
-      })
+  // asyncBlockHandlers require locking provider until updates are completed
+  blockTracker.on('block', function(block){
+    // pause processing
+    self._ready.stop()
+    // update filters
+    var updaters = valuesFor(self.asyncBlockHandlers)
+    .map(function(fn){ return fn.bind(null, block) })
+    async.parallel(updaters, function(err){
+      if (err) console.error(err)
+      // unpause processing
+      self._ready.go()
     })
   })
 
@@ -100,9 +100,9 @@ FilterSubprovider.prototype.newBlockFilter = function(cb) {
     })
 
     var newBlockHandler = filter.update.bind(filter)
-    self.engine.on('block', newBlockHandler)
+    self.blockTracker.on('block', newBlockHandler)
     var destroyHandler = function(){
-      self.engine.removeListener('block', newBlockHandler)
+      self.blockTracker.removeListener('block', newBlockHandler)
     }
 
     self.filterIndex++
@@ -252,7 +252,7 @@ FilterSubprovider.prototype.onNewPendingBlock = function(block, cb){
 
 FilterSubprovider.prototype._getBlockNumber = function(cb) {
   const self = this
-  var blockNumber = bufferToHex(self.engine.currentBlock.number)
+  var blockNumber = bufferToHex(self.blockTracker.currentBlock.number)
   cb(null, blockNumber)
 }
 
@@ -288,6 +288,11 @@ FilterSubprovider.prototype._txHashesForBlock = function(block, cb) {
   }
 }
 
+FilterSubprovider.prototype.emitPayload = function(payload, cb){
+  const self = this
+  self.provider.sendAsync(createPayload(payload), cb)
+}
+
 //
 // BlockFilter
 //
@@ -296,7 +301,6 @@ function BlockFilter(opts) {
   // console.log('BlockFilter - new')
   const self = this
   self.type = 'block'
-  self.engine = opts.engine
   self.blockNumber = opts.blockNumber
   self.updates = []
 }

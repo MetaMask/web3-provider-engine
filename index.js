@@ -82,7 +82,7 @@ Web3ProviderEngine.prototype._handleAsync = function(payload, finished) {
         result: result
       }
 
-      if (error != null) {
+      if (error) {
         resultObj.error = {
           message: error.stack || error.message || error,
           code: -32000
@@ -90,7 +90,7 @@ Web3ProviderEngine.prototype._handleAsync = function(payload, finished) {
         // respond with both error formats
         finished(error, resultObj)
       } else {
-        self._inspectResponseForNewBlock(payload, resultObj, finished)
+        finished(null, resultObj)
       }
     })
   }

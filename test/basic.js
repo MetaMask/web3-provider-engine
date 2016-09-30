@@ -24,7 +24,6 @@ test('fallthrough test', function(t){
   engine.addProvider(providerB)
   engine.addProvider(providerC)
 
-  engine.start()
   engine.sendAsync(createPayload({ method: 'test_rpc' }), function(err, response){
     t.ifError(err, 'did not error')
     t.ok(response, 'has response')
@@ -38,7 +37,6 @@ test('fallthrough test', function(t){
     t.equal(providerC.getWitnessed('test_rpc').length, 0, 'providerC did NOT see "test_rpc"')
     t.equal(providerC.getHandled('test_rpc').length, 0, 'providerC did NOT handle "test_rpc"')
 
-    engine.stop()
     t.end()
   })
 

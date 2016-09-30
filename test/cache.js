@@ -1,5 +1,6 @@
 const test = require('tape')
 const ProviderEngine = require('../index.js')
+const BlockTracker = require('../block-tracker.js')
 const FixtureProvider = require('../subproviders/fixture.js')
 const CacheProvider = require('../subproviders/cache.js')
 const TestBlockProvider = require('./util/block.js')
@@ -97,8 +98,11 @@ function cacheTest(label, payloads, shouldHitCacheOnSecondRequest){
   test('cache - '+label, function(t){
     t.plan(12)
 
+    var engine = new ProviderEngine()
+    var blockTracker = new BlockTracker(engine)
+    
     // cache layer
-    var cacheProvider = injectMetrics(new CacheProvider())
+    var cacheProvider = injectMetrics(new CacheProvider(blockTracker))
     // handle balance
     var dataProvider = injectMetrics(new FixtureProvider({
       eth_getBalance: '0xdeadbeef',
@@ -141,15 +145,14 @@ function cacheTest(label, payloads, shouldHitCacheOnSecondRequest){
     // handle dummy block
     var blockProvider = injectMetrics(new TestBlockProvider())
 
-    var engine = new ProviderEngine()
     engine.addProvider(cacheProvider)
     engine.addProvider(dataProvider)
     engine.addProvider(blockProvider)
 
-    engine.start()
+    blockTracker.start()
 
     cacheCheck(t, engine, cacheProvider, dataProvider, payloads, function(err, response) {
-      engine.stop()
+      blockTracker.stop()
       t.end()
     })
 
