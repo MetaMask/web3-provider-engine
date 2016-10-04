@@ -38,6 +38,7 @@ var permitted = [
   'nonce',
   'fromBlock',
   'toBlock',
+  'address',
   'topics',
 ]
 
