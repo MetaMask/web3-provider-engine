@@ -48,14 +48,27 @@ function cloneTxParams(txParams){
         copy[permitted] = txParams[permitted].filter(function(item) {
           return !!item
         }).map(function(item) {
-          return ethUtil.addHexPrefix(item)
+          return sanitize(item)
         })
       } else {
-        copy[permitted] = ethUtil.addHexPrefix(txParams[permitted])
+        copy[permitted] = sanitize(txParams[permitted])
       }
     }
     return copy
   }, {})
 
   return sanitized
+}
+
+function sanitize(value) {
+  switch (value) {
+    case 'latest':
+      return value
+    case 'pending':
+      return value
+    case 'earliest':
+      return value
+    default:
+      return ethUtil.addHexPrefix(value)
+  }
 }
