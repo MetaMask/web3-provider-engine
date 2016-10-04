@@ -35,15 +35,41 @@ var permitted = [
   'data',
   'gas',
   'gasPrice',
-  'nonce'
+  'nonce',
+  'fromBlock',
+  'toBlock',
+  'address',
+  'topics',
 ]
+
 function cloneTxParams(txParams){
   var sanitized  =  permitted.reduce(function(copy, permitted) {
     if (permitted in txParams) {
-      copy[permitted] = ethUtil.addHexPrefix(txParams[permitted])
+      if (Array.isArray(txParams[permitted])) {
+        copy[permitted] = txParams[permitted].filter(function(item) {
+          return !!item
+        }).map(function(item) {
+          return sanitize(item)
+        })
+      } else {
+        copy[permitted] = sanitize(txParams[permitted])
+      }
     }
     return copy
   }, {})
 
   return sanitized
+}
+
+function sanitize(value) {
+  switch (value) {
+    case 'latest':
+      return value
+    case 'pending':
+      return value
+    case 'earliest':
+      return value
+    default:
+      return ethUtil.addHexPrefix(value)
+  }
 }

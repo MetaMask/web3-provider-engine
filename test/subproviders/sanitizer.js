@@ -7,7 +7,7 @@ const mockBlock = require('../util/mock_block.json')
 const extend = require('xtend')
 
 test('Sanitizer removes unknown keys', function(t) {
-  t.plan(4)
+  t.plan(7)
 
   var engine = new ProviderEngine()
 
@@ -18,6 +18,9 @@ test('Sanitizer removes unknown keys', function(t) {
     t.ok(!('foo' in payload.params[0]))
     t.equal(payload.params[0].gas, '0x01')
     t.equal(payload.params[0].data, '0x01')
+    t.equal(payload.params[0].fromBlock, 'latest')
+    t.equal(payload.params[0].topics.length, 2)
+    t.equal(payload.params[0].topics[0], '0x02')
 
     if (payload.method === 'eth_getBlockByNumber') {
       return end(null, mockBlock.result)
@@ -41,9 +44,15 @@ test('Sanitizer removes unknown keys', function(t) {
       foo: 'bar',
       gas: '0x01',
       data: '01',
+      fromBlock: 'latest',
+      topics: [
+        '0x02',
+        '0x03',
+        null,
+      ],
     }],
   }
   engine.sendAsync(payload, function (err, result) {
     t.equal(result.result.baz, 'bam')
-  })
+ })
 })
