@@ -15,7 +15,7 @@ function MockSubprovider(handleRequest){
   }
 }
 
-let mockResponse = {
+var mockResponse = {
   data: 'mock-success!'
 }
 MockSubprovider.prototype.handleRequest = function(payload, next, end){
