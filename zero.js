@@ -4,6 +4,7 @@ const NonceTrackerSubprovider = require('./subproviders/nonce-tracker.js')
 const CacheSubprovider = require('./subproviders/cache.js')
 const FilterSubprovider = require('./subproviders/filters.js')
 const HookedWalletSubprovider = require('./subproviders/hooked-wallet.js')
+const SanitizingSubprovider = require('./subproviders/sanitizer.js')
 const RpcSubprovider = require('./subproviders/rpc.js')
 
 
@@ -21,6 +22,10 @@ function ZeroClientProvider(opts){
 
   // nonce tracker
   engine.addProvider(new NonceTrackerSubprovider())
+
+  // sanitization
+  var sanitizer = new SanitizingSubprovider()
+  engine.addProvider(sanitizer)
 
   // cache layer
   var cacheSubprovider = new CacheSubprovider()
