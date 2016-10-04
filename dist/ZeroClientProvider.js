@@ -261,7 +261,7 @@ function SourceNotFoundError(payload){
 }
 
 
-},{"./util/create-payload.js":104,"./util/rpc-cache-utils.js":107,"./util/stoplight.js":108,"async":3,"ethereumjs-util":40,"events":41,"util":92}],2:[function(require,module,exports){
+},{"./util/create-payload.js":105,"./util/rpc-cache-utils.js":108,"./util/stoplight.js":109,"async":3,"ethereumjs-util":40,"events":41,"util":92}],2:[function(require,module,exports){
 // http://wiki.commonjs.org/wiki/Unit_Testing/1.0
 //
 // THIS IS NOT TESTED NOR LIKELY TO WORK OUTSIDE V8!
@@ -20882,7 +20882,7 @@ function extend() {
 },{}],95:[function(require,module,exports){
 module.exports={
   "name": "web3-provider-engine",
-  "version": "8.0.7",
+  "version": "8.1.0",
   "description": "",
   "repository": "https://github.com/MetaMask/provider-engine",
   "main": "index.js",
@@ -20906,7 +20906,7 @@ module.exports={
     "isomorphic-fetch": "^2.2.0",
     "request": "^2.67.0",
     "semaphore": "^1.0.3",
-    "solc": "^0.2.2-2",
+    "solc": "^0.4.2",
     "tape": "^4.4.0",
     "web3": "^0.15.1",
     "xhr": "^2.2.0",
@@ -21179,7 +21179,7 @@ function compareHex(hexA, hexB){
   var numB = parseInt(hexB, 16)
   return numA === numB ? 0 : (numA > numB ? 1 : -1 )
 }
-},{"../util/rpc-cache-utils.js":107,"../util/stoplight.js":108,"./subprovider.js":103,"clone":15,"ethereumjs-util":40,"util":92}],97:[function(require,module,exports){
+},{"../util/rpc-cache-utils.js":108,"../util/stoplight.js":109,"./subprovider.js":104,"clone":15,"ethereumjs-util":40,"util":92}],97:[function(require,module,exports){
 const inherits = require('util').inherits
 const FixtureProvider = require('./fixture.js')
 const version = require('../package.json').version
@@ -21683,7 +21683,7 @@ function valuesFor(obj){
   return Object.keys(obj).map(function(key){ return obj[key] })
 }
 
-},{"../util/stoplight.js":108,"./subprovider.js":103,"async":3,"ethereumjs-util":40,"util":92}],99:[function(require,module,exports){
+},{"../util/stoplight.js":109,"./subprovider.js":104,"async":3,"ethereumjs-util":40,"util":92}],99:[function(require,module,exports){
 const inherits = require('util').inherits
 const Subprovider = require('./subprovider.js')
 
@@ -21712,7 +21712,7 @@ FixtureProvider.prototype.handleRequest = function(payload, next, end){
   }
 }
 
-},{"./subprovider.js":103,"util":92}],100:[function(require,module,exports){
+},{"./subprovider.js":104,"util":92}],100:[function(require,module,exports){
 /*
  * Emulate 'eth_accounts' / 'eth_sendTransaction' using 'eth_sendRawTransaction'
  *
@@ -21922,7 +21922,7 @@ function cloneTxParams(txParams){
     nonce: txParams.nonce,
   }
 }
-},{"../util/estimate-gas.js":105,"./subprovider.js":103,"async":3,"semaphore":78,"util":92,"xtend":94}],101:[function(require,module,exports){
+},{"../util/estimate-gas.js":106,"./subprovider.js":104,"async":3,"semaphore":78,"util":92,"xtend":94}],101:[function(require,module,exports){
 (function (Buffer){
 const inherits = require('util').inherits
 const Transaction = require('ethereumjs-tx')
@@ -22008,7 +22008,7 @@ NonceTrackerSubprovider.prototype.handleRequest = function(payload, next, end){
   }
 }
 }).call(this,require("buffer").Buffer)
-},{"../util/rpc-cache-utils":107,"./subprovider.js":103,"buffer":12,"ethereumjs-tx":37,"ethereumjs-util":40,"util":92}],102:[function(require,module,exports){
+},{"../util/rpc-cache-utils":108,"./subprovider.js":104,"buffer":12,"ethereumjs-tx":37,"ethereumjs-util":40,"util":92}],102:[function(require,module,exports){
 (function (process){
 const xhr = process.browser ? require('xhr') : require('request')
 const inherits = require('util').inherits
@@ -22069,7 +22069,58 @@ RpcSource.prototype.handleRequest = function(payload, next, end){
 }
 
 }).call(this,require('_process'))
-},{"../util/create-payload.js":104,"./subprovider.js":103,"_process":10,"request":8,"util":92,"xhr":93}],103:[function(require,module,exports){
+},{"../util/create-payload.js":105,"./subprovider.js":104,"_process":10,"request":8,"util":92,"xhr":93}],103:[function(require,module,exports){
+/* Sanitization Subprovider
+ * For Parity compatibility
+ * removes irregular keys
+ */
+
+const inherits = require('util').inherits
+const Subprovider = require('./subprovider.js')
+const extend = require('xtend')
+const ethUtil = require('ethereumjs-util')
+
+module.exports = SanitizerSubprovider
+
+inherits(SanitizerSubprovider, Subprovider)
+
+function SanitizerSubprovider(opts){
+  const self = this
+}
+
+SanitizerSubprovider.prototype.handleRequest = function(payload, next, end){
+  var txParams = payload.params[0]
+
+  if (typeof txParams === 'object' && !Array.isArray(txParams)) {
+    var sanitized = cloneTxParams(txParams)
+    payload.params[0] = sanitized
+  }
+
+  next()
+}
+
+// we use this to clean any custom params from the txParams
+var permitted = [
+  'from',
+  'to',
+  'value',
+  'data',
+  'gas',
+  'gasPrice',
+  'nonce'
+]
+function cloneTxParams(txParams){
+  var sanitized  =  permitted.reduce(function(copy, permitted) {
+    if (permitted in txParams) {
+      copy[permitted] = ethUtil.addHexPrefix(txParams[permitted])
+    }
+    return copy
+  }, {})
+
+  return sanitized
+}
+
+},{"./subprovider.js":104,"ethereumjs-util":40,"util":92,"xtend":94}],104:[function(require,module,exports){
 const createPayload = require('../util/create-payload.js')
 
 module.exports = SubProvider
@@ -22097,7 +22148,7 @@ SubProvider.prototype.emitPayload = function(payload, cb){
   const self = this
   self.engine.sendAsync(createPayload(payload), cb)
 }
-},{"../util/create-payload.js":104}],104:[function(require,module,exports){
+},{"../util/create-payload.js":105}],105:[function(require,module,exports){
 const getRandomId = require('./random-id.js')
 const extend = require('xtend')
 
@@ -22114,7 +22165,7 @@ function createPayload(data){
   }, data)
 }
 
-},{"./random-id.js":106,"xtend":94}],105:[function(require,module,exports){
+},{"./random-id.js":107,"xtend":94}],106:[function(require,module,exports){
 const createPayload = require('./create-payload.js')
 
 module.exports = estimateGas
@@ -22142,7 +22193,7 @@ function estimateGas(provider, txParams, cb) {
     cb(null, res.result)
   })
 }
-},{"./create-payload.js":104}],106:[function(require,module,exports){
+},{"./create-payload.js":105}],107:[function(require,module,exports){
 // gotta keep it within MAX_SAFE_INTEGER
 const extraDigits = 3
 
@@ -22157,7 +22208,7 @@ function createRandomId(){
   // 16 digits
   return datePart+extraPart
 }
-},{}],107:[function(require,module,exports){
+},{}],108:[function(require,module,exports){
 module.exports = {
   cacheIdentifierForPayload: cacheIdentifierForPayload,
   canCache: canCache,
@@ -22299,7 +22350,7 @@ function cacheTypeForPayload(payload) {
   }
 }
 
-},{}],108:[function(require,module,exports){
+},{}],109:[function(require,module,exports){
 const EventEmitter = require('events').EventEmitter
 const inherits = require('util').inherits
 
@@ -22334,13 +22385,14 @@ Stoplight.prototype.await = function(fn){
     setTimeout(fn)
   }
 }
-},{"events":41,"util":92}],109:[function(require,module,exports){
+},{"events":41,"util":92}],110:[function(require,module,exports){
 const ProviderEngine = require('./index.js')
 const DefaultFixture = require('./subproviders/default-fixture.js')
 const NonceTrackerSubprovider = require('./subproviders/nonce-tracker.js')
 const CacheSubprovider = require('./subproviders/cache.js')
 const FilterSubprovider = require('./subproviders/filters.js')
 const HookedWalletSubprovider = require('./subproviders/hooked-wallet.js')
+const SanitizingSubprovider = require('./subproviders/sanitizer.js')
 const RpcSubprovider = require('./subproviders/rpc.js')
 
 
@@ -22358,6 +22410,10 @@ function ZeroClientProvider(opts){
 
   // nonce tracker
   engine.addProvider(new NonceTrackerSubprovider())
+
+  // sanitization
+  var sanitizer = new SanitizingSubprovider()
+  engine.addProvider(sanitizer)
 
   // cache layer
   var cacheSubprovider = new CacheSubprovider()
@@ -22397,5 +22453,5 @@ function ZeroClientProvider(opts){
 
 }
 
-},{"./index.js":1,"./subproviders/cache.js":96,"./subproviders/default-fixture.js":97,"./subproviders/filters.js":98,"./subproviders/hooked-wallet.js":100,"./subproviders/nonce-tracker.js":101,"./subproviders/rpc.js":102}]},{},[109])(109)
+},{"./index.js":1,"./subproviders/cache.js":96,"./subproviders/default-fixture.js":97,"./subproviders/filters.js":98,"./subproviders/hooked-wallet.js":100,"./subproviders/nonce-tracker.js":101,"./subproviders/rpc.js":102,"./subproviders/sanitizer.js":103}]},{},[110])(110)
 });
