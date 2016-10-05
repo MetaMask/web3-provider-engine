@@ -69,6 +69,10 @@ function sanitize(value) {
     case 'earliest':
       return value
     default:
-      return ethUtil.addHexPrefix(value)
+      if (typeof value === 'string') {
+        return ethUtil.addHexPrefix(value.toLowerCase())
+      } else {
+        return value
+      }
   }
 }

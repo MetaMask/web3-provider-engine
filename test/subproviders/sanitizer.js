@@ -20,7 +20,7 @@ test('Sanitizer removes unknown keys', function(t) {
     t.equal(payload.params[0].data, '0x01')
     t.equal(payload.params[0].fromBlock, 'latest')
     t.equal(payload.params[0].topics.length, 3)
-    t.equal(payload.params[0].topics[1], '0x02')
+    t.equal(payload.params[0].topics[1], '0x0a')
 
     if (payload.method === 'eth_getBlockByNumber') {
       return end(null, mockBlock.result)
@@ -47,7 +47,7 @@ test('Sanitizer removes unknown keys', function(t) {
       fromBlock: 'latest',
       topics: [
         null,
-        '0x02',
+        '0X0A',
         '0x03',
       ],
     }],
