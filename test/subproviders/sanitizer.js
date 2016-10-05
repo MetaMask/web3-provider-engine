@@ -54,5 +54,5 @@ test('Sanitizer removes unknown keys', function(t) {
   }
   engine.sendAsync(payload, function (err, result) {
     t.equal(result.result.baz, 'bam')
- })
+  })
 })
