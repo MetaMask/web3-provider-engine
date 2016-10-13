@@ -39,6 +39,15 @@ function HookedWalletSubprovider(opts){
   self.signMessage = opts.signMessage
 }
 
+HookedWalletSubprovider.prototype.managesAccount = function(account, cb){
+  const self = this
+
+  self.getAccounts(function(err, accounts){
+    if (err) return cb(err)
+    cb(null, accounts.indexOf(account) !== -1)
+  })
+}
+
 HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
   const self = this
 
@@ -60,33 +69,42 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
       return
 
     case 'eth_sendTransaction':
-      var txParams = payload.params[0]
-      async.waterfall([
-        self.validateTransaction.bind(self, txParams),
-        self.approveTransaction.bind(self, txParams),
-        self.checkApproval.bind(self),
-        self.finalizeAndSubmitTx.bind(self, txParams)
-      ], end)
+      self.managesAccount(payload.params[0].from, function(err, manages){
+        if (err) return cb(err)
+        if(manages){
+          var txParams = payload.params[0]
+          async.waterfall([
+            self.validateTransaction.bind(self, txParams),
+            self.approveTransaction.bind(self, txParams),
+            self.checkApproval.bind(self),
+            self.finalizeAndSubmitTx.bind(self, txParams)
+          ], end)
+        }else{ next() }
+      })
       return
 
     case 'eth_sign':
-      var address = payload.params[0]
-      var message = payload.params[1]
-      // non-standard "extraParams" to be appended to our "msgParams" obj
-      // good place for metadata
-      var extraParams = payload.params[2] || {}
-      var msgParams = extend(extraParams, {
-        from: address,
-        data: message,
+      self.managesAccount(payload.params[0], function(err, manages){
+        if(manages){
+          var address = payload.params[0]
+          var message = payload.params[1]
+          // non-standard "extraParams" to be appended to our "msgParams" obj
+          // good place for metadata
+          var extraParams = payload.params[2] || {}
+          var msgParams = extend(extraParams, {
+            from: address,
+            data: message,
+          })
+          async.waterfall([
+            self.validateMessage.bind(self, msgParams),
+            self.approveMessage.bind(self, msgParams),
+            function checkApproval(didApprove, cb){
+              cb( didApprove ? null : new Error('User denied message signature.') )
+            },
+            self.signMessage.bind(self, msgParams),
+          ], end)
+        }else{ next() }
       })
-      async.waterfall([
-        self.validateMessage.bind(self, msgParams),
-        self.approveMessage.bind(self, msgParams),
-        function checkApproval(didApprove, cb){
-          cb( didApprove ? null : new Error('User denied message signature.') )
-        },
-        self.signMessage.bind(self, msgParams),
-      ], end)
       return
 
     default:
