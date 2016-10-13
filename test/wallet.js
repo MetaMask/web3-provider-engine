@@ -92,16 +92,22 @@ test('tx sig', function(t){
 
 })
 
-test('no such account', function(t){
+test('no such account in wallet', function(t){
   t.plan(1)
 
-  var addressHex = '0x1234362ef32bcd26d3dd18ca749378213625ba0b'
-  var otherAddressHex = '0x4321362ef32bcd26d3dd18ca749378213625ba0c'
-  
+  var privateKey = new Buffer('cccd8f4d88de61f92f3747e4a9604a0395e6ad5138add4bec4a2ddf231ee24f9', 'hex')
+  var walletAddressHex = '0x'+ new Buffer('1234362ef32bcd26d3dd18ca749378213625ba0b', 'hex').toString('hex')
+  var senderAddressHex = '0x4321362ef32bcd26d3dd18ca749378213625ba0c'
   // sign all tx's
   var providerA = injectMetrics(new HookedWalletProvider({
     getAccounts: function(cb){
-      cb(null, [addressHex])
+      cb(null, [walletAddressHex])
+    },
+    signTransaction: function(txParams, cb){
+      var tx = new Transaction(txParams)
+      tx.sign(privateKey)
+      var rawTx = '0x'+tx.serialize().toString('hex')
+      cb(null, rawTx)
     },
   }))
 
@@ -130,8 +136,8 @@ test('no such account', function(t){
   var txPayload = {
     method: 'eth_sendTransaction',
     params: [{
-      from: otherAddressHex,
-      to: addressHex,
+      from: senderAddressHex,
+      to: '0x1111111111222222222233333333334444444444',
       value: '0x01',
       gas: '0x1234567890',
     }]
@@ -147,6 +153,81 @@ test('no such account', function(t){
 
 })
 
+test('account manged by 2nd layer provider', function(t){
+  t.plan(1)
+
+  var KeyManagedByB = new Buffer('cccd8f4d88de61f92f3747e4a9604a0395e6ad5138add4bec4a2ddf231ee24f9', 'hex')
+
+  var addressManagedByA = '0x1111111111222222222233333333334444444444'
+  var addressManagedByB = '0x'+ new Buffer('1234362ef32bcd26d3dd18ca749378213625ba0b', 'hex').toString('hex')
+  var addressManagedByC = '0x6666666666777777777788888888889999999999'
+
+  var providerA = injectMetrics(new HookedWalletProvider({
+    getAccounts: function(cb){
+      cb(null, [addressManagedByA])
+    },
+  }))
+
+  var providerB = injectMetrics(new HookedWalletProvider({
+    getAccounts: function(cb){
+      cb(null, [addressManagedByB])
+    },
+    signTransaction: function(txParams, cb){
+      var tx = new Transaction(txParams)
+      tx.sign(KeyManagedByB)
+      var rawTx = '0x'+tx.serialize().toString('hex')
+      cb(null, rawTx)
+    }
+  }))
+
+  var providerC = injectMetrics(new HookedWalletProvider({
+    getAccounts: function(cb){
+      cb(null, [addressManagedByC])
+    },
+  }))
+
+  // handle nonce requests
+  var providerD = injectMetrics(new NonceTracker())
+  // handle all bottom requests
+  var providerE = injectMetrics(new FixtureProvider({
+    eth_gasPrice: '0x1234',
+    eth_getTransactionCount: '0x00',
+    eth_sendRawTransaction: function(payload, next, done){
+      var rawTx = ethUtil.toBuffer(payload.params[0])
+      var tx = new Transaction(rawTx)
+      var hash = '0x'+tx.hash().toString('hex')
+      done(null, hash)
+    },
+  }))
+  // handle block requests
+  var providerF = injectMetrics(new TestBlockProvider())
+
+  var engine = new ProviderEngine()
+  engine.addProvider(providerA)
+  engine.addProvider(providerB)
+  engine.addProvider(providerC)
+  engine.addProvider(providerD)
+  engine.addProvider(providerE)
+  engine.addProvider(providerF)
+
+  var txPayload = {
+    method: 'eth_sendTransaction',
+    params: [{
+      from: addressManagedByB,
+      to: '0x6666666666777777777788888888889999999999',
+      value: '0x01',
+      gas: '0x1234567890',
+    }]
+  }
+
+  engine.start()
+  engine.sendAsync(createPayload(txPayload), function(err, response){
+    t.ifError(err, 'next subprovider should handle this request')
+
+    engine.stop()
+    t.end()
+  })
+})
 
 test('sign message', function(t){
   t.plan(3)
