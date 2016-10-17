@@ -155,7 +155,7 @@ HookedWalletSubprovider.prototype.validateSender = function(senderAddress, cb){
   if (senderAddress === undefined) return cb(null, false)
   self.getAccounts(function(err, accounts){
     if (err) return cb(err)
-    var senderIsValid = (accounts.indexOf(senderAddress.toLowerCase()) !== -1)
+    var senderIsValid = (accounts.map(toLowerCase).indexOf(senderAddress.toLowerCase()) !== -1)
     cb(null, senderIsValid)
   })
 }
@@ -195,6 +195,8 @@ HookedWalletSubprovider.prototype.fillInTxExtras = function(txParams, cb){
   })
 }
 
+// util
+
 // we use this to clean any custom params from the txParams
 function cloneTxParams(txParams){
   return {
@@ -206,4 +208,8 @@ function cloneTxParams(txParams){
     gasPrice: txParams.gasPrice,
     nonce: txParams.nonce,
   }
+}
+
+function toLowerCase(string){
+  return string.toLowerCase()
 }

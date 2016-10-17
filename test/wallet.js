@@ -194,3 +194,45 @@ test('sign message', function(t){
   })
 
 })
+
+test('sender validation, with mixed-case', function(t){
+  t.plan(1)
+
+  var senderAddress = '0xE4660fdAb2D6Bd8b50C029ec79E244d132c3bc2B'
+
+  var providerA = injectMetrics(new HookedWalletTxProvider({
+    getAccounts: function(cb){
+      cb(null, [senderAddress])
+    },
+    getPrivateKey: function(address, cb){
+      t.pass('correctly validated sender')
+      engine.stop()
+      t.end()
+    },
+  }))
+  var providerB = injectMetrics(new TestBlockProvider())
+  // handle all bottom requests
+  var providerC = injectMetrics(new FixtureProvider({
+    eth_gasPrice: '0x1234',
+    eth_estimateGas: '0x1234',
+    eth_getTransactionCount: '0x00',
+  }))
+
+  var engine = new ProviderEngine()
+  engine.addProvider(providerA)
+  engine.addProvider(providerB)
+  engine.addProvider(providerC)
+
+  engine.start()
+  engine.sendAsync({
+    method: 'eth_sendTransaction',
+    params: [{
+      from: senderAddress.toLowerCase(),
+    }]
+  }, function(err){
+    t.notOk(err, 'error was present')
+    engine.stop()
+    t.end()
+  })
+
+})
