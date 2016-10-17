@@ -46,9 +46,8 @@ function cloneTxParams(txParams){
   var sanitized  =  permitted.reduce(function(copy, permitted) {
     if (permitted in txParams) {
       if (Array.isArray(txParams[permitted])) {
-        copy[permitted] = txParams[permitted].filter(function(item) {
-          return !!item
-        }).map(function(item) {
+        copy[permitted] = txParams[permitted]
+        .map(function(item) {
           return sanitize(item)
         })
       } else {
@@ -70,6 +69,10 @@ function sanitize(value) {
     case 'earliest':
       return value
     default:
-      return ethUtil.addHexPrefix(value)
+      if (typeof value === 'string') {
+        return ethUtil.addHexPrefix(value.toLowerCase())
+      } else {
+        return value
+      }
   }
 }
