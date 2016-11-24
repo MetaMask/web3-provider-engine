@@ -26,6 +26,7 @@ function HookedWalletEthTxSubprovider(opts) {
     // defaults
     if (txData.gas !== undefined) txData.gasLimit = txData.gas
     txData.value = txData.value || '0x00'
+    txData.data = ethUtil.addHexPrefix(txData.data)
 
     opts.getPrivateKey(txData.from, function(err, privateKey) {
       if (err) return cb(err)
