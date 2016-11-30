@@ -17,7 +17,7 @@ function SolcSubprovider(opts) {
 SolcSubprovider.prototype.handleRequest = function(payload, next, end) {
   switch (payload.method) {
     case 'eth_getCompilers':
-      cb(null, [ "solidity" ])
+      end(null, [ "solidity" ])
       break
 
     case 'eth_compileSolidity':
