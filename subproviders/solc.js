@@ -46,7 +46,7 @@ SolcSubprovider.prototype._compileSolidity = function(payload, end) {
       info: {
         source: payload.params[0],
         language: 'Solidity',
-        languageVersion: '0',
+        languageVersion: this.solc.version(),
         compilerVersion: this.solc.version(),
         abiDefinition: JSON.parse(contract.interface),
         userDoc: { methods: {} },
