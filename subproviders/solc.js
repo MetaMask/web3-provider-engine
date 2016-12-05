@@ -42,11 +42,11 @@ SolcSubprovider.prototype._compileSolidity = function(payload, end) {
     var contract = output.contracts[Object.keys(output.contracts)[0]];
 
     var ret = {
-      code: contract.bytecode,
+      code: '0x' + contract.bytecode,
       info: {
         source: payload.params[0],
         language: 'Solidity',
-        languageVersion: '0',
+        languageVersion: this.solc.version(),
         compilerVersion: this.solc.version(),
         abiDefinition: JSON.parse(contract.interface),
         userDoc: { methods: {} },
