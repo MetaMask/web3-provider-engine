@@ -1,5 +1,6 @@
 const inherits = require('util').inherits
 const ethUtil = require('ethereumjs-util')
+const BN = ethUtil.BN
 const clone = require('clone')
 const cacheUtils = require('../util/rpc-cache-utils.js')
 const Stoplight = require('../util/stoplight.js')
@@ -17,7 +18,10 @@ function BlockCacheProvider(opts) {
   self.strategies = {
     perma: new ConditionalPermaCacheStrategy({
       eth_getTransactionByHash: function(result) {
-        return Boolean(result && result.blockHash && ethUtil.bufferToInt(result.blockHash))
+        const hasResult = Boolean(result)
+        const hasHash = Boolean(result.blockHash)
+        const hasNonZeroHash = !(new BN(result.blockHash)).eq(new BN(0))
+        return hasResult && hasHash && hasNonZeroHash
       },
     }),
     block: new BlockCacheStrategy(self),
