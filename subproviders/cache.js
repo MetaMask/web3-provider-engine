@@ -17,7 +17,7 @@ function BlockCacheProvider(opts) {
   self.strategies = {
     perma: new ConditionalPermaCacheStrategy({
       eth_getTransactionByHash: function(result) {
-        return Boolean(result && result.blockHash)
+        return Boolean(result && result.blockHash && ethUtil.bufferToInt(result.blockHash))
       },
     }),
     block: new BlockCacheStrategy(self),
