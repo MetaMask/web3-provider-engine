@@ -18,10 +18,10 @@ function BlockCacheProvider(opts) {
   self.strategies = {
     perma: new ConditionalPermaCacheStrategy({
       eth_getTransactionByHash: function(result) {
-        const hasResult = Boolean(result)
-        const hasHash = Boolean(result.blockHash)
-        const hasNonZeroHash = !(new BN(result.blockHash)).eq(new BN(0))
-        return hasResult && hasHash && hasNonZeroHash
+        if (!result) return false
+        if (!result.blockHash) return false
+        const hasNonZeroHash = hexToBN(result.blockHash).gt(new BN(0))
+        return hasNonZeroHash
       },
     }),
     block: new BlockCacheStrategy(self),
@@ -89,7 +89,7 @@ BlockCacheProvider.prototype._handleRequest = function(payload, next, end){
   if (blockTag === 'earliest') {
     requestedBlockNumber = '0x00'
   } else if (blockTag === 'latest') {
-    requestedBlockNumber = bufferToHex(self.currentBlock.number)
+    requestedBlockNumber = ethUtil.bufferToHex(self.currentBlock.number)
   } else {
     // We have a hex number
     requestedBlockNumber = blockTag
@@ -251,12 +251,12 @@ BlockCacheStrategy.prototype.cacheRollOff = function(currentBlock){
 
 // util
 
-function bufferToHex(buffer){
-  return ethUtil.addHexPrefix(buffer.toString('hex'))
-}
-
 function compareHex(hexA, hexB){
   var numA = parseInt(hexA, 16)
   var numB = parseInt(hexB, 16)
   return numA === numB ? 0 : (numA > numB ? 1 : -1 )
+}
+
+function hexToBN(hex){
+  return new BN(ethUtil.toBuffer(hex))
 }
