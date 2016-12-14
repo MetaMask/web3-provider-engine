@@ -131,7 +131,7 @@ function blockFromBlockData(blockData){
   block.header.coinbase = blockData.miner
   block.header.stateRoot = blockData.stateRoot
   block.header.transactionTrie = blockData.transactionsRoot
-  block.header.receiptTrie = blockData.receiptsRoot
+  block.header.receiptTrie = blockData.receiptRoot || blockData.receiptsRoot
   block.header.bloom = blockData.logsBloom
   block.header.difficulty = blockData.difficulty
   block.header.number = blockData.number

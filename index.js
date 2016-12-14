@@ -207,7 +207,7 @@ Web3ProviderEngine.prototype._fetchBlock = function(number, cb){
       logsBloom:        ethUtil.toBuffer(data.logsBloom),
       transactionsRoot: ethUtil.toBuffer(data.transactionsRoot),
       stateRoot:        ethUtil.toBuffer(data.stateRoot),
-      receiptsRoot:     ethUtil.toBuffer(data.receiptsRoot),
+      receiptsRoot:     ethUtil.toBuffer(data.receiptRoot || data.receiptsRoot),
       miner:            ethUtil.toBuffer(data.miner),
       difficulty:       ethUtil.toBuffer(data.difficulty),
       totalDifficulty:  ethUtil.toBuffer(data.totalDifficulty),
