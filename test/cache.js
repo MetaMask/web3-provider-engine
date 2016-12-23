@@ -6,85 +6,122 @@ const TestBlockProvider = require('./util/block.js')
 const createPayload = require('../util/create-payload.js')
 const injectMetrics = require('./util/inject-metrics')
 
-// skip cache
+// // skip cache
 
-cacheTest('skipCache - true', {
-  method: 'eth_getBalance',
-  skipCache: true,
-}, false)
+// cacheTest('skipCache - true', {
+//   method: 'eth_getBalance',
+//   skipCache: true,
+// }, false)
 
-cacheTest('skipCache - false', {
-  method: 'eth_getBalance',
-  skipCache: false,
-}, true)
+// cacheTest('skipCache - false', {
+//   method: 'eth_getBalance',
+//   skipCache: false,
+// }, true)
 
-// block tags
+// // block tags
 
-cacheTest('getBalance + undefined blockTag', {
-  method: 'eth_getBalance',
-  params: ['0x1234'],
-}, true)
+// cacheTest('getBalance + undefined blockTag', {
+//   method: 'eth_getBalance',
+//   params: ['0x1234'],
+// }, true)
 
-cacheTest('getBalance + latest blockTag', {
-  method: 'eth_getBalance',
-  params: ['0x1234', 'latest'],
-}, true)
+// cacheTest('getBalance + latest blockTag', {
+//   method: 'eth_getBalance',
+//   params: ['0x1234', 'latest'],
+// }, true)
 
-cacheTest('getBalance + pending blockTag', {
-  method: 'eth_getBalance',
-  params: ['0x1234', 'pending'],
-}, false)
+// cacheTest('getBalance + pending blockTag', {
+//   method: 'eth_getBalance',
+//   params: ['0x1234', 'pending'],
+// }, false)
 
-// tx by hash
+// // tx by hash
 
-cacheTest('getTransactionByHash for transaction that doesn\'t exist', {
-  method: 'eth_getTransactionByHash',
-  params: ['0x00000000000000000000000000000000000000000000000000deadbeefcafe00'],
-}, false)
+// cacheTest('getTransactionByHash for transaction that doesn\'t exist', {
+//   method: 'eth_getTransactionByHash',
+//   params: ['0x00000000000000000000000000000000000000000000000000deadbeefcafe00'],
+// }, false)
 
-cacheTest('getTransactionByHash for transaction that\'s pending', {
-  method: 'eth_getTransactionByHash',
-  params: ['0x00000000000000000000000000000000000000000000000000deadbeefcafe01'],
-}, false)
+// cacheTest('getTransactionByHash for transaction that\'s pending', {
+//   method: 'eth_getTransactionByHash',
+//   params: ['0x00000000000000000000000000000000000000000000000000deadbeefcafe01'],
+// }, false)
 
-cacheTest('getTransactionByHash for mined transaction', {
-  method: 'eth_getTransactionByHash',
-  params: ['0x00000000000000000000000000000000000000000000000000deadbeefcafe02'],
-}, true)
+// cacheTest('getTransactionByHash for mined transaction', {
+//   method: 'eth_getTransactionByHash',
+//   params: ['0x00000000000000000000000000000000000000000000000000deadbeefcafe02'],
+// }, true)
 
-// code
+// // code
 
-cacheTest('getCode for latest block, then for earliest block, should not return cached response on second request', [{
-  method: 'eth_getCode',
-  params: ['0x1234', 'latest'],
-}, {
-  method: 'eth_getCode',
-  params: ['0x1234', 'earliest'],
-}], false)
+// cacheTest('getCode for latest block, then for earliest block, should not return cached response on second request', [{
+//   method: 'eth_getCode',
+//   params: ['0x1234', 'latest'],
+// }, {
+//   method: 'eth_getCode',
+//   params: ['0x1234', 'earliest'],
+// }], false)
 
-cacheTest('getCode for a specific block, then for the one before it, should not return cached response on second request', [{
-  method: 'eth_getCode',
-  params: ['0x1234', '0x3'],
-}, {
-  method: 'eth_getCode',
-  params: ['0x1234', '0x2'],
-}], false)
+// cacheTest('getCode for a specific block, then for the one before it, should not return cached response on second request', [{
+//   method: 'eth_getCode',
+//   params: ['0x1234', '0x3'],
+// }, {
+//   method: 'eth_getCode',
+//   params: ['0x1234', '0x2'],
+// }], false)
 
-cacheTest('getCode for a specific block, then the one after it, should return cached response on second request', [{
-  method: 'eth_getCode',
-  params: ['0x1234', '0x2'],
-}, {
-  method: 'eth_getCode',
-  params: ['0x1234', '0x3'],
-}], true)
+// cacheTest('getCode for a specific block, then the one after it, should return cached response on second request', [{
+//   method: 'eth_getCode',
+//   params: ['0x1234', '0x2'],
+// }, {
+//   method: 'eth_getCode',
+//   params: ['0x1234', '0x3'],
+// }], true)
 
-cacheTest('getCode for an unspecified block, then for the latest, should return cached response on second request', [{
-  method: 'eth_getCode',
-  params: ['0x1234'],
-}, {
-  method: 'eth_getCode',
-  params: ['0x1234', 'latest'],
-}], true)
+// cacheTest('getCode for an unspecified block, then for the latest, should return cached response on second request', [{
+//   method: 'eth_getCode',
+//   params: ['0x1234'],
+// }, {
+//   method: 'eth_getCode',
+//   params: ['0x1234', 'latest'],
+// }], true)
+
+test('cache bug', function(t){
+  var testPayload = {
+    method: 'eth_call',
+    params: [{
+      from: '0x70ad465e0bab6504002ad58c744ed89c7da38524',
+      to: '0xc3463b1aaa94ee0332d480860231c04a52cf108d',
+      data: '0x21f8a721919d214de644b595cb4b86627fb9684a78d049ac81f0b7d28b37d5954c38966d',
+    }, 'latest']
+  }
+  var witnessedPayloads = []
+  var cacheProvider = injectMetrics(new CacheProvider())
+  var dataProvider = injectMetrics(new FixtureProvider({
+    eth_call: '0xdeadbeef',
+  }))
+  var blockProvider = injectMetrics(new TestBlockProvider())
+  var engine = new ProviderEngine()
+  engine.addProvider(cacheProvider)
+  engine.addProvider({
+    handleRequest: function(payload, next, end){
+      witnessedPayloads.push(payload)
+      next()
+    },
+    setEngine: function noop(){},
+  })
+  engine.addProvider(blockProvider)
+  engine.addProvider(dataProvider)
+  engine.start()
+  engine.sendAsync(testPayload, function(err, result){
+    t.ifError(err)
+    var testPayload = witnessedPayloads[1]
+    var payloadBlockTag = testPayload.params[1]
+    t.equal(payloadBlockTag, blockProvider.getLatestBlock().number, 'blockTag should be rewritten')
+    t.end()
+  })
+
+})
 
 // test helper for caching
 // 1. Sets up caching and data provider

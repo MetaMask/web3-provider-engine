@@ -25,9 +25,17 @@ function TestBlockProvider(methods){
   })
 }
 
-// class methods
+// static methods
+
 TestBlockProvider.createBlock = createBlock
 TestBlockProvider.incrementHex = incrementHex
+
+// class methods
+
+TestBlockProvider.prototype.getLatestBlock = function(){
+  const self = this
+  return self._currentBlock
+}
 
 TestBlockProvider.prototype.nextBlock = function(blockParams){
   const self = this
