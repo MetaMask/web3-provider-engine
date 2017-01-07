@@ -50,5 +50,25 @@ test('solc test', function(t){
       t.end()
     })
   })
+})
 
+
+test('solc error test', function(t){
+  // handle solc
+  var providerA = injectMetrics(new SolcProvider())
+  // handle block requests
+  var providerB = injectMetrics(new TestBlockProvider())
+
+  var engine = new ProviderEngine()
+  engine.addProvider(providerA)
+  engine.addProvider(providerB)
+
+  var contractSource = 'pragma solidity ^0.4.2; contract error { error() }'
+
+  engine.start()
+  engine.sendAsync(createPayload({ method: 'eth_compileSolidity', params: [ contractSource ] }), function(err, response){
+    t.equal(typeof err, 'string', 'error type is string')
+    engine.stop()
+    t.end()
+  })
 })

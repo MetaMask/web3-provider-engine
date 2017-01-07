@@ -36,7 +36,7 @@ SolcSubprovider.prototype._compileSolidity = function(payload, end) {
   if (!output) {
     end('Compilation error')
   } else if (output.errors) {
-    end(output.errors)
+    end(output.errors.join('\n'))
   } else {
     // Select first contract FIXME??
     var contract = output.contracts[Object.keys(output.contracts)[0]];
