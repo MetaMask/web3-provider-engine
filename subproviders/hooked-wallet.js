@@ -30,13 +30,16 @@ function HookedWalletSubprovider(opts){
   self.nonceLock = Semaphore(1)
 
   // data lookup
+  if (!opts.getAccounts) throw new Error('ProviderEngine - HookedWalletSubprovider - did not provide "getAccounts" fn in constructor options')
   self.getAccounts = opts.getAccounts
-  // default to auto-approve
-  self.approveTransaction = opts.approveTransaction || function(txParams, cb){ cb(null, true) }
-  self.approveMessage = opts.approveMessage || function(txParams, cb){ cb(null, true) }
+  // approval hooks
+  if (opts.approveTransaction) self.approveTransaction = opts.approveTransaction
+  if (opts.approveMessage) self.approveMessage = opts.approveMessage
   // actually perform the signature
-  self.signTransaction = opts.signTransaction
-  self.signMessage = opts.signMessage
+  if (opts.signTransaction) self.signTransaction = opts.signTransaction
+  if (opts.signMessage) self.signMessage = opts.signMessage
+  // publish to network
+  if (opts.publishTransaction) self.publishTransaction = opts.publishTransaction
 }
 
 HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
@@ -108,7 +111,7 @@ HookedWalletSubprovider.prototype.finalizeAndSubmitTx = function(txParams, cb) {
     async.waterfall([
       self.fillInTxExtras.bind(self, txParams),
       self.signTransaction.bind(self),
-      self.submitTx.bind(self),
+      self.publishTransaction.bind(self),
     ], function(err, txHash){
       self.nonceLock.leave()
       if (err) return cb(err)
@@ -117,14 +120,28 @@ HookedWalletSubprovider.prototype.finalizeAndSubmitTx = function(txParams, cb) {
   })
 }
 
-HookedWalletSubprovider.prototype.submitTx = function(rawTx, cb) {
+HookedWalletSubprovider.prototype.signTransaction = function(tx, cb) {
+  cb(new Error('ProviderEngine - HookedWalletSubprovider - Must provide "signTransaction" fn in constructor options'))
+}
+HookedWalletSubprovider.prototype.signMessage = function(msg, cb) {
+  cb(new Error('ProviderEngine - HookedWalletSubprovider - Must provide "signMessage" fn in constructor options'))
+}
+
+HookedWalletSubprovider.prototype.approveTransaction = function(txParams, cb) {
+  cb(null, true)
+}
+HookedWalletSubprovider.prototype.approveMessage = function(txParams, cb) {
+  cb(null, true)
+}
+
+HookedWalletSubprovider.prototype.publishTransaction = function(rawTx, cb) {
   const self = this
   self.emitPayload({
     method: 'eth_sendRawTransaction',
     params: [rawTx],
-  }, function(err, result){
+  }, function(err, res){
     if (err) return cb(err)
-    cb(null, result.result)
+    cb(null, res.result)
   })
 }
 
