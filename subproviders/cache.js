@@ -119,9 +119,11 @@ function PermaCacheStrategy() {
   var self = this
   self.cache = {}
   // clear cache every ten minutes
-  setInterval(function(){
+  var timeout = setInterval(function(){
     self.cache = {}
   }, 10 * 60 * 1e3)
+  // do not require the Node.js event loop to remain active
+  if (timeout.unref) timeout.unref()
 }
 
 PermaCacheStrategy.prototype.hitCheck = function(payload, requestedBlockNumber, hit, miss) {
