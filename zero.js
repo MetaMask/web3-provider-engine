@@ -17,7 +17,7 @@ function ZeroClientProvider(opts){
   var engine = new ProviderEngine()
 
   // static
-  var staticSubprovider = new DefaultFixture()
+  var staticSubprovider = new DefaultFixture(opts.static)
   engine.addProvider(staticSubprovider)
 
   // nonce tracker
