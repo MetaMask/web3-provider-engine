@@ -32,15 +32,18 @@ function BlockCacheProvider(opts) {
 // setup a block listener on 'setEngine'
 BlockCacheProvider.prototype.setEngine = function(engine) {
   const self = this
-  Subprovider.prototype.setEngine.call(self, engine)
+  self.engine = engine
   // unblock initialization after first block
   engine.once('block', function(block) {
     self._ready.go()
   })
   // empty old cache
-  engine.on('block', function(block) {
-    self.strategies.block.cacheRollOff(block)
-    self.strategies.fork.cacheRollOff(block)
+  engine.on('block', function(newBlock) {
+    var previousBlock = self.currentBlock
+    self.currentBlock = newBlock
+    if (!previousBlock) return
+    self.strategies.block.cacheRollOff(previousBlock)
+    self.strategies.fork.cacheRollOff(previousBlock)
   })
 }
 
@@ -239,13 +242,10 @@ BlockCacheStrategy.prototype.canCache = function(payload) {
 }
 
 // naively removes older block caches
-BlockCacheStrategy.prototype.cacheRollOff = function(currentBlock){
+BlockCacheStrategy.prototype.cacheRollOff = function(previousBlock){
   const self = this
-  var currentNumber = ethUtil.bufferToInt(currentBlock.number)
-  if (currentNumber > 0) {
-    var previousHex = ethUtil.intToHex(currentNumber-1)
-    delete self.cache[previousHex]
-  }
+  var previousHex = ethUtil.bufferToHex(previousBlock.number)
+  delete self.cache[previousHex]
 }
 
 
