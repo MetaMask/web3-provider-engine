@@ -116,7 +116,12 @@ BlockCacheProvider.prototype._handleRequest = function(payload, next, end){
 //
 
 function PermaCacheStrategy() {
-  this.cache = {}
+  var self = this
+  self.cache = {}
+  // clear cache every ten minutes
+  setInterval(function(){
+    self.cache = {}
+  }, 10 * 60 * 1e3)
 }
 
 PermaCacheStrategy.prototype.hitCheck = function(payload, requestedBlockNumber, hit, miss) {
