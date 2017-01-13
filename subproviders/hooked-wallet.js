@@ -21,6 +21,22 @@ module.exports = HookedWalletSubprovider
 //   eth_sendTransaction
 //   eth_sign
 
+//
+// Tx Signature Flow
+//
+// handleRequest: eth_sendTransaction
+//   validateTransaction (basic validity check)
+//     validateSender (checks that sender is in accounts)
+//   processTransaction (sign tx and submit to network)
+//     approveTransaction (UI approval hook)
+//     checkApproval
+//     finalizeAndSubmitTx (tx signing)
+//       nonceLock.take (bottle neck to ensure atomic nonce)
+//         fillInTxExtras (set fallback gasPrice, nonce, etc)
+//         signTransaction (perform the signature)
+//         publishTransaction (publish signed tx to network)
+//
+
 
 inherits(HookedWalletSubprovider, Subprovider)
 
@@ -32,6 +48,8 @@ function HookedWalletSubprovider(opts){
   // data lookup
   if (!opts.getAccounts) throw new Error('ProviderEngine - HookedWalletSubprovider - did not provide "getAccounts" fn in constructor options')
   self.getAccounts = opts.getAccounts
+  // high level override
+  if (opts.processTransaction) self.processTransaction = opts.processTransaction
   // approval hooks
   if (opts.approveTransaction) self.approveTransaction = opts.approveTransaction
   if (opts.approveMessage) self.approveMessage = opts.approveMessage
@@ -65,10 +83,8 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
     case 'eth_sendTransaction':
       var txParams = payload.params[0]
       async.waterfall([
-        self.validateTransaction.bind(self, txParams),
-        self.approveTransaction.bind(self, txParams),
-        self.checkApproval.bind(self),
-        self.finalizeAndSubmitTx.bind(self, txParams)
+        (cb) => self.validateTransaction(txParams, cb),
+        (cb) => self.processTransaction(txParams, cb),
       ], end)
       return
 
@@ -99,14 +115,23 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
   }
 }
 
+HookedWalletSubprovider.prototype.processTransaction = function(txParams, cb) {
+  const self = this
+  async.waterfall([
+    (cb) => self.approveTransaction(txParams, cb),
+    (didApprove, cb) => self.checkApproval(didApprove, cb),
+    (cb) => self.finalizeAndSubmitTx(txParams, cb),
+  ], cb)
+}
+
 HookedWalletSubprovider.prototype.checkApproval = function(didApprove, cb) {
   cb( didApprove ? null : new Error('User denied transaction signature.') )
 }
 
 HookedWalletSubprovider.prototype.finalizeAndSubmitTx = function(txParams, cb) {
   const self = this
-  // must fillInTxExtras + submit in serial or we may repeat the
-  // nonce provided by nonce-tracker
+  // can only allow one tx to pass through this flow at a time
+  // so we can atomically consume a nonce
   self.nonceLock.take(function(){
     async.waterfall([
       self.fillInTxExtras.bind(self, txParams),

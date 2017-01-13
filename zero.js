@@ -37,9 +37,14 @@ function ZeroClientProvider(opts){
 
   // id mgmt
   var idmgmtSubprovider = new HookedWalletSubprovider({
+    // accounts
     getAccounts: opts.getAccounts,
+    // transactions
+    processTransaction: opts.processTransaction,
     approveTransaction: opts.approveTransaction,
     signTransaction: opts.signTransaction,
+    publishTransaction: opts.publishTransaction,
+    // messages
     approveMessage: opts.approveMessage,
     signMessage: opts.signMessage,
   })
