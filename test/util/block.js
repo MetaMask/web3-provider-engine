@@ -72,7 +72,7 @@ function createBlock(blockParams, prevBlock, txs) {
     logsBloom:         randomHash(),
     transactionsRoot:  randomHash(),
     stateRoot:         randomHash(),
-    receiptRoot:       randomHash(),
+    receiptsRoot:      randomHash(),
     miner:             randomHash(),
     difficulty:        randomHash(),
     totalDifficulty:   randomHash(),

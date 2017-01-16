@@ -21,6 +21,22 @@ module.exports = HookedWalletSubprovider
 //   eth_sendTransaction
 //   eth_sign
 
+//
+// Tx Signature Flow
+//
+// handleRequest: eth_sendTransaction
+//   validateTransaction (basic validity check)
+//     validateSender (checks that sender is in accounts)
+//   processTransaction (sign tx and submit to network)
+//     approveTransaction (UI approval hook)
+//     checkApproval
+//     finalizeAndSubmitTx (tx signing)
+//       nonceLock.take (bottle neck to ensure atomic nonce)
+//         fillInTxExtras (set fallback gasPrice, nonce, etc)
+//         signTransaction (perform the signature)
+//         publishTransaction (publish signed tx to network)
+//
+
 
 inherits(HookedWalletSubprovider, Subprovider)
 
@@ -30,13 +46,18 @@ function HookedWalletSubprovider(opts){
   self.nonceLock = Semaphore(1)
 
   // data lookup
+  if (!opts.getAccounts) throw new Error('ProviderEngine - HookedWalletSubprovider - did not provide "getAccounts" fn in constructor options')
   self.getAccounts = opts.getAccounts
-  // default to auto-approve
-  self.approveTransaction = opts.approveTransaction || function(txParams, cb){ cb(null, true) }
-  self.approveMessage = opts.approveMessage || function(txParams, cb){ cb(null, true) }
+  // high level override
+  if (opts.processTransaction) self.processTransaction = opts.processTransaction
+  // approval hooks
+  if (opts.approveTransaction) self.approveTransaction = opts.approveTransaction
+  if (opts.approveMessage) self.approveMessage = opts.approveMessage
   // actually perform the signature
-  self.signTransaction = opts.signTransaction
-  self.signMessage = opts.signMessage
+  if (opts.signTransaction) self.signTransaction = opts.signTransaction
+  if (opts.signMessage) self.signMessage = opts.signMessage
+  // publish to network
+  if (opts.publishTransaction) self.publishTransaction = opts.publishTransaction
 }
 
 HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
@@ -62,10 +83,8 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
     case 'eth_sendTransaction':
       var txParams = payload.params[0]
       async.waterfall([
-        self.validateTransaction.bind(self, txParams),
-        self.approveTransaction.bind(self, txParams),
-        self.checkApproval.bind(self),
-        self.finalizeAndSubmitTx.bind(self, txParams)
+        (cb) => self.validateTransaction(txParams, cb),
+        (cb) => self.processTransaction(txParams, cb),
       ], end)
       return
 
@@ -96,19 +115,28 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
   }
 }
 
+HookedWalletSubprovider.prototype.processTransaction = function(txParams, cb) {
+  const self = this
+  async.waterfall([
+    (cb) => self.approveTransaction(txParams, cb),
+    (didApprove, cb) => self.checkApproval(didApprove, cb),
+    (cb) => self.finalizeAndSubmitTx(txParams, cb),
+  ], cb)
+}
+
 HookedWalletSubprovider.prototype.checkApproval = function(didApprove, cb) {
   cb( didApprove ? null : new Error('User denied transaction signature.') )
 }
 
 HookedWalletSubprovider.prototype.finalizeAndSubmitTx = function(txParams, cb) {
   const self = this
-  // must fillInTxExtras + submit in serial or we may repeat the
-  // nonce provided by nonce-tracker
+  // can only allow one tx to pass through this flow at a time
+  // so we can atomically consume a nonce
   self.nonceLock.take(function(){
     async.waterfall([
       self.fillInTxExtras.bind(self, txParams),
       self.signTransaction.bind(self),
-      self.submitTx.bind(self),
+      self.publishTransaction.bind(self),
     ], function(err, txHash){
       self.nonceLock.leave()
       if (err) return cb(err)
@@ -117,14 +145,28 @@ HookedWalletSubprovider.prototype.finalizeAndSubmitTx = function(txParams, cb) {
   })
 }
 
-HookedWalletSubprovider.prototype.submitTx = function(rawTx, cb) {
+HookedWalletSubprovider.prototype.signTransaction = function(tx, cb) {
+  cb(new Error('ProviderEngine - HookedWalletSubprovider - Must provide "signTransaction" fn in constructor options'))
+}
+HookedWalletSubprovider.prototype.signMessage = function(msg, cb) {
+  cb(new Error('ProviderEngine - HookedWalletSubprovider - Must provide "signMessage" fn in constructor options'))
+}
+
+HookedWalletSubprovider.prototype.approveTransaction = function(txParams, cb) {
+  cb(null, true)
+}
+HookedWalletSubprovider.prototype.approveMessage = function(txParams, cb) {
+  cb(null, true)
+}
+
+HookedWalletSubprovider.prototype.publishTransaction = function(rawTx, cb) {
   const self = this
   self.emitPayload({
     method: 'eth_sendRawTransaction',
     params: [rawTx],
-  }, function(err, result){
+  }, function(err, res){
     if (err) return cb(err)
-    cb(null, result.result)
+    cb(null, res.result)
   })
 }
 

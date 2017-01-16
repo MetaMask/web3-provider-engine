@@ -1,5 +1,6 @@
 const inherits = require('util').inherits
 const ethUtil = require('ethereumjs-util')
+const BN = ethUtil.BN
 const clone = require('clone')
 const cacheUtils = require('../util/rpc-cache-utils.js')
 const Stoplight = require('../util/stoplight.js')
@@ -17,7 +18,10 @@ function BlockCacheProvider(opts) {
   self.strategies = {
     perma: new ConditionalPermaCacheStrategy({
       eth_getTransactionByHash: function(result) {
-        return Boolean(result && result.blockHash)
+        if (!result) return false
+        if (!result.blockHash) return false
+        const hasNonZeroHash = hexToBN(result.blockHash).gt(new BN(0))
+        return hasNonZeroHash
       },
     }),
     block: new BlockCacheStrategy(self),
@@ -28,15 +32,18 @@ function BlockCacheProvider(opts) {
 // setup a block listener on 'setEngine'
 BlockCacheProvider.prototype.setEngine = function(engine) {
   const self = this
-  Subprovider.prototype.setEngine.call(self, engine)
+  self.engine = engine
   // unblock initialization after first block
   engine.once('block', function(block) {
     self._ready.go()
   })
   // empty old cache
-  engine.on('block', function(block) {
-    self.strategies.block.cacheRollOff(block)
-    self.strategies.fork.cacheRollOff(block)
+  engine.on('block', function(newBlock) {
+    var previousBlock = self.currentBlock
+    self.currentBlock = newBlock
+    if (!previousBlock) return
+    self.strategies.block.cacheRollOff(previousBlock)
+    self.strategies.fork.cacheRollOff(previousBlock)
   })
 }
 
@@ -85,7 +92,7 @@ BlockCacheProvider.prototype._handleRequest = function(payload, next, end){
   if (blockTag === 'earliest') {
     requestedBlockNumber = '0x00'
   } else if (blockTag === 'latest') {
-    requestedBlockNumber = bufferToHex(self.currentBlock.number)
+    requestedBlockNumber = ethUtil.bufferToHex(self.currentBlock.number)
   } else {
     // We have a hex number
     requestedBlockNumber = blockTag
@@ -109,7 +116,14 @@ BlockCacheProvider.prototype._handleRequest = function(payload, next, end){
 //
 
 function PermaCacheStrategy() {
-  this.cache = {}
+  var self = this
+  self.cache = {}
+  // clear cache every ten minutes
+  var timeout = setInterval(function(){
+    self.cache = {}
+  }, 10 * 60 * 1e3)
+  // do not require the Node.js event loop to remain active
+  if (timeout.unref) timeout.unref()
 }
 
 PermaCacheStrategy.prototype.hitCheck = function(payload, requestedBlockNumber, hit, miss) {
@@ -235,24 +249,21 @@ BlockCacheStrategy.prototype.canCache = function(payload) {
 }
 
 // naively removes older block caches
-BlockCacheStrategy.prototype.cacheRollOff = function(currentBlock){
+BlockCacheStrategy.prototype.cacheRollOff = function(previousBlock){
   const self = this
-  var currentNumber = ethUtil.bufferToInt(currentBlock.number)
-  if (currentNumber > 0) {
-    var previousHex = ethUtil.intToHex(currentNumber-1)
-    delete self.cache[previousHex]
-  }
+  var previousHex = ethUtil.bufferToHex(previousBlock.number)
+  delete self.cache[previousHex]
 }
 
 
 // util
 
-function bufferToHex(buffer){
-  return ethUtil.addHexPrefix(buffer.toString('hex'))
-}
-
 function compareHex(hexA, hexB){
   var numA = parseInt(hexA, 16)
   var numB = parseInt(hexB, 16)
   return numA === numB ? 0 : (numA > numB ? 1 : -1 )
+}
+
+function hexToBN(hex){
+  return new BN(ethUtil.toBuffer(hex))
 }

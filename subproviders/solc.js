@@ -17,7 +17,7 @@ function SolcSubprovider(opts) {
 SolcSubprovider.prototype.handleRequest = function(payload, next, end) {
   switch (payload.method) {
     case 'eth_getCompilers':
-      cb(null, [ "solidity" ])
+      end(null, [ "solidity" ])
       break
 
     case 'eth_compileSolidity':
@@ -36,17 +36,17 @@ SolcSubprovider.prototype._compileSolidity = function(payload, end) {
   if (!output) {
     end('Compilation error')
   } else if (output.errors) {
-    end(output.errors)
+    end(output.errors.join('\n'))
   } else {
     // Select first contract FIXME??
     var contract = output.contracts[Object.keys(output.contracts)[0]];
 
     var ret = {
-      code: contract.bytecode,
+      code: '0x' + contract.bytecode,
       info: {
         source: payload.params[0],
         language: 'Solidity',
-        languageVersion: '0',
+        languageVersion: this.solc.version(),
         compilerVersion: this.solc.version(),
         abiDefinition: JSON.parse(contract.interface),
         userDoc: { methods: {} },

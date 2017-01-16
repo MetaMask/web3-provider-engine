@@ -9,7 +9,7 @@ const injectMetrics = require('./util/inject-metrics')
 const solc = require('solc')
 
 test('solc test', function(t){
-  t.plan(10)
+  t.plan(15)
 
   // handle solc
   var providerA = injectMetrics(new SolcProvider())
@@ -38,8 +38,37 @@ test('solc test', function(t){
     t.equal(providerB.getWitnessed('eth_compileSolidity').length, 0, 'providerB did NOT see "eth_compileSolidity"')
     t.equal(providerB.getHandled('eth_compileSolidity').length, 0, 'providerB did NOT handle "eth_compileSolidity"')
 
+    engine.sendAsync(createPayload({ method: 'eth_getCompilers', params: [] }), function(err, response){
+      t.ifError(err, 'did not error')
+      t.ok(response, 'has response')
+
+      t.ok(response.result instanceof Array, 'has array')
+      t.equal(response.result.length, 1, 'has length of 1')
+      t.equal(response.result[0], 'solidity', 'has "solidity"')
+
+      engine.stop()
+      t.end()
+    })
+  })
+})
+
+
+test('solc error test', function(t){
+  // handle solc
+  var providerA = injectMetrics(new SolcProvider())
+  // handle block requests
+  var providerB = injectMetrics(new TestBlockProvider())
+
+  var engine = new ProviderEngine()
+  engine.addProvider(providerA)
+  engine.addProvider(providerB)
+
+  var contractSource = 'pragma solidity ^0.4.2; contract error { error() }'
+
+  engine.start()
+  engine.sendAsync(createPayload({ method: 'eth_compileSolidity', params: [ contractSource ] }), function(err, response){
+    t.equal(typeof err, 'string', 'error type is string')
     engine.stop()
     t.end()
   })
-
 })
