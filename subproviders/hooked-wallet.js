@@ -50,6 +50,7 @@ function HookedWalletSubprovider(opts){
   self.getAccounts = opts.getAccounts
   // high level override
   if (opts.processTransaction) self.processTransaction = opts.processTransaction
+  if (opts.processMessage) self.processMessage = opts.processMessage
   // approval hooks
   if (opts.approveTransaction) self.approveTransaction = opts.approveTransaction
   if (opts.approveMessage) self.approveMessage = opts.approveMessage
@@ -99,12 +100,8 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
         data: message,
       })
       async.waterfall([
-        self.validateMessage.bind(self, msgParams),
-        self.approveMessage.bind(self, msgParams),
-        function checkApproval(didApprove, cb){
-          cb( didApprove ? null : new Error('User denied message signature.') )
-        },
-        self.signMessage.bind(self, msgParams),
+        (cb) => self.validateMessage(msgParams, cb),
+        (cb) => self.processMessage(msgParams, cb),
       ], end)
       return
 
@@ -119,13 +116,22 @@ HookedWalletSubprovider.prototype.processTransaction = function(txParams, cb) {
   const self = this
   async.waterfall([
     (cb) => self.approveTransaction(txParams, cb),
-    (didApprove, cb) => self.checkApproval(didApprove, cb),
+    (didApprove, cb) => self.checkApproval('transaction', didApprove, cb),
     (cb) => self.finalizeAndSubmitTx(txParams, cb),
   ], cb)
 }
 
-HookedWalletSubprovider.prototype.checkApproval = function(didApprove, cb) {
-  cb( didApprove ? null : new Error('User denied transaction signature.') )
+HookedWalletSubprovider.prototype.processMessage = function(msgParams, cb) {
+  const self = this
+  async.waterfall([
+    (cb) => self.approveMessage(msgParams, cb),
+    (didApprove, cb) => self.checkApproval('message', didApprove, cb),
+    (cb) => self.signMessage(msgParams, cb),
+  ], cb)
+}
+
+HookedWalletSubprovider.prototype.checkApproval = function(type, didApprove, cb) {
+  cb( didApprove ? null : new Error('User denied '+type+' signature.') )
 }
 
 HookedWalletSubprovider.prototype.finalizeAndSubmitTx = function(txParams, cb) {
