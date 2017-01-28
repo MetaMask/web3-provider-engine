@@ -45,6 +45,7 @@ function ZeroClientProvider(opts){
     signTransaction: opts.signTransaction,
     publishTransaction: opts.publishTransaction,
     // messages
+    processMessage: opts.processMessage,
     approveMessage: opts.approveMessage,
     signMessage: opts.signMessage,
   })
