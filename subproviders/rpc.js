@@ -2,6 +2,9 @@ const inherits = require('util').inherits
 const createPayload = require('../util/create-payload.js')
 const Subprovider = require('./subprovider.js')
 
+require('es6-promise').polyfill();
+require('isomorphic-fetch');
+
 module.exports = RpcSource
 
 inherits(RpcSource, Subprovider)
