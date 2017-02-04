@@ -39,18 +39,9 @@ RpcSource.prototype.handleRequest = function (payload, next, end) {
     if (res.status != 200) {
       return new Error("HTTP Error: " + res.statusCode + " on " + method);
     }
-
-      // parse response into raw account
-    var data
-    try {
-      data = res.json()
-      if (data.error) return end(data.error)
-    } catch (err) {
-      console.error(err.stack)
-      return err
-    }
-    end(null, data.result)
+    return res.json()
   })
+  .then((data) => end(null, data.result))
   .catch((error) => {
     return end(error)
   })
