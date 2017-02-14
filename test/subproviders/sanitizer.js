@@ -9,7 +9,9 @@ const extend = require('xtend')
 test('Sanitizer removes unknown keys', function(t) {
   t.plan(7)
 
-  var engine = new ProviderEngine()
+  var engine = new ProviderEngine({
+    pollingShouldUnref: true,
+  })
 
   var sanitizer = new SanitizerSubprovider()
   engine.addProvider(sanitizer)

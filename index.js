@@ -23,7 +23,7 @@ function Web3ProviderEngine(opts) {
   })
   // parse options
   opts = opts || {}
-  self._pollingShouldUnref = opts.pollingShouldUnref !== false
+  self._pollingShouldUnref = opts.pollingShouldUnref
   self._pollingInterval = opts.pollingInterval || 4000
   // local state
   self.currentBlock = null
