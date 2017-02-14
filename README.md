@@ -85,6 +85,12 @@ Categorically, we don’t want / can’t have the following types of RPC calls g
 * filters (requires a stateful data api)
 * vm (expensive, hard to scale)
 
+### Change Log
+
+##### 9.0.0
+
+`pollingShouldUnref` option now defaults to false
+
 
 ### Current RPC method support:
 
