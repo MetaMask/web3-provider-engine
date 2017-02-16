@@ -8,6 +8,7 @@
 
 const async = require('async')
 const inherits = require('util').inherits
+const ethUtil = require('ethereumjs-util')
 const extend = require('xtend')
 const Semaphore = require('semaphore')
 const Subprovider = require('./subprovider.js')
@@ -20,6 +21,8 @@ module.exports = HookedWalletSubprovider
 //   eth_accounts
 //   eth_sendTransaction
 //   eth_sign
+//   personal_sign
+//   personal_ecRecover
 
 //
 // Tx Signature Flow
@@ -51,12 +54,16 @@ function HookedWalletSubprovider(opts){
   // high level override
   if (opts.processTransaction) self.processTransaction = opts.processTransaction
   if (opts.processMessage) self.processMessage = opts.processMessage
+  if (opts.processPersonalMessage) self.processPersonalMessage = opts.processPersonalMessage
   // approval hooks
-  if (opts.approveTransaction) self.approveTransaction = opts.approveTransaction
-  if (opts.approveMessage) self.approveMessage = opts.approveMessage
+  self.approveTransaction = opts.approveTransaction || self.autoApprove
+  self.approveMessage = opts.approveMessage || self.autoApprove
+  self.approvePersonalMessage = opts.approvePersonalMessage || self.autoApprove
   // actually perform the signature
   if (opts.signTransaction) self.signTransaction = opts.signTransaction
   if (opts.signMessage) self.signMessage = opts.signMessage
+  if (opts.signPersonalMessage) self.signPersonalMessage = opts.signPersonalMessage
+  if (opts.personalRecoverSigner) self.personalRecoverSigner = opts.personalRecoverSigner
   // publish to network
   if (opts.publishTransaction) self.publishTransaction = opts.publishTransaction
 }
@@ -105,12 +112,45 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
       ], end)
       return
 
+    case 'personal_sign':
+      var address = payload.params[0]
+      var message = payload.params[1]
+      // non-standard "extraParams" to be appended to our "msgParams" obj
+      // good place for metadata
+      var extraParams = payload.params[2] || {}
+      var msgParams = extend(extraParams, {
+        from: address,
+        data: message,
+      })
+      async.waterfall([
+        (cb) => self.validatePersonalMessage(msgParams, cb),
+        (cb) => self.processPersonalMessage(msgParams, cb),
+      ], end)
+      return
+
+    case 'personal_ecRecover':
+      var message = payload.params[0]
+      var signature = payload.params[1]
+      // non-standard "extraParams" to be appended to our "msgParams" obj
+      // good place for metadata
+      var extraParams = payload.params[2] || {}
+      var msgParams = extend(extraParams, {
+        sig: signature,
+        data: message,
+      })
+      self.personalRecoverSigner(msgParams, end)
+      return
+
     default:
       next()
       return
 
   }
 }
+
+//
+// "process" high level flow
+//
 
 HookedWalletSubprovider.prototype.processTransaction = function(txParams, cb) {
   const self = this
@@ -130,51 +170,60 @@ HookedWalletSubprovider.prototype.processMessage = function(msgParams, cb) {
   ], cb)
 }
 
+HookedWalletSubprovider.prototype.processPersonalMessage = function(msgParams, cb) {
+  const self = this
+  async.waterfall([
+    (cb) => self.approvePersonalMessage(msgParams, cb),
+    (didApprove, cb) => self.checkApproval('message', didApprove, cb),
+    (cb) => self.signPersonalMessage(msgParams, cb),
+  ], cb)
+}
+
+//
+// approval
+//
+
+HookedWalletSubprovider.prototype.autoApprove = function(txParams, cb) {
+  cb(null, true)
+}
+
 HookedWalletSubprovider.prototype.checkApproval = function(type, didApprove, cb) {
   cb( didApprove ? null : new Error('User denied '+type+' signature.') )
 }
 
-HookedWalletSubprovider.prototype.finalizeAndSubmitTx = function(txParams, cb) {
-  const self = this
-  // can only allow one tx to pass through this flow at a time
-  // so we can atomically consume a nonce
-  self.nonceLock.take(function(){
-    async.waterfall([
-      self.fillInTxExtras.bind(self, txParams),
-      self.signTransaction.bind(self),
-      self.publishTransaction.bind(self),
-    ], function(err, txHash){
-      self.nonceLock.leave()
-      if (err) return cb(err)
-      cb(null, txHash)
-    })
-  })
-}
+//
+// signature and recovery
+//
 
 HookedWalletSubprovider.prototype.signTransaction = function(tx, cb) {
   cb(new Error('ProviderEngine - HookedWalletSubprovider - Must provide "signTransaction" fn in constructor options'))
 }
-HookedWalletSubprovider.prototype.signMessage = function(msg, cb) {
+HookedWalletSubprovider.prototype.signMessage = function(msgParams, cb) {
   cb(new Error('ProviderEngine - HookedWalletSubprovider - Must provide "signMessage" fn in constructor options'))
 }
-
-HookedWalletSubprovider.prototype.approveTransaction = function(txParams, cb) {
-  cb(null, true)
-}
-HookedWalletSubprovider.prototype.approveMessage = function(txParams, cb) {
-  cb(null, true)
+HookedWalletSubprovider.prototype.signPersonalMessage = function(msgParams, cb) {
+  cb(new Error('ProviderEngine - HookedWalletSubprovider - Must provide "signPersonalMessage" fn in constructor options'))
 }
 
-HookedWalletSubprovider.prototype.publishTransaction = function(rawTx, cb) {
-  const self = this
-  self.emitPayload({
-    method: 'eth_sendRawTransaction',
-    params: [rawTx],
-  }, function(err, res){
-    if (err) return cb(err)
-    cb(null, res.result)
-  })
+HookedWalletSubprovider.prototype.personalRecoverSigner = function(msgParams, cb) {
+  let senderHex
+  try {
+    const message = ethUtil.toBuffer(msgParams.data)
+    const msgHash = ethUtil.hashPersonalMessage(message)
+    const signature = ethUtil.toBuffer(msgParams.sig)
+    const sigParams = ethUtil.fromRpcSig(signature)
+    const publicKey = ethUtil.ecrecover(msgHash, sigParams.v, sigParams.r, sigParams.s)
+    const sender = ethUtil.publicToAddress(publicKey)
+    senderHex = ethUtil.bufferToHex(sender)
+  } catch (err) {
+    return cb(err)
+  }
+  cb(null, senderHex)
 }
+
+//
+// validation
+//
 
 HookedWalletSubprovider.prototype.validateTransaction = function(txParams, cb){
   const self = this
@@ -197,6 +246,17 @@ HookedWalletSubprovider.prototype.validateMessage = function(msgParams, cb){
   })
 }
 
+HookedWalletSubprovider.prototype.validatePersonalMessage = function(msgParams, cb){
+  const self = this
+  if (msgParams.from === undefined) return cb(new Error(`Undefined address - from address required to sign personal message.`))
+  if (msgParams.data === undefined) return cb(new Error(`Undefined message - message required to sign personal message.`))
+  self.validateSender(msgParams.from, function(err, senderIsValid){
+    if (err) return cb(err)
+    if (!senderIsValid) return cb(new Error(`Unknown address - unable to sign message for this address: "${msgParams.from}"`))
+    cb()
+  })
+}
+
 HookedWalletSubprovider.prototype.validateSender = function(senderAddress, cb){
   const self = this
   // shortcut: undefined sender is invalid
@@ -205,6 +265,38 @@ HookedWalletSubprovider.prototype.validateSender = function(senderAddress, cb){
     if (err) return cb(err)
     var senderIsValid = (accounts.map(toLowerCase).indexOf(senderAddress.toLowerCase()) !== -1)
     cb(null, senderIsValid)
+  })
+}
+
+//
+// tx helpers
+//
+
+HookedWalletSubprovider.prototype.finalizeAndSubmitTx = function(txParams, cb) {
+  const self = this
+  // can only allow one tx to pass through this flow at a time
+  // so we can atomically consume a nonce
+  self.nonceLock.take(function(){
+    async.waterfall([
+      self.fillInTxExtras.bind(self, txParams),
+      self.signTransaction.bind(self),
+      self.publishTransaction.bind(self),
+    ], function(err, txHash){
+      self.nonceLock.leave()
+      if (err) return cb(err)
+      cb(null, txHash)
+    })
+  })
+}
+
+HookedWalletSubprovider.prototype.publishTransaction = function(rawTx, cb) {
+  const self = this
+  self.emitPayload({
+    method: 'eth_sendRawTransaction',
+    params: [rawTx],
+  }, function(err, res){
+    if (err) return cb(err)
+    cb(null, res.result)
   })
 }
 

@@ -45,9 +45,15 @@ function ZeroClientProvider(opts){
     signTransaction: opts.signTransaction,
     publishTransaction: opts.publishTransaction,
     // messages
+    // old eth_sign
     processMessage: opts.processMessage,
     approveMessage: opts.approveMessage,
     signMessage: opts.signMessage,
+    // new personal_sign
+    processPersonalMessage: opts.processPersonalMessage,
+    approvePersonalMessage: opts.approvePersonalMessage,
+    signPersonalMessage: opts.signPersonalMessage,
+    personalRecoverSigner: opts.personalRecoverSigner,
   })
   engine.addProvider(idmgmtSubprovider)
 
