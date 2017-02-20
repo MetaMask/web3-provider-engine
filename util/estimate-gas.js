@@ -19,7 +19,7 @@ function estimateGas(provider, txParams, cb) {
       if (err.message === 'no contract code at given address') {
         return cb(null, '0xcf08')
       } else {
-        return cb(err)        
+        return cb(null, '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')        
       }
     }
     cb(null, res.result)

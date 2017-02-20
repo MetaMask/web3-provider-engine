@@ -44,6 +44,11 @@ VmSubprovider.prototype.handleRequest = function(payload, next, end) {
   // console.log('VmSubprovider - runVm init', arguments)
   self.runVm(payload, function(err, results){
     // console.log('VmSubprovider - runVm return', arguments)
+
+    if(err && payload.method === 'eth_estimateGas') {
+      return end(null, '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff')
+    }
+
     if (err) return end(err)
 
     switch (payload.method) {
