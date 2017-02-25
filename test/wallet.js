@@ -17,7 +17,7 @@ test('tx sig', function(t){
   var privateKey = new Buffer('cccd8f4d88de61f92f3747e4a9604a0395e6ad5138add4bec4a2ddf231ee24f9', 'hex')
   var address = new Buffer('1234362ef32bcd26d3dd18ca749378213625ba0b', 'hex')
   var addressHex = '0x'+address.toString('hex')
-  
+
   // sign all tx's
   var providerA = injectMetrics(new HookedWalletProvider({
     getAccounts: function(cb){
@@ -80,7 +80,7 @@ test('tx sig', function(t){
 
     // gas price
     t.equal(providerC.getWitnessed('eth_gasPrice').length, 1, 'providerB did see "eth_gasPrice"')
-    t.equal(providerC.getHandled('eth_gasPrice').length, 1, 'providerB did handle "eth_gasPrice"')  
+    t.equal(providerC.getHandled('eth_gasPrice').length, 1, 'providerB did handle "eth_gasPrice"')
 
     // send raw tx
     t.equal(providerC.getWitnessed('eth_sendRawTransaction').length, 1, 'providerC did see "eth_sendRawTransaction"')
@@ -97,7 +97,7 @@ test('no such account', function(t){
 
   var addressHex = '0x1234362ef32bcd26d3dd18ca749378213625ba0b'
   var otherAddressHex = '0x4321362ef32bcd26d3dd18ca749378213625ba0c'
-  
+
   // sign all tx's
   var providerA = injectMetrics(new HookedWalletProvider({
     getAccounts: function(cb){
@@ -153,7 +153,7 @@ test('sign message', function(t){
 
   var privateKey = new Buffer('cccd8f4d88de61f92f3747e4a9604a0395e6ad5138add4bec4a2ddf231ee24f9', 'hex')
   var addressHex = '0x1234362ef32bcd26d3dd18ca749378213625ba0b'
-  
+
   var message = 'haay wuurl'
   var signature = '0x2c865e6843caf741a694522f86281c9ee86294ade3c8cd1889c9f2c9a24e20802b2b6eb79ba49412661bdbf40245d9b01abb393a843734e5be79b38e7dd408ef1c'
 
@@ -276,7 +276,7 @@ signatureTest({
 
 recoverTest({
   testLabel: 'geth kumavis manual I recover',
-  method: 'personal_ecRecover',
+  method: 'personal_recover',
   // "hello world"
   message: '0x68656c6c6f20776f726c64',
   signature: '0xce909e8ea6851bc36c007a0072d0524b07a3ff8d4e623aca4c71ca8e57250c4d0a3fc38fa8fbaaa81ead4b9f6bd03356b6f8bf18bccad167d78891636e1d69561b',
@@ -285,7 +285,7 @@ recoverTest({
 
 recoverTest({
   testLabel: 'geth kumavis manual II recover',
-  method: 'personal_ecRecover',
+  method: 'personal_recover',
   // message from parity's test - note result is different than what they are testing against
   // https://github.com/ethcore/parity/blob/5369a129ae276d38f3490abb18c5093b338246e0/rpc/src/v1/tests/mocked/eth.rs#L301-L317
   message: '0x0cc175b9c0f1b6a831c399e26977266192eb5ffee6ae2fec3ad71c777531578f',
