@@ -22,7 +22,7 @@ module.exports = HookedWalletSubprovider
 //   eth_sendTransaction
 //   eth_sign
 //   personal_sign
-//   personal_ecRecover
+//   personal_recover
 
 //
 // Tx Signature Flow
@@ -128,7 +128,7 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
       ], end)
       return
 
-    case 'personal_ecRecover':
+    case 'personal_recover':
       var message = payload.params[0]
       var signature = payload.params[1]
       // non-standard "extraParams" to be appended to our "msgParams" obj
