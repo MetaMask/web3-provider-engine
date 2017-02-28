@@ -87,6 +87,8 @@ VmSubprovider.prototype.estimateGas = function(payload, end) {
               end(err);
           } else {
               var gasHex = ethUtil.toBuffer(hi).toString('hex')
+              // Since gasUsed is a quantity as per https://github.com/ethereum/wiki/wiki/JSON-RPC#hex-value-encoding
+              // we remove any forbidden leading zeroes
               if (gasHex[0] === '0') {
                   gasHex = gasHex.substring(1)
               }
