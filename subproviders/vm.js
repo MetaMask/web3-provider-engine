@@ -62,7 +62,7 @@ VmSubprovider.prototype.handleRequest = function(payload, next, end) {
 }
 
 VmSubprovider.prototype.estimateGas = function(payload, end) {
-    const self = this;
+    const self = this
     var lo = 0
     var hi = self._blockGasLimit
 
@@ -84,7 +84,7 @@ VmSubprovider.prototype.estimateGas = function(payload, end) {
       function() { return lo+1 < hi },
       function(err) {
           if (err) {
-              end(err);
+              end(err)
           } else {
               var gasHex = ethUtil.toBuffer(hi).toString('hex')
               // Since gasUsed is a quantity as per https://github.com/ethereum/wiki/wiki/JSON-RPC#hex-value-encoding
