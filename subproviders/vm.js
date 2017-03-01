@@ -79,15 +79,14 @@ VmSubprovider.prototype.estimateGas = function(payload, end) {
                 lo = mid
             } else {
                 hi = mid
+                // Perf improvement: stop the binary search when the difference in gas between two iterations
+                // is less then `minDiffBetweenIterations`. Doing this cuts the number of iterations from 23
+                // to 12, with only a ~1000 gas loss in precision.
+                if (Math.abs(prevGasLimit - mid) < minDiffBetweenIterations) {
+                    lo = hi
+                }
             }
-            // Perf improvement: stop the binary search when the difference in gas between two iterations
-            // is less then 1200. Doing this cuts the number of iterations from 23 to 12, with only
-            // a ~1200 gas loss in precision
-            if (Math.abs(prevGasLimit - mid) < minDiffBetweenIterations) {
-                lo = hi
-            } else {
-                prevGasLimit = mid
-            }
+            prevGasLimit = mid
             callback()
         })
       },
