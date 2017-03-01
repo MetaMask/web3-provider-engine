@@ -43,21 +43,23 @@ VmSubprovider.prototype.handleRequest = function(payload, next, end) {
   }
 
   const self = this
-
   switch (payload.method) {
+
     case 'eth_call':
       self.runVm(payload, function(err, results){
         if (err) return end(err)
-
         var result = '0x'
         if (!results.error && results.vm.return) {
           // console.log(results.vm.return.toString('hex'))
           result = ethUtil.addHexPrefix(results.vm.return.toString('hex'))
         }
-        return end(null, result)
+        end(null, result)
       })
+      return
+
     case 'eth_estimateGas':
       self.estimateGas(payload, end)
+      return
   }
 }
 
