@@ -9,8 +9,8 @@ module.exports = {
 /*
  * As per https://github.com/ethereum/wiki/wiki/JSON-RPC#hex-value-encoding
  * Quanities should be represented by the most compact hex representation possible
- * This means that no leading zeroes are allowed. These help methods make it easy
- * to convert to and from a number and the compact hex representation
+ * This means that no leading zeroes are allowed. There helpers make it easy
+ * to convert to and from integers and their compact hex representation
  */
 
 function intToQuantityHex(n){
