@@ -6,6 +6,7 @@ const Block = require('ethereumjs-block')
 const FakeTransaction = require('ethereumjs-tx/fake.js')
 const ethUtil = require('ethereumjs-util')
 const createPayload = require('../util/create-payload.js')
+const rpcHexEncoding = require('../util/rpc-hex-encoding.js')
 const Subprovider = require('./subprovider.js')
 
 module.exports = VmSubprovider
@@ -23,6 +24,7 @@ function VmSubprovider(opts){
   self.methods = ['eth_call', 'eth_estimateGas']
   // set initialization blocker
   self._ready = new Stoplight()
+  self._blockGasLimit = null
 }
 
 // setup a block listener on 'setEngine'
@@ -31,6 +33,7 @@ VmSubprovider.prototype.setEngine = function(engine) {
   Subprovider.prototype.setEngine.call(self, engine)
   // unblock initialization after first block
   engine.once('block', function(block) {
+    self._blockGasLimit = ethUtil.bufferToInt(block.gasLimit)
     self._ready.go()
   })
 }
@@ -41,34 +44,65 @@ VmSubprovider.prototype.handleRequest = function(payload, next, end) {
   }
 
   const self = this
-  // console.log('VmSubprovider - runVm init', arguments)
-  self.runVm(payload, function(err, results){
-    // console.log('VmSubprovider - runVm return', arguments)
-    if (err) return end(err)
+  switch (payload.method) {
 
-    switch (payload.method) {
-
-      case 'eth_call':
+    case 'eth_call':
+      self.runVm(payload, function(err, results){
+        if (err) return end(err)
         var result = '0x'
         if (!results.error && results.vm.return) {
-          // console.log(results.vm.return.toString('hex'))
           result = ethUtil.addHexPrefix(results.vm.return.toString('hex'))
         }
-        return end(null, result)
+        end(null, result)
+      })
+      return
 
-      case 'eth_estimateGas':
-        // since eth_estimateGas is just eth_call with
-        // a different part of the results,
-        // I considered transforming request to eth_call
-        // to reduce the cache area, but we'd need to store
-        // the full vm result somewhere, instead of just
-        // the return value. so instead we just run it again.
+    case 'eth_estimateGas':
+      self.estimateGas(payload, end)
+      return
+  }
+}
 
-        var result = ethUtil.addHexPrefix(results.gasUsed.toString('hex'))
-        return end(null, result)
+VmSubprovider.prototype.estimateGas = function(payload, end) {
+    const self = this
+    var lo = 0
+    var hi = self._blockGasLimit
 
-    }
-  })
+    var minDiffBetweenIterations = 1200
+    var prevGasLimit = self._blockGasLimit
+    async.doWhilst(
+      function(callback) {
+        // Take a guess at the gas, and check transaction validity
+        var mid = (hi + lo) / 2
+        payload.params[0].gas = mid
+        self.runVm(payload, function(err, results) {
+            gasUsed = err ? self._blockGasLimit : ethUtil.bufferToInt(results.gasUsed)
+            if (err || gasUsed === 0) {
+                lo = mid
+            } else {
+                hi = mid
+                // Perf improvement: stop the binary search when the difference in gas between two iterations
+                // is less then `minDiffBetweenIterations`. Doing this cuts the number of iterations from 23
+                // to 12, with only a ~1000 gas loss in precision.
+                if (Math.abs(prevGasLimit - mid) < minDiffBetweenIterations) {
+                    lo = hi
+                }
+            }
+            prevGasLimit = mid
+            callback()
+        })
+      },
+      function() { return lo+1 < hi },
+      function(err) {
+          if (err) {
+              end(err)
+          } else {
+              hi = Math.floor(hi)
+              var gasEstimateHex = rpcHexEncoding.intToQuantityHex(hi)
+              end(null, gasEstimateHex)
+          }
+      }
+    )
 }
 
 VmSubprovider.prototype.runVm = function(payload, cb){
