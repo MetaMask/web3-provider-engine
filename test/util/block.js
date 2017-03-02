@@ -62,6 +62,7 @@ function createBlock(blockParams, prevBlock, txs) {
   blockParams = blockParams || {}
   txs = txs || []
   var defaultNumber = prevBlock ? incrementHex(prevBlock.number) : '0x01'
+  var defaultGasLimit = ethUtil.intToHex(4712388)
   return extend({
     // defaults
     number:            defaultNumber,
@@ -78,7 +79,7 @@ function createBlock(blockParams, prevBlock, txs) {
     totalDifficulty:   randomHash(),
     size:              randomHash(),
     extraData:         randomHash(),
-    gasLimit:          randomHash(),
+    gasLimit:          defaultGasLimit,
     gasUsed:           randomHash(),
     timestamp:         randomHash(),
     transactions:      txs,
