@@ -6,6 +6,7 @@ const Block = require('ethereumjs-block')
 const FakeTransaction = require('ethereumjs-tx/fake.js')
 const ethUtil = require('ethereumjs-util')
 const createPayload = require('../util/create-payload.js')
+const rpcHexEncoding = require('../util/rpc-hex-encoding.js')
 const Subprovider = require('./subprovider.js')
 
 module.exports = VmSubprovider
@@ -50,7 +51,6 @@ VmSubprovider.prototype.handleRequest = function(payload, next, end) {
         if (err) return end(err)
         var result = '0x'
         if (!results.error && results.vm.return) {
-          // console.log(results.vm.return.toString('hex'))
           result = ethUtil.addHexPrefix(results.vm.return.toString('hex'))
         }
         end(null, result)
@@ -97,14 +97,9 @@ VmSubprovider.prototype.estimateGas = function(payload, end) {
           if (err) {
               end(err)
           } else {
-              var gasHex = ethUtil.toBuffer(hi).toString('hex')
-              // Since gasUsed is a quantity as per https://github.com/ethereum/wiki/wiki/JSON-RPC#hex-value-encoding
-              // we remove any forbidden leading zeroes
-              if (gasHex[0] === '0') {
-                  gasHex = gasHex.substring(1)
-              }
-              var result = ethUtil.addHexPrefix(gasHex)
-              end(null, result)
+              hi = Math.floor(hi)
+              var gasEstimateHex = rpcHexEncoding.intToQuantityHex(hi)
+              end(null, gasEstimateHex)
           }
       }
     )
