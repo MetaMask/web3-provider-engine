@@ -87,9 +87,13 @@ Categorically, we don’t want / can’t have the following types of RPC calls g
 
 ### Change Log
 
+##### 10.0.0
+
+- renamed HookedWalletSubprovider `personalRecoverSigner` to `recoverPersonalSignature`
+
 ##### 9.0.0
 
-`pollingShouldUnref` option now defaults to false
+- `pollingShouldUnref` option now defaults to false
 
 
 ### Current RPC method support:
