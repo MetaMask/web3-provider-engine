@@ -195,66 +195,12 @@ test('sign message', function(t){
 
 })
 
-// created this test from parity's test. it fails here.
-// from https://github.com/ethcore/parity/blob/810ec3558a2dd8a69a157fbcc70fc072333a1ba2/rpc/src/v1/tests/mocked/signing.rs#L186-L206
-// signatureTest({
-//   testLabel: 'parity',
-//   method: 'personal_sign',
-//   message: '0x05',
-//   signature: '0x1bdb53b32e56cf3e9735377b7664d6de5a03e125b1bf8ec55715d253668b4238503b4ac931fe6af90add73e72a585e952665376b2b9afc5b6b239b7df74c734e12',
-//   addressHex: '0xbe93f9bacbcffc8ee6663f2647917ed7a20a57bb',
-//   privateKey: new Buffer('6969696969696969696969696969696969696969696969696969696969696969', 'hex'),
-// })
-
-// created this test from parity's test. it fails here.
-// from https://github.com/ethcore/parity/blob/5369a129ae276d38f3490abb18c5093b338246e0/rpc/src/v1/tests/mocked/eth.rs#L301-L317
-// signatureTest({
-//   testLabel: 'parity again',
-//   method: 'personal_sign',
-//   message: '0x0cc175b9c0f1b6a831c399e26977266192eb5ffee6ae2fec3ad71c777531578f',
-//   signature: '0x1ba2870db1d0c26ef93c7b72d2a0830fa6b841e0593f7186bc6c7cc317af8cf3a42fda03bd589a49949aa05db83300cdb553116274518dbe9d90c65d0213f4af49',
-//   addressHex: '0xbe93f9bacbcffc8ee6663f2647917ed7a20a57bb',
-//   privateKey: new Buffer('6969696969696969696969696969696969696969696969696969696969696969', 'hex'),
-// })
-
-// these were from 3 different versions of geth as tested from cdetrio. they fail here.
-
-// signatureTest({
-//   testLabel: 'geth type A',
-//   method: 'personal_sign',
-//   message: '0xdeadbeef',
-//   signature: '0x39896217015e135a9636ac49281f0751be6b80cc9432f63fec97337300e83cb02a33159fd207e6675d70667dcd48ba1f7bf2862224824fc680a25d644358c1401c',
-//   addressHex: '0x4898dd2725b0835bf972d9d6c8b65c59de7b3daf',
-//   privateKey: new Buffer('cccd8f4d88de61f92f3747e4a9604a0395e6ad5138add4bec4a2ddf231ee24f9', 'hex'),
-// })
-
-// signatureTest({
-//   testLabel: 'geth type B',
-//   method: 'personal_sign',
-//   message: '0xdeadbeef',
-//   signature: '0x06922a82f77aae5cba3ac3e24ad84c8e02381f939530c1ecceefe4d59f99f00010ec66f2e7962a51efb3bde07d20af2e0067b1be70d352fbe6c756ee6a4a07ab1c',
-//   addressHex: '0x4898dd2725b0835bf972d9d6c8b65c59de7b3daf',
-//   privateKey: new Buffer('cccd8f4d88de61f92f3747e4a9604a0395e6ad5138add4bec4a2ddf231ee24f9', 'hex'),
-// })
-
-// I got this data from here. it also fails.
-// https://github.com/cdetrio/interfaces/blob/f7b1da63b2ee059f4782ffaf4ccd48a16a8b0d3f/rpc-specs-tests/tests/eth_sign.json#L12-L32
-
-// signatureTest({
-//   testLabel: 'geth type C',
-//   method: 'personal_sign',
-//   message: '0xdeadbeef',
-//   signature: '0xec39733b153542268d8f057ebd853b6a0f2f2ebd5a22b7e34a0d6a4bac1d04ad7346e51c8b03b83973f4a492d04487cebfaaa20065b5ad2a4a826fa9bd72b56e1c',
-//   addressHex: '0x4898dd2725b0835bf972d9d6c8b65c59de7b3daf',
-//   privateKey: new Buffer('cccd8f4d88de61f92f3747e4a9604a0395e6ad5138add4bec4a2ddf231ee24f9', 'hex'),
-// })
-
-
-// I made a script out of geth's internals to create this test data
+// personal_sign was declared without an explicit set of test data
+// so I made a script out of geth's internals to create this test data
 // https://gist.github.com/kumavis/461d2c0e9a04ea0818e423bb77e3d260
 
 signatureTest({
-  testLabel: 'geth kumavis manual I',
+  testLabel: 'kumavis fml manual test I',
   method: 'personal_sign',
   // "hello world"
   message: '0x68656c6c6f20776f726c64',
@@ -264,14 +210,25 @@ signatureTest({
 })
 
 signatureTest({
-  testLabel: 'geth kumavis manual II',
+  testLabel: 'kumavis fml manual test II',
   method: 'personal_sign',
-  // message from parity's test - note result is different than what they are testing against
-  // https://github.com/ethcore/parity/blob/5369a129ae276d38f3490abb18c5093b338246e0/rpc/src/v1/tests/mocked/eth.rs#L301-L317
+  // some random binary message from parity's test
   message: '0x0cc175b9c0f1b6a831c399e26977266192eb5ffee6ae2fec3ad71c777531578f',
   signature: '0x9ff8350cc7354b80740a3580d0e0fd4f1f02062040bc06b893d70906f8728bb5163837fd376bf77ce03b55e9bd092b32af60e86abce48f7b8d3539988ee5a9be1c',
   addressHex: '0xbe93f9bacbcffc8ee6663f2647917ed7a20a57bb',
   privateKey: new Buffer('6969696969696969696969696969696969696969696969696969696969696969', 'hex'),
+})
+
+signatureTest({
+  testLabel: 'kumavis fml manual test III',
+  method: 'personal_sign',
+  // random binary message data and pk from parity's test
+  // https://github.com/ethcore/parity/blob/5369a129ae276d38f3490abb18c5093b338246e0/rpc/src/v1/tests/mocked/eth.rs#L301-L317
+  // note: their signature result is incorrect (last byte moved to front) due to a parity bug
+  message: '0x0cc175b9c0f1b6a831c399e26977266192eb5ffee6ae2fec3ad71c777531578f',
+  signature: '0xa2870db1d0c26ef93c7b72d2a0830fa6b841e0593f7186bc6c7cc317af8cf3a42fda03bd589a49949aa05db83300cdb553116274518dbe9d90c65d0213f4af491b',
+  addressHex: '0xe0da1edcea030875cd0f199d96eb70f6ab78faf2',
+  privateKey: new Buffer('4545454545454545454545454545454545454545454545454545454545454545', 'hex'),
 })
 
 recoverTest({
@@ -293,7 +250,47 @@ recoverTest({
   addressHex: '0xbe93f9bacbcffc8ee6663f2647917ed7a20a57bb',
 })
 
+test('sender validation, with mixed-case', function(t){
+  t.plan(1)
 
+  var senderAddress = '0xE4660fdAb2D6Bd8b50C029ec79E244d132c3bc2B'
+
+  var providerA = injectMetrics(new HookedWalletTxProvider({
+    getAccounts: function(cb){
+      cb(null, [senderAddress])
+    },
+    getPrivateKey: function(address, cb){
+      t.pass('correctly validated sender')
+      engine.stop()
+      t.end()
+    },
+  }))
+  var providerB = injectMetrics(new TestBlockProvider())
+  // handle all bottom requests
+  var providerC = injectMetrics(new FixtureProvider({
+    eth_gasPrice: '0x1234',
+    eth_estimateGas: '0x1234',
+    eth_getTransactionCount: '0x00',
+  }))
+
+  var engine = new ProviderEngine()
+  engine.addProvider(providerA)
+  engine.addProvider(providerB)
+  engine.addProvider(providerC)
+
+  engine.start()
+  engine.sendAsync({
+    method: 'eth_sendTransaction',
+    params: [{
+      from: senderAddress.toLowerCase(),
+    }]
+  }, function(err){
+    t.notOk(err, 'error was present')
+    engine.stop()
+    t.end()
+  })
+
+})
 
 
 function signatureTest({ testLabel, method, privateKey, addressHex, message, signature }) {
@@ -381,46 +378,3 @@ function singleRpcTest({ testLabel, payload, expectedResult, engine }) {
 
   })
 }
-
-
-test('sender validation, with mixed-case', function(t){
-  t.plan(1)
-
-  var senderAddress = '0xE4660fdAb2D6Bd8b50C029ec79E244d132c3bc2B'
-
-  var providerA = injectMetrics(new HookedWalletTxProvider({
-    getAccounts: function(cb){
-      cb(null, [senderAddress])
-    },
-    getPrivateKey: function(address, cb){
-      t.pass('correctly validated sender')
-      engine.stop()
-      t.end()
-    },
-  }))
-  var providerB = injectMetrics(new TestBlockProvider())
-  // handle all bottom requests
-  var providerC = injectMetrics(new FixtureProvider({
-    eth_gasPrice: '0x1234',
-    eth_estimateGas: '0x1234',
-    eth_getTransactionCount: '0x00',
-  }))
-
-  var engine = new ProviderEngine()
-  engine.addProvider(providerA)
-  engine.addProvider(providerB)
-  engine.addProvider(providerC)
-
-  engine.start()
-  engine.sendAsync({
-    method: 'eth_sendTransaction',
-    params: [{
-      from: senderAddress.toLowerCase(),
-    }]
-  }, function(err){
-    t.notOk(err, 'error was present')
-    engine.stop()
-    t.end()
-  })
-
-})

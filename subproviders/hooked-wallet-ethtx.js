@@ -12,6 +12,7 @@ const inherits = require('util').inherits
 const HookedWalletProvider = require('./hooked-wallet.js')
 const EthTx = require('ethereumjs-tx')
 const ethUtil = require('ethereumjs-util')
+const sigUtil = require('eth-sig-util')
 
 module.exports = HookedWalletEthTxSubprovider
 
@@ -50,10 +51,7 @@ function HookedWalletEthTxSubprovider(opts) {
   self.signPersonalMessage = function(msgParams, cb) {
     opts.getPrivateKey(msgParams.from, function(err, privateKey) {
       if (err) return cb(err)
-      var message = ethUtil.toBuffer(msgParams.data)
-      var msgHash = ethUtil.hashPersonalMessage(message)
-      var sig = ethUtil.ecsign(msgHash, privateKey)
-      var serialized = ethUtil.bufferToHex(concatSig(sig.v, sig.r, sig.s))
+      const serialized = sigUtil.personalSign(privateKey, msgParams)
       cb(null, serialized)
     })
   }

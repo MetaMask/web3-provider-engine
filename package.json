@@ -15,6 +15,7 @@
   "dependencies": {
     "async": "^2.1.2",
     "clone": "^2.0.0",
+    "eth-sig-util": "^1.2.1",
     "ethereumjs-block": "^1.2.2",
     "ethereumjs-tx": "^1.2.0",
     "ethereumjs-util": "^5.1.1",

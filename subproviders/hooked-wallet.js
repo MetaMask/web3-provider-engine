@@ -9,10 +9,12 @@
 const async = require('async')
 const inherits = require('util').inherits
 const ethUtil = require('ethereumjs-util')
+const sigUtil = require('eth-sig-util')
 const extend = require('xtend')
 const Semaphore = require('semaphore')
 const Subprovider = require('./subprovider.js')
 const estimateGas = require('../util/estimate-gas.js')
+const hexRegex = /^[0-9A-Fa-f]+$/g
 
 module.exports = HookedWalletSubprovider
 
@@ -63,7 +65,7 @@ function HookedWalletSubprovider(opts){
   if (opts.signTransaction) self.signTransaction = opts.signTransaction
   if (opts.signMessage) self.signMessage = opts.signMessage
   if (opts.signPersonalMessage) self.signPersonalMessage = opts.signPersonalMessage
-  if (opts.personalRecoverSigner) self.personalRecoverSigner = opts.personalRecoverSigner
+  if (opts.recoverPersonalSignature) self.recoverPersonalSignature = opts.recoverPersonalSignature
   // publish to network
   if (opts.publishTransaction) self.publishTransaction = opts.publishTransaction
 }
@@ -138,7 +140,7 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
         sig: signature,
         data: message,
       })
-      self.personalRecoverSigner(msgParams, end)
+      self.recoverPersonalSignature(msgParams, end)
       return
 
     default:
@@ -205,16 +207,10 @@ HookedWalletSubprovider.prototype.signPersonalMessage = function(msgParams, cb) 
   cb(new Error('ProviderEngine - HookedWalletSubprovider - Must provide "signPersonalMessage" fn in constructor options'))
 }
 
-HookedWalletSubprovider.prototype.personalRecoverSigner = function(msgParams, cb) {
+HookedWalletSubprovider.prototype.recoverPersonalSignature = function(msgParams, cb) {
   let senderHex
   try {
-    const message = ethUtil.toBuffer(msgParams.data)
-    const msgHash = ethUtil.hashPersonalMessage(message)
-    const signature = ethUtil.toBuffer(msgParams.sig)
-    const sigParams = ethUtil.fromRpcSig(signature)
-    const publicKey = ethUtil.ecrecover(msgHash, sigParams.v, sigParams.r, sigParams.s)
-    const sender = ethUtil.publicToAddress(publicKey)
-    senderHex = ethUtil.bufferToHex(sender)
+    senderHex = sigUtil.recoverPersonalSignature(msgParams)
   } catch (err) {
     return cb(err)
   }
@@ -250,6 +246,7 @@ HookedWalletSubprovider.prototype.validatePersonalMessage = function(msgParams, 
   const self = this
   if (msgParams.from === undefined) return cb(new Error(`Undefined address - from address required to sign personal message.`))
   if (msgParams.data === undefined) return cb(new Error(`Undefined message - message required to sign personal message.`))
+  if (!isValidHex(msgParams.data)) return cb(new Error(`HookedWalletSubprovider - validateMessage - message was not encoded as hex.`))
   self.validateSender(msgParams.from, function(err, senderIsValid){
     if (err) return cb(err)
     if (!senderIsValid) return cb(new Error(`Unknown address - unable to sign message for this address: "${msgParams.from}"`))
@@ -352,4 +349,14 @@ function cloneTxParams(txParams){
 
 function toLowerCase(string){
   return string.toLowerCase()
+}
+
+function isValidHex(data) {
+  const isString = typeof data === 'string'
+  if (!isString) return false
+  const isHexPrefixed = data.slice(0,2) === '0x'
+  if (!isHexPrefixed) return false
+  const nonPrefixed = data.slice(2)
+  const isValid = nonPrefixed.match(hexRegex)
+  return isValid
 }
