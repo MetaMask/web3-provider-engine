@@ -20,6 +20,7 @@
     "ethereumjs-util": "^5.1.1",
     "ethereumjs-vm": "^2.0.2",
     "isomorphic-fetch": "^2.2.0",
+    "json-rpc-error": "^2.0.0",
     "request": "^2.67.0",
     "semaphore": "^1.0.3",
     "solc": "^0.4.2",

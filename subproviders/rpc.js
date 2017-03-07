@@ -2,6 +2,8 @@ const xhr = (process.browser || global.XMLHttpRequest) ? require('xhr') : requir
 const inherits = require('util').inherits
 const createPayload = require('../util/create-payload.js')
 const Subprovider = require('./subprovider.js')
+var JsonRpcError = require('json-rpc-error')
+
 
 module.exports = RpcSource
 
@@ -37,10 +39,14 @@ RpcSource.prototype.handleRequest = function(payload, next, end){
     body: JSON.stringify(newPayload),
     rejectUnauthorized: false,
   }, function(err, res, body) {
-    if (err) return end(err)
-    if (res.statusCode != 200) 
-    {
-      return end(new Error("HTTP Error: " + res.statusCode + " on "+ method));
+    if (err) return end(new JsonRpcError.InternalError(err))
+    switch (res.statusCode) {
+      case 405:
+        return end(new JsonRpcError.MethodNotFound())
+      default:
+        if (res.statusCode != 200) {
+          return end(new JsonRpcError.InternalError(res.body))
+        }
     }
 
     // parse response into raw account
@@ -50,7 +56,7 @@ RpcSource.prototype.handleRequest = function(payload, next, end){
       if (data.error) return end(data.error)
     } catch (err) {
       console.error(err.stack)
-      return end(err)
+      return end(new JsonRpcError.InternalError(err))
     }
 
     // console.log('network:', payload.method, payload.params, '->', data.result)
