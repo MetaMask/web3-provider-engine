@@ -17,12 +17,8 @@ function BlockCacheProvider(opts) {
   self._ready = new Stoplight()
   self.strategies = {
     perma: new ConditionalPermaCacheStrategy({
-      eth_getTransactionByHash: function(result) {
-        if (!result) return false
-        if (!result.blockHash) return false
-        const hasNonZeroHash = hexToBN(result.blockHash).gt(new BN(0))
-        return hasNonZeroHash
-      },
+      eth_getTransactionByHash: containsBlockhash,
+      eth_getTransactionReceipt: containsBlockhash,
     }),
     block: new BlockCacheStrategy(self),
     fork: new BlockCacheStrategy(self),
@@ -266,4 +262,11 @@ function compareHex(hexA, hexB){
 
 function hexToBN(hex){
   return new BN(ethUtil.toBuffer(hex))
+}
+
+function containsBlockhash(result) {
+  if (!result) return false
+  if (!result.blockHash) return false
+  const hasNonZeroHash = hexToBN(result.blockHash).gt(new BN(0))
+  return hasNonZeroHash
 }
