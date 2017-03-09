@@ -2,7 +2,7 @@ const xhr = (process.browser || global.XMLHttpRequest) ? require('xhr') : requir
 const inherits = require('util').inherits
 const createPayload = require('../util/create-payload.js')
 const Subprovider = require('./subprovider.js')
-var JsonRpcError = require('json-rpc-error')
+const JsonRpcError = require('json-rpc-error')
 
 
 module.exports = RpcSource
@@ -14,20 +14,12 @@ function RpcSource(opts) {
   self.rpcUrl = opts.rpcUrl
 }
 
-
 RpcSource.prototype.handleRequest = function(payload, next, end){
   const self = this
-  var targetUrl = self.rpcUrl
-  var method = payload.method
-  var params = payload.params
+  const targetUrl = self.rpcUrl
 
-  // new payload with random large id,
-  // so as not to conflict with other concurrent users
-  var newPayload = createPayload(payload)
-
-  // console.log('------------------ network attempt -----------------')
-  // console.log(payload)
-  // console.log('---------------------------------------------')
+  // overwrite id to conflict with other concurrent users
+  let newPayload = createPayload(payload)
 
   xhr({
     uri: targetUrl,
@@ -40,6 +32,8 @@ RpcSource.prototype.handleRequest = function(payload, next, end){
     rejectUnauthorized: false,
   }, function(err, res, body) {
     if (err) return end(new JsonRpcError.InternalError(err))
+    
+    // check for error code
     switch (res.statusCode) {
       case 405:
         return end(new JsonRpcError.MethodNotFound())
@@ -49,17 +43,15 @@ RpcSource.prototype.handleRequest = function(payload, next, end){
         }
     }
 
-    // parse response into raw account
-    var data
+    // parse response
+    let data
     try {
       data = JSON.parse(body)
-      if (data.error) return end(data.error)
     } catch (err) {
       console.error(err.stack)
       return end(new JsonRpcError.InternalError(err))
     }
-
-    // console.log('network:', payload.method, payload.params, '->', data.result)
+    if (data.error) return end(data.error)
 
     end(null, data.result)
   })

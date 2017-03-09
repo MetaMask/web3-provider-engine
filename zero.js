@@ -6,6 +6,7 @@ const FilterSubprovider = require('./subproviders/filters.js')
 const HookedWalletSubprovider = require('./subproviders/hooked-wallet.js')
 const SanitizingSubprovider = require('./subproviders/sanitizer.js')
 const RpcSubprovider = require('./subproviders/rpc.js')
+const FetchSubprovider = require('./subproviders/fetch.js')
 
 
 module.exports = ZeroClientProvider
@@ -14,29 +15,29 @@ module.exports = ZeroClientProvider
 function ZeroClientProvider(opts){
   opts = opts || {}
 
-  var engine = new ProviderEngine()
+  const engine = new ProviderEngine()
 
   // static
-  var staticSubprovider = new DefaultFixture(opts.static)
+  const staticSubprovider = new DefaultFixture(opts.static)
   engine.addProvider(staticSubprovider)
 
   // nonce tracker
   engine.addProvider(new NonceTrackerSubprovider())
 
   // sanitization
-  var sanitizer = new SanitizingSubprovider()
+  const sanitizer = new SanitizingSubprovider()
   engine.addProvider(sanitizer)
 
   // cache layer
-  var cacheSubprovider = new CacheSubprovider()
+  const cacheSubprovider = new CacheSubprovider()
   engine.addProvider(cacheSubprovider)
 
   // filters
-  var filterSubprovider = new FilterSubprovider()
+  const filterSubprovider = new FilterSubprovider()
   engine.addProvider(filterSubprovider)
 
   // id mgmt
-  var idmgmtSubprovider = new HookedWalletSubprovider({
+  const idmgmtSubprovider = new HookedWalletSubprovider({
     // accounts
     getAccounts: opts.getAccounts,
     // transactions
@@ -58,17 +59,10 @@ function ZeroClientProvider(opts){
   engine.addProvider(idmgmtSubprovider)
 
   // data source
-  var rpcSubprovider = new RpcSubprovider({
-    rpcUrl: opts.rpcUrl || 'https://testrpc.metamask.io/',
+  const fetchSubprovider = new FetchSubprovider({
+    rpcUrl: opts.rpcUrl || 'https://mainnet.infura.io/',
   })
-  engine.addProvider(rpcSubprovider)
-
-  // // log new blocks
-  // engine.on('block', function(block){
-  //   console.log('================================')
-  //   console.log('BLOCK CHANGED:', '#'+block.number.toString('hex'), '0x'+block.hash.toString('hex'))
-  //   console.log('================================')
-  // })
+  engine.addProvider(fetchSubprovider)
 
   // start polling
   engine.start()

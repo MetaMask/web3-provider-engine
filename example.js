@@ -2,8 +2,9 @@ const ProviderEngine = require('./index.js')
 const ZeroClientProvider = require('./zero.js')
 
 // create engine
-var engine = ZeroClientProvider({
-  rpcUrl: 'https://testrpc.metamask.io/',
+const engine = ZeroClientProvider({
+  getAccounts: function(){},
+  rpcUrl: 'https://mainnet.infura.io/',
 })
 
 // log new blocks

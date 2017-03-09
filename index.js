@@ -194,8 +194,7 @@ Web3ProviderEngine.prototype._fetchBlock = function(number, cb){
   }), function(err, resultObj){
     if (err) return cb(err)
     if (resultObj.error) return cb(resultObj.error)
-    var data = resultObj.result;
-
+    var data = resultObj.result
 
     // json -> buffers
     var block = {
