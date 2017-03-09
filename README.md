@@ -87,6 +87,10 @@ Categorically, we don’t want / can’t have the following types of RPC calls g
 
 ### Change Log
 
+##### 11.0.0
+
+- zero.js - replaced http subprovider with fetch provider (includes polyfill for node).
+
 ##### 10.0.0
 
 - renamed HookedWalletSubprovider `personalRecoverSigner` to `recoverPersonalSignature`
