@@ -31,7 +31,7 @@ engine.addProvider(new FixtureSubprovider({
   eth_hashrate: '0x00',
   eth_mining: false,
   eth_syncing: true,
-})
+}))
 
 // cache layer
 engine.addProvider(new CacheSubprovider())
