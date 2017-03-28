@@ -1,4 +1,4 @@
-const fetch = require('fetch-ponyfill')().fetch
+const fetch = global.fetch || require('fetch-ponyfill')().fetch
 const inherits = require('util').inherits
 const createPayload = require('../util/create-payload.js')
 const Subprovider = require('./subprovider.js')
