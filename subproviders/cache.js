@@ -31,16 +31,19 @@ BlockCacheProvider.prototype.setEngine = function(engine) {
   self.engine = engine
   // unblock initialization after first block
   engine.once('block', function(block) {
+    self.currentBlock = block
     self._ready.go()
+    // from now on, empty old cache every block
+    engine.on('block', clearOldCache)
   })
-  // empty old cache
-  engine.on('block', function(newBlock) {
+
+  function clearOldCache(newBlock) {
     var previousBlock = self.currentBlock
     self.currentBlock = newBlock
     if (!previousBlock) return
     self.strategies.block.cacheRollOff(previousBlock)
     self.strategies.fork.cacheRollOff(previousBlock)
-  })
+  }
 }
 
 BlockCacheProvider.prototype.handleRequest = function(payload, next, end){
