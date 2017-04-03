@@ -1,47 +1,44 @@
 const test = require('tape')
 const ProviderEngine = require('../../index.js')
 const createPayload = require('../../util/create-payload.js')
+const FixtureProvider = require('../../subproviders/fixture.js')
 const SanitizerSubprovider = require('../../subproviders/sanitizer')
 const MockSubprovider = require('../util/mock-subprovider')
-const mockBlock = require('../util/mock_block.json')
+const TestBlockProvider = require('../util/block.js')
 const extend = require('xtend')
 
 test('Sanitizer removes unknown keys', function(t) {
-  t.plan(7)
+  t.plan(8)
 
-  var engine = new ProviderEngine({
-    pollingShouldUnref: true,
-  })
+  var engine = new ProviderEngine()
 
   var sanitizer = new SanitizerSubprovider()
   engine.addProvider(sanitizer)
 
-  var mock = new MockSubprovider(function (payload, next, end) {
-    t.ok(!('foo' in payload.params[0]))
-    t.equal(payload.params[0].gas, '0x01')
-    t.equal(payload.params[0].data, '0x01')
-    t.equal(payload.params[0].fromBlock, 'latest')
-    t.equal(payload.params[0].topics.length, 3)
-    t.equal(payload.params[0].topics[1], '0x0a')
-
-    if (payload.method === 'eth_getBlockByNumber') {
-      return end(null, mockBlock.result)
-    }
-
-    return end(null, extend(mockBlock, {
-      baz: 'bam',
-    }))
+  // test sanitization
+  var checkSanitizer = new FixtureProvider({
+    test_unsanitized: (req, next, end) => {
+      if (req.method !== 'test_unsanitized') return next()
+      const firstParam = payload.params[0]
+      t.notOk(firstParam && firstParam.foo)
+      t.equal(firstParam.gas, '0x01')
+      t.equal(firstParam.data, '0x01')
+      t.equal(firstParam.fromBlock, 'latest')
+      t.equal(firstParam.topics.length, 3)
+      t.equal(firstParam.topics[1], '0x0a')
+      end(null, { baz: 'bam' })
+    },
   })
-  engine.addProvider(mock)
+  engine.addProvider(checkSanitizer)
 
-  engine._fetchBlock = (str, cb) => {
-    cb(null, mockBlock)
-  }
+  // handle block requests
+  var blockProvider = new TestBlockProvider()
+  engine.addProvider(blockProvider)
 
   engine.start()
 
   var payload = {
-    method: 'eth_estimateGas',
+    method: 'test_unsanitized',
     params: [{
       foo: 'bar',
       gas: '0x01',
@@ -54,7 +51,10 @@ test('Sanitizer removes unknown keys', function(t) {
       ],
     }],
   }
-  engine.sendAsync(payload, function (err, result) {
-    t.equal(result.result.baz, 'bam')
+  engine.sendAsync(payload, function (err, response) {
+    engine.stop()
+    t.notOk(err, 'no error')
+    t.equal(response.result.baz, 'bam', 'result was received correctly')
+    t.end()
   })
 })
