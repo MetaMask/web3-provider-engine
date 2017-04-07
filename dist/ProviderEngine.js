@@ -1,11 +1,12 @@
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.ProviderEngine = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
 const EventEmitter = require('events').EventEmitter
 const inherits = require('util').inherits
+const ethUtil = require('ethereumjs-util')
+const EthBlockTracker = require('eth-block-tracker')
+const async = require('async')
 const Stoplight = require('./util/stoplight.js')
 const cacheUtils = require('./util/rpc-cache-utils.js')
 const createPayload = require('./util/create-payload.js')
-const ethUtil = require('ethereumjs-util')
-const async = require('async')
 
 module.exports = Web3ProviderEngine
 
@@ -16,16 +17,26 @@ function Web3ProviderEngine(opts) {
   const self = this
   EventEmitter.call(self)
   self.setMaxListeners(30)
+  // parse options
+  opts = opts || {}
+  // block polling
+  const skipInitBlockProvider = { sendAsync: self._handleAsync.bind(self) }
+  self._blockTracker = new EthBlockTracker({
+    provider: skipInitBlockProvider,
+    pollingInterval: opts.pollingInterval || 4000,
+  })
+  // handle new block
+  self._blockTracker.on('block', (jsonBlock) => {
+    const bufferBlock = toBufferBlock(jsonBlock)
+    self._setCurrentBlock(bufferBlock)
+  })
   // set initialization blocker
   self._ready = new Stoplight()
   // unblock initialization after first block
-  self.once('block', function(){
+  self._blockTracker.once('latest', () => {
+    console.log('_blockTracker wait for first block')
     self._ready.go()
   })
-  // parse options
-  opts = opts || {}
-  self._pollingShouldUnref = opts.pollingShouldUnref
-  self._pollingInterval = opts.pollingInterval || 4000
   // local state
   self.currentBlock = null
   self._providers = []
@@ -36,13 +47,13 @@ function Web3ProviderEngine(opts) {
 Web3ProviderEngine.prototype.start = function(){
   const self = this
   // start block polling
-  self._startPolling()
+  // self._blockTracker.start()
 }
 
 Web3ProviderEngine.prototype.stop = function(){
   const self = this
   // stop block polling
-  self._stopPolling()
+  self._blockTracker.stop()
 }
 
 Web3ProviderEngine.prototype.addProvider = function(source){
@@ -57,7 +68,7 @@ Web3ProviderEngine.prototype.send = function(payload){
 
 Web3ProviderEngine.prototype.sendAsync = function(payload, cb){
   const self = this
-  self._ready.await(function(){
+  // self._ready.await(function(){
 
     if (Array.isArray(payload)) {
       // handle batch
@@ -67,7 +78,7 @@ Web3ProviderEngine.prototype.sendAsync = function(payload, cb){
       self._handleAsync(payload, cb)
     }
 
-  })
+  //})
 }
 
 // private
@@ -139,112 +150,40 @@ Web3ProviderEngine.prototype._handleAsync = function(payload, finished) {
 // from remote-data
 //
 
-Web3ProviderEngine.prototype._startPolling = function(){
-  const self = this
-
-  self._fetchLatestBlock()
-
-  self._pollIntervalId = setInterval(function() {
-    self._fetchLatestBlock()
-  }, self._pollingInterval)
-
-  // Tell node that block polling shouldn't keep the process open.
-  // https://nodejs.org/api/timers.html#timers_timeout_unref
-  if (self._pollIntervalId.unref && self._pollingShouldUnref) {
-    self._pollIntervalId.unref()
-  }
-}
-
-Web3ProviderEngine.prototype._stopPolling = function(){
-  const self = this
-  clearInterval(self._pollIntervalId)
-}
-
-Web3ProviderEngine.prototype._fetchLatestBlock = function(cb) {
-  if (!cb) cb = function(err) { if (err) return console.error(err) }
-
-  const self = this
-
-  self._fetchBlock('latest', function(err, block) {
-    if (err) {
-      self.emit('error', err)
-      return cb(err)
-    }
-
-    if (!self.currentBlock || 0 !== self.currentBlock.hash.compare(block.hash)) {
-      self._setCurrentBlock(block)
-    }
-
-    cb(null, block)
-  })
-}
-
 Web3ProviderEngine.prototype._setCurrentBlock = function(block){
   const self = this
   self.currentBlock = block
   self.emit('block', block)
 }
 
-Web3ProviderEngine.prototype._fetchBlock = function(number, cb){
+Web3ProviderEngine.prototype._inspectResponseForNewBlock = function(payload, resultObj, cb) {
   const self = this
 
-  // skip: cache, readiness, block number rewrite
-  self._handleAsync(createPayload({
-    method: 'eth_getBlockByNumber',
-    params: [number, false],
-  }), function(err, resultObj){
-    if (err) return cb(err)
-    if (resultObj.error) return cb(resultObj.error)
-    var data = resultObj.result
-
-    // json -> buffers
-    var block = {
-      number:           ethUtil.toBuffer(data.number),
-      hash:             ethUtil.toBuffer(data.hash),
-      parentHash:       ethUtil.toBuffer(data.parentHash),
-      nonce:            ethUtil.toBuffer(data.nonce),
-      sha3Uncles:       ethUtil.toBuffer(data.sha3Uncles),
-      logsBloom:        ethUtil.toBuffer(data.logsBloom),
-      transactionsRoot: ethUtil.toBuffer(data.transactionsRoot),
-      stateRoot:        ethUtil.toBuffer(data.stateRoot),
-      receiptsRoot:     ethUtil.toBuffer(data.receiptRoot || data.receiptsRoot),
-      miner:            ethUtil.toBuffer(data.miner),
-      difficulty:       ethUtil.toBuffer(data.difficulty),
-      totalDifficulty:  ethUtil.toBuffer(data.totalDifficulty),
-      size:             ethUtil.toBuffer(data.size),
-      extraData:        ethUtil.toBuffer(data.extraData),
-      gasLimit:         ethUtil.toBuffer(data.gasLimit),
-      gasUsed:          ethUtil.toBuffer(data.gasUsed),
-      timestamp:        ethUtil.toBuffer(data.timestamp),
-      transactions:     data.transactions,
-    }
-
-    cb(null, block)
-  })
-}
-
-Web3ProviderEngine.prototype._inspectResponseForNewBlock = function(payload, resultObj, cb) {
-
   // these methods return responses with a block reference
-  if (payload.method != 'eth_getTransactionByHash'
-   && payload.method != 'eth_getTransactionReceipt') {
+  if (payload.method !== 'eth_getTransactionByHash'
+   && payload.method !== 'eth_getTransactionReceipt') {
     return cb(null, resultObj)
   }
 
-  if (resultObj.result == null || resultObj.result.blockNumber == null) {
+  if (resultObj.result === null
+   || resultObj.result.blockNumber === null) {
     return cb(null, resultObj)
   }
 
-  var blockNumber = ethUtil.toBuffer(resultObj.result.blockNumber)
+  const blockNumber = ethUtil.toBuffer(resultObj.result.blockNumber)
 
   // If we found a new block number on the result,
-  // fetch the block details before returning the original response.
+  // and it is higher than our current block,
+  // fetch for a new latest block before returning the original response.
   // We do this b/c a user might be polling for a tx by hash,
-  // and when getting a response may assume that we are on the new block and
+  // and may get a result that includes a reference to a block we havent seen yet.
+  // Without this blocker, the user may assume that we are on the new block and
   // try to query data from that block but would otherwise get old data due to
   // our blockTag-rewriting mechanism
-  if (0 !== this.currentBlock.number.compare(blockNumber)) {
-    this._fetchLatestBlock(function(err, block) {
+  if (-1 === self.currentBlock.number.compare(blockNumber)) {
+    console.log('_inspectResponseForNewBlock start')
+    self._blockTracker._performSync().then(() => {
+      console.log('_inspectResponseForNewBlock end')
       cb(null, resultObj)
     })
   } else {
@@ -255,12 +194,34 @@ Web3ProviderEngine.prototype._inspectResponseForNewBlock = function(payload, res
 
 // util
 
-function SourceNotFoundError(payload){
+function SourceNotFoundError (payload) {
   return new Error('Source for RPC method "'+payload.method+'" not found.')
 }
 
+function toBufferBlock (jsonBlock) {
+  return {
+    number:           ethUtil.toBuffer(jsonBlock.number),
+    hash:             ethUtil.toBuffer(jsonBlock.hash),
+    parentHash:       ethUtil.toBuffer(jsonBlock.parentHash),
+    nonce:            ethUtil.toBuffer(jsonBlock.nonce),
+    sha3Uncles:       ethUtil.toBuffer(jsonBlock.sha3Uncles),
+    logsBloom:        ethUtil.toBuffer(jsonBlock.logsBloom),
+    transactionsRoot: ethUtil.toBuffer(jsonBlock.transactionsRoot),
+    stateRoot:        ethUtil.toBuffer(jsonBlock.stateRoot),
+    receiptsRoot:     ethUtil.toBuffer(jsonBlock.receiptRoot || jsonBlock.receiptsRoot),
+    miner:            ethUtil.toBuffer(jsonBlock.miner),
+    difficulty:       ethUtil.toBuffer(jsonBlock.difficulty),
+    totalDifficulty:  ethUtil.toBuffer(jsonBlock.totalDifficulty),
+    size:             ethUtil.toBuffer(jsonBlock.size),
+    extraData:        ethUtil.toBuffer(jsonBlock.extraData),
+    gasLimit:         ethUtil.toBuffer(jsonBlock.gasLimit),
+    gasUsed:          ethUtil.toBuffer(jsonBlock.gasUsed),
+    timestamp:        ethUtil.toBuffer(jsonBlock.timestamp),
+    transactions:     jsonBlock.transactions,
+  }
+}
 
-},{"./util/create-payload.js":92,"./util/rpc-cache-utils.js":94,"./util/stoplight.js":95,"async":3,"ethereumjs-util":33,"events":35,"util":90}],2:[function(require,module,exports){
+},{"./util/create-payload.js":100,"./util/rpc-cache-utils.js":102,"./util/stoplight.js":103,"async":6,"eth-block-tracker":36,"ethereumjs-util":39,"events":41,"util":98}],2:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -754,7 +715,1154 @@ var objectKeys = Object.keys || function (obj) {
 };
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"util/":90}],3:[function(require,module,exports){
+},{"util/":98}],3:[function(require,module,exports){
+'use strict';
+
+module.exports = require('./lib/AsyncEventEmitter');
+
+},{"./lib/AsyncEventEmitter":4}],4:[function(require,module,exports){
+'use strict';
+
+var EventEmitter = require('events').EventEmitter,
+    util = require('util'),
+    async = require('async'),
+    AsyncEventEmitter;
+
+
+module.exports = exports = AsyncEventEmitter = function AsyncEventEmitter () {
+  EventEmitter.call(this);
+};
+
+util.inherits(AsyncEventEmitter, EventEmitter);
+
+
+/* Public methods
+============================================================================= */
+
+AsyncEventEmitter.prototype.emit = function(event, data, callback) {
+  var self = this,
+      listeners = self._events[event] || [];
+
+  // Optional data argument
+  if(!callback && typeof data === 'function') {
+    callback = data;
+    data = undefined;
+  }
+
+  // Special treatment of internal newListener and removeListener events
+  if(event === 'newListener' || event === 'removeListener') {
+    data = {
+      event: data,
+      fn: callback
+    };
+
+    callback = undefined;
+  }
+
+  // A single listener is just a function not an array...
+  listeners = Array.isArray(listeners) ? listeners : [listeners];
+
+  async.eachSeries(listeners, function (fn, next) {
+    var err;
+
+    // Support synchronous functions
+    if(fn.length < 2) {
+      try {
+        fn.call(self, data);
+      }
+      catch (e) {
+        err = e;
+      }
+
+      return next(err);
+    }
+
+    // Async
+    fn.call(self, data, next);
+  }, callback);
+
+  return self;
+};
+
+
+AsyncEventEmitter.prototype.once = function (type, listener) {
+  var self = this,
+      g;
+
+  if (typeof listener !== 'function') {
+    throw new TypeError('listener must be a function');
+  }
+
+  // Hack to support set arity
+  if(listener.length >= 2) {
+    g = function (e, next) {
+      self.removeListener(type, g);
+      listener(e, next);
+    };
+  }
+  else {
+    g = function (e) {
+      self.removeListener(type, g);
+      listener(e);
+    };
+  }
+
+  g.listener = listener;
+  self.on(type, g);
+
+  return self;
+};
+
+
+AsyncEventEmitter.prototype.first = function(event, listener) {
+  var listeners = this._events[event] || [];
+
+  // Contract
+  if(typeof listener !== 'function') {
+    throw new TypeError('listener must be a function');
+  }
+
+  // Listeners are not always an array
+  if(!Array.isArray(listeners)) {
+    this._events[event] = listeners = [listeners];
+  }
+
+  listeners.unshift(listener);
+
+  return this;
+};
+
+
+AsyncEventEmitter.prototype.at = function(event, index, listener) {
+  var listeners = this._events[event] || [];
+
+  // Contract
+  if(typeof listener !== 'function') {
+    throw new TypeError('listener must be a function');
+  }
+  if(typeof index !== 'number' || index < 0) {
+    throw new TypeError('index must be a non-negative integer');
+  }
+
+  // Listeners are not always an array
+  if(!Array.isArray(listeners)) {
+    this._events[event] = listeners = [listeners];
+  }
+
+  listeners.splice(index, 0, listener);
+
+  return this;
+};
+
+
+AsyncEventEmitter.prototype.before = function(event, target, listener) {
+  return this._beforeOrAfter(event, target, listener);
+};
+
+
+AsyncEventEmitter.prototype.after = function(event, target, listener) {
+  return this._beforeOrAfter(event, target, listener, 'after');
+};
+
+
+/* Private methods
+============================================================================= */
+
+AsyncEventEmitter.prototype._beforeOrAfter = function(event, target, listener, beforeOrAfter) {
+  var listeners = this._events[event] || [],
+      i, index,
+      add = beforeOrAfter === 'after' ? 1 : 0;
+
+  // Contract
+  if(typeof listener !== 'function') {
+    throw new TypeError('listener must be a function');
+  }
+  if(typeof target !== 'function') {
+    throw new TypeError('target must be a function');
+  }
+
+  // Listeners are not always an array
+  if(!Array.isArray(listeners)) {
+    this._events[event] = listeners = [listeners];
+  }
+
+  index = listeners.length;
+  
+  for(i = listeners.length; i--;) {
+    if(listeners[i] === target) {
+      index = i + add;
+      break;
+    }
+  }
+
+  listeners.splice(index, 0, listener);
+
+  return this;
+};
+
+},{"async":5,"events":41,"util":98}],5:[function(require,module,exports){
+(function (process){
+/*global setImmediate: false, setTimeout: false, console: false */
+(function () {
+
+    var async = {};
+
+    // global on the server, window in the browser
+    var root, previous_async;
+
+    root = this;
+    if (root != null) {
+      previous_async = root.async;
+    }
+
+    async.noConflict = function () {
+        root.async = previous_async;
+        return async;
+    };
+
+    function only_once(fn) {
+        var called = false;
+        return function() {
+            if (called) throw new Error("Callback was already called.");
+            called = true;
+            fn.apply(root, arguments);
+        }
+    }
+
+    //// cross-browser compatiblity functions ////
+
+    var _each = function (arr, iterator) {
+        if (arr.forEach) {
+            return arr.forEach(iterator);
+        }
+        for (var i = 0; i < arr.length; i += 1) {
+            iterator(arr[i], i, arr);
+        }
+    };
+
+    var _map = function (arr, iterator) {
+        if (arr.map) {
+            return arr.map(iterator);
+        }
+        var results = [];
+        _each(arr, function (x, i, a) {
+            results.push(iterator(x, i, a));
+        });
+        return results;
+    };
+
+    var _reduce = function (arr, iterator, memo) {
+        if (arr.reduce) {
+            return arr.reduce(iterator, memo);
+        }
+        _each(arr, function (x, i, a) {
+            memo = iterator(memo, x, i, a);
+        });
+        return memo;
+    };
+
+    var _keys = function (obj) {
+        if (Object.keys) {
+            return Object.keys(obj);
+        }
+        var keys = [];
+        for (var k in obj) {
+            if (obj.hasOwnProperty(k)) {
+                keys.push(k);
+            }
+        }
+        return keys;
+    };
+
+    //// exported async module functions ////
+
+    //// nextTick implementation with browser-compatible fallback ////
+    if (typeof process === 'undefined' || !(process.nextTick)) {
+        if (typeof setImmediate === 'function') {
+            async.nextTick = function (fn) {
+                // not a direct alias for IE10 compatibility
+                setImmediate(fn);
+            };
+            async.setImmediate = async.nextTick;
+        }
+        else {
+            async.nextTick = function (fn) {
+                setTimeout(fn, 0);
+            };
+            async.setImmediate = async.nextTick;
+        }
+    }
+    else {
+        async.nextTick = process.nextTick;
+        if (typeof setImmediate !== 'undefined') {
+            async.setImmediate = function (fn) {
+              // not a direct alias for IE10 compatibility
+              setImmediate(fn);
+            };
+        }
+        else {
+            async.setImmediate = async.nextTick;
+        }
+    }
+
+    async.each = function (arr, iterator, callback) {
+        callback = callback || function () {};
+        if (!arr.length) {
+            return callback();
+        }
+        var completed = 0;
+        _each(arr, function (x) {
+            iterator(x, only_once(function (err) {
+                if (err) {
+                    callback(err);
+                    callback = function () {};
+                }
+                else {
+                    completed += 1;
+                    if (completed >= arr.length) {
+                        callback(null);
+                    }
+                }
+            }));
+        });
+    };
+    async.forEach = async.each;
+
+    async.eachSeries = function (arr, iterator, callback) {
+        callback = callback || function () {};
+        if (!arr.length) {
+            return callback();
+        }
+        var completed = 0;
+        var iterate = function () {
+            iterator(arr[completed], function (err) {
+                if (err) {
+                    callback(err);
+                    callback = function () {};
+                }
+                else {
+                    completed += 1;
+                    if (completed >= arr.length) {
+                        callback(null);
+                    }
+                    else {
+                        iterate();
+                    }
+                }
+            });
+        };
+        iterate();
+    };
+    async.forEachSeries = async.eachSeries;
+
+    async.eachLimit = function (arr, limit, iterator, callback) {
+        var fn = _eachLimit(limit);
+        fn.apply(null, [arr, iterator, callback]);
+    };
+    async.forEachLimit = async.eachLimit;
+
+    var _eachLimit = function (limit) {
+
+        return function (arr, iterator, callback) {
+            callback = callback || function () {};
+            if (!arr.length || limit <= 0) {
+                return callback();
+            }
+            var completed = 0;
+            var started = 0;
+            var running = 0;
+
+            (function replenish () {
+                if (completed >= arr.length) {
+                    return callback();
+                }
+
+                while (running < limit && started < arr.length) {
+                    started += 1;
+                    running += 1;
+                    iterator(arr[started - 1], function (err) {
+                        if (err) {
+                            callback(err);
+                            callback = function () {};
+                        }
+                        else {
+                            completed += 1;
+                            running -= 1;
+                            if (completed >= arr.length) {
+                                callback();
+                            }
+                            else {
+                                replenish();
+                            }
+                        }
+                    });
+                }
+            })();
+        };
+    };
+
+
+    var doParallel = function (fn) {
+        return function () {
+            var args = Array.prototype.slice.call(arguments);
+            return fn.apply(null, [async.each].concat(args));
+        };
+    };
+    var doParallelLimit = function(limit, fn) {
+        return function () {
+            var args = Array.prototype.slice.call(arguments);
+            return fn.apply(null, [_eachLimit(limit)].concat(args));
+        };
+    };
+    var doSeries = function (fn) {
+        return function () {
+            var args = Array.prototype.slice.call(arguments);
+            return fn.apply(null, [async.eachSeries].concat(args));
+        };
+    };
+
+
+    var _asyncMap = function (eachfn, arr, iterator, callback) {
+        var results = [];
+        arr = _map(arr, function (x, i) {
+            return {index: i, value: x};
+        });
+        eachfn(arr, function (x, callback) {
+            iterator(x.value, function (err, v) {
+                results[x.index] = v;
+                callback(err);
+            });
+        }, function (err) {
+            callback(err, results);
+        });
+    };
+    async.map = doParallel(_asyncMap);
+    async.mapSeries = doSeries(_asyncMap);
+    async.mapLimit = function (arr, limit, iterator, callback) {
+        return _mapLimit(limit)(arr, iterator, callback);
+    };
+
+    var _mapLimit = function(limit) {
+        return doParallelLimit(limit, _asyncMap);
+    };
+
+    // reduce only has a series version, as doing reduce in parallel won't
+    // work in many situations.
+    async.reduce = function (arr, memo, iterator, callback) {
+        async.eachSeries(arr, function (x, callback) {
+            iterator(memo, x, function (err, v) {
+                memo = v;
+                callback(err);
+            });
+        }, function (err) {
+            callback(err, memo);
+        });
+    };
+    // inject alias
+    async.inject = async.reduce;
+    // foldl alias
+    async.foldl = async.reduce;
+
+    async.reduceRight = function (arr, memo, iterator, callback) {
+        var reversed = _map(arr, function (x) {
+            return x;
+        }).reverse();
+        async.reduce(reversed, memo, iterator, callback);
+    };
+    // foldr alias
+    async.foldr = async.reduceRight;
+
+    var _filter = function (eachfn, arr, iterator, callback) {
+        var results = [];
+        arr = _map(arr, function (x, i) {
+            return {index: i, value: x};
+        });
+        eachfn(arr, function (x, callback) {
+            iterator(x.value, function (v) {
+                if (v) {
+                    results.push(x);
+                }
+                callback();
+            });
+        }, function (err) {
+            callback(_map(results.sort(function (a, b) {
+                return a.index - b.index;
+            }), function (x) {
+                return x.value;
+            }));
+        });
+    };
+    async.filter = doParallel(_filter);
+    async.filterSeries = doSeries(_filter);
+    // select alias
+    async.select = async.filter;
+    async.selectSeries = async.filterSeries;
+
+    var _reject = function (eachfn, arr, iterator, callback) {
+        var results = [];
+        arr = _map(arr, function (x, i) {
+            return {index: i, value: x};
+        });
+        eachfn(arr, function (x, callback) {
+            iterator(x.value, function (v) {
+                if (!v) {
+                    results.push(x);
+                }
+                callback();
+            });
+        }, function (err) {
+            callback(_map(results.sort(function (a, b) {
+                return a.index - b.index;
+            }), function (x) {
+                return x.value;
+            }));
+        });
+    };
+    async.reject = doParallel(_reject);
+    async.rejectSeries = doSeries(_reject);
+
+    var _detect = function (eachfn, arr, iterator, main_callback) {
+        eachfn(arr, function (x, callback) {
+            iterator(x, function (result) {
+                if (result) {
+                    main_callback(x);
+                    main_callback = function () {};
+                }
+                else {
+                    callback();
+                }
+            });
+        }, function (err) {
+            main_callback();
+        });
+    };
+    async.detect = doParallel(_detect);
+    async.detectSeries = doSeries(_detect);
+
+    async.some = function (arr, iterator, main_callback) {
+        async.each(arr, function (x, callback) {
+            iterator(x, function (v) {
+                if (v) {
+                    main_callback(true);
+                    main_callback = function () {};
+                }
+                callback();
+            });
+        }, function (err) {
+            main_callback(false);
+        });
+    };
+    // any alias
+    async.any = async.some;
+
+    async.every = function (arr, iterator, main_callback) {
+        async.each(arr, function (x, callback) {
+            iterator(x, function (v) {
+                if (!v) {
+                    main_callback(false);
+                    main_callback = function () {};
+                }
+                callback();
+            });
+        }, function (err) {
+            main_callback(true);
+        });
+    };
+    // all alias
+    async.all = async.every;
+
+    async.sortBy = function (arr, iterator, callback) {
+        async.map(arr, function (x, callback) {
+            iterator(x, function (err, criteria) {
+                if (err) {
+                    callback(err);
+                }
+                else {
+                    callback(null, {value: x, criteria: criteria});
+                }
+            });
+        }, function (err, results) {
+            if (err) {
+                return callback(err);
+            }
+            else {
+                var fn = function (left, right) {
+                    var a = left.criteria, b = right.criteria;
+                    return a < b ? -1 : a > b ? 1 : 0;
+                };
+                callback(null, _map(results.sort(fn), function (x) {
+                    return x.value;
+                }));
+            }
+        });
+    };
+
+    async.auto = function (tasks, callback) {
+        callback = callback || function () {};
+        var keys = _keys(tasks);
+        if (!keys.length) {
+            return callback(null);
+        }
+
+        var results = {};
+
+        var listeners = [];
+        var addListener = function (fn) {
+            listeners.unshift(fn);
+        };
+        var removeListener = function (fn) {
+            for (var i = 0; i < listeners.length; i += 1) {
+                if (listeners[i] === fn) {
+                    listeners.splice(i, 1);
+                    return;
+                }
+            }
+        };
+        var taskComplete = function () {
+            _each(listeners.slice(0), function (fn) {
+                fn();
+            });
+        };
+
+        addListener(function () {
+            if (_keys(results).length === keys.length) {
+                callback(null, results);
+                callback = function () {};
+            }
+        });
+
+        _each(keys, function (k) {
+            var task = (tasks[k] instanceof Function) ? [tasks[k]]: tasks[k];
+            var taskCallback = function (err) {
+                var args = Array.prototype.slice.call(arguments, 1);
+                if (args.length <= 1) {
+                    args = args[0];
+                }
+                if (err) {
+                    var safeResults = {};
+                    _each(_keys(results), function(rkey) {
+                        safeResults[rkey] = results[rkey];
+                    });
+                    safeResults[k] = args;
+                    callback(err, safeResults);
+                    // stop subsequent errors hitting callback multiple times
+                    callback = function () {};
+                }
+                else {
+                    results[k] = args;
+                    async.setImmediate(taskComplete);
+                }
+            };
+            var requires = task.slice(0, Math.abs(task.length - 1)) || [];
+            var ready = function () {
+                return _reduce(requires, function (a, x) {
+                    return (a && results.hasOwnProperty(x));
+                }, true) && !results.hasOwnProperty(k);
+            };
+            if (ready()) {
+                task[task.length - 1](taskCallback, results);
+            }
+            else {
+                var listener = function () {
+                    if (ready()) {
+                        removeListener(listener);
+                        task[task.length - 1](taskCallback, results);
+                    }
+                };
+                addListener(listener);
+            }
+        });
+    };
+
+    async.waterfall = function (tasks, callback) {
+        callback = callback || function () {};
+        if (tasks.constructor !== Array) {
+          var err = new Error('First argument to waterfall must be an array of functions');
+          return callback(err);
+        }
+        if (!tasks.length) {
+            return callback();
+        }
+        var wrapIterator = function (iterator) {
+            return function (err) {
+                if (err) {
+                    callback.apply(null, arguments);
+                    callback = function () {};
+                }
+                else {
+                    var args = Array.prototype.slice.call(arguments, 1);
+                    var next = iterator.next();
+                    if (next) {
+                        args.push(wrapIterator(next));
+                    }
+                    else {
+                        args.push(callback);
+                    }
+                    async.setImmediate(function () {
+                        iterator.apply(null, args);
+                    });
+                }
+            };
+        };
+        wrapIterator(async.iterator(tasks))();
+    };
+
+    var _parallel = function(eachfn, tasks, callback) {
+        callback = callback || function () {};
+        if (tasks.constructor === Array) {
+            eachfn.map(tasks, function (fn, callback) {
+                if (fn) {
+                    fn(function (err) {
+                        var args = Array.prototype.slice.call(arguments, 1);
+                        if (args.length <= 1) {
+                            args = args[0];
+                        }
+                        callback.call(null, err, args);
+                    });
+                }
+            }, callback);
+        }
+        else {
+            var results = {};
+            eachfn.each(_keys(tasks), function (k, callback) {
+                tasks[k](function (err) {
+                    var args = Array.prototype.slice.call(arguments, 1);
+                    if (args.length <= 1) {
+                        args = args[0];
+                    }
+                    results[k] = args;
+                    callback(err);
+                });
+            }, function (err) {
+                callback(err, results);
+            });
+        }
+    };
+
+    async.parallel = function (tasks, callback) {
+        _parallel({ map: async.map, each: async.each }, tasks, callback);
+    };
+
+    async.parallelLimit = function(tasks, limit, callback) {
+        _parallel({ map: _mapLimit(limit), each: _eachLimit(limit) }, tasks, callback);
+    };
+
+    async.series = function (tasks, callback) {
+        callback = callback || function () {};
+        if (tasks.constructor === Array) {
+            async.mapSeries(tasks, function (fn, callback) {
+                if (fn) {
+                    fn(function (err) {
+                        var args = Array.prototype.slice.call(arguments, 1);
+                        if (args.length <= 1) {
+                            args = args[0];
+                        }
+                        callback.call(null, err, args);
+                    });
+                }
+            }, callback);
+        }
+        else {
+            var results = {};
+            async.eachSeries(_keys(tasks), function (k, callback) {
+                tasks[k](function (err) {
+                    var args = Array.prototype.slice.call(arguments, 1);
+                    if (args.length <= 1) {
+                        args = args[0];
+                    }
+                    results[k] = args;
+                    callback(err);
+                });
+            }, function (err) {
+                callback(err, results);
+            });
+        }
+    };
+
+    async.iterator = function (tasks) {
+        var makeCallback = function (index) {
+            var fn = function () {
+                if (tasks.length) {
+                    tasks[index].apply(null, arguments);
+                }
+                return fn.next();
+            };
+            fn.next = function () {
+                return (index < tasks.length - 1) ? makeCallback(index + 1): null;
+            };
+            return fn;
+        };
+        return makeCallback(0);
+    };
+
+    async.apply = function (fn) {
+        var args = Array.prototype.slice.call(arguments, 1);
+        return function () {
+            return fn.apply(
+                null, args.concat(Array.prototype.slice.call(arguments))
+            );
+        };
+    };
+
+    var _concat = function (eachfn, arr, fn, callback) {
+        var r = [];
+        eachfn(arr, function (x, cb) {
+            fn(x, function (err, y) {
+                r = r.concat(y || []);
+                cb(err);
+            });
+        }, function (err) {
+            callback(err, r);
+        });
+    };
+    async.concat = doParallel(_concat);
+    async.concatSeries = doSeries(_concat);
+
+    async.whilst = function (test, iterator, callback) {
+        if (test()) {
+            iterator(function (err) {
+                if (err) {
+                    return callback(err);
+                }
+                async.whilst(test, iterator, callback);
+            });
+        }
+        else {
+            callback();
+        }
+    };
+
+    async.doWhilst = function (iterator, test, callback) {
+        iterator(function (err) {
+            if (err) {
+                return callback(err);
+            }
+            if (test()) {
+                async.doWhilst(iterator, test, callback);
+            }
+            else {
+                callback();
+            }
+        });
+    };
+
+    async.until = function (test, iterator, callback) {
+        if (!test()) {
+            iterator(function (err) {
+                if (err) {
+                    return callback(err);
+                }
+                async.until(test, iterator, callback);
+            });
+        }
+        else {
+            callback();
+        }
+    };
+
+    async.doUntil = function (iterator, test, callback) {
+        iterator(function (err) {
+            if (err) {
+                return callback(err);
+            }
+            if (!test()) {
+                async.doUntil(iterator, test, callback);
+            }
+            else {
+                callback();
+            }
+        });
+    };
+
+    async.queue = function (worker, concurrency) {
+        if (concurrency === undefined) {
+            concurrency = 1;
+        }
+        function _insert(q, data, pos, callback) {
+          if(data.constructor !== Array) {
+              data = [data];
+          }
+          _each(data, function(task) {
+              var item = {
+                  data: task,
+                  callback: typeof callback === 'function' ? callback : null
+              };
+
+              if (pos) {
+                q.tasks.unshift(item);
+              } else {
+                q.tasks.push(item);
+              }
+
+              if (q.saturated && q.tasks.length === concurrency) {
+                  q.saturated();
+              }
+              async.setImmediate(q.process);
+          });
+        }
+
+        var workers = 0;
+        var q = {
+            tasks: [],
+            concurrency: concurrency,
+            saturated: null,
+            empty: null,
+            drain: null,
+            push: function (data, callback) {
+              _insert(q, data, false, callback);
+            },
+            unshift: function (data, callback) {
+              _insert(q, data, true, callback);
+            },
+            process: function () {
+                if (workers < q.concurrency && q.tasks.length) {
+                    var task = q.tasks.shift();
+                    if (q.empty && q.tasks.length === 0) {
+                        q.empty();
+                    }
+                    workers += 1;
+                    var next = function () {
+                        workers -= 1;
+                        if (task.callback) {
+                            task.callback.apply(task, arguments);
+                        }
+                        if (q.drain && q.tasks.length + workers === 0) {
+                            q.drain();
+                        }
+                        q.process();
+                    };
+                    var cb = only_once(next);
+                    worker(task.data, cb);
+                }
+            },
+            length: function () {
+                return q.tasks.length;
+            },
+            running: function () {
+                return workers;
+            }
+        };
+        return q;
+    };
+
+    async.cargo = function (worker, payload) {
+        var working     = false,
+            tasks       = [];
+
+        var cargo = {
+            tasks: tasks,
+            payload: payload,
+            saturated: null,
+            empty: null,
+            drain: null,
+            push: function (data, callback) {
+                if(data.constructor !== Array) {
+                    data = [data];
+                }
+                _each(data, function(task) {
+                    tasks.push({
+                        data: task,
+                        callback: typeof callback === 'function' ? callback : null
+                    });
+                    if (cargo.saturated && tasks.length === payload) {
+                        cargo.saturated();
+                    }
+                });
+                async.setImmediate(cargo.process);
+            },
+            process: function process() {
+                if (working) return;
+                if (tasks.length === 0) {
+                    if(cargo.drain) cargo.drain();
+                    return;
+                }
+
+                var ts = typeof payload === 'number'
+                            ? tasks.splice(0, payload)
+                            : tasks.splice(0);
+
+                var ds = _map(ts, function (task) {
+                    return task.data;
+                });
+
+                if(cargo.empty) cargo.empty();
+                working = true;
+                worker(ds, function () {
+                    working = false;
+
+                    var args = arguments;
+                    _each(ts, function (data) {
+                        if (data.callback) {
+                            data.callback.apply(null, args);
+                        }
+                    });
+
+                    process();
+                });
+            },
+            length: function () {
+                return tasks.length;
+            },
+            running: function () {
+                return working;
+            }
+        };
+        return cargo;
+    };
+
+    var _console_fn = function (name) {
+        return function (fn) {
+            var args = Array.prototype.slice.call(arguments, 1);
+            fn.apply(null, args.concat([function (err) {
+                var args = Array.prototype.slice.call(arguments, 1);
+                if (typeof console !== 'undefined') {
+                    if (err) {
+                        if (console.error) {
+                            console.error(err);
+                        }
+                    }
+                    else if (console[name]) {
+                        _each(args, function (x) {
+                            console[name](x);
+                        });
+                    }
+                }
+            }]));
+        };
+    };
+    async.log = _console_fn('log');
+    async.dir = _console_fn('dir');
+    /*async.info = _console_fn('info');
+    async.warn = _console_fn('warn');
+    async.error = _console_fn('error');*/
+
+    async.memoize = function (fn, hasher) {
+        var memo = {};
+        var queues = {};
+        hasher = hasher || function (x) {
+            return x;
+        };
+        var memoized = function () {
+            var args = Array.prototype.slice.call(arguments);
+            var callback = args.pop();
+            var key = hasher.apply(null, args);
+            if (key in memo) {
+                callback.apply(null, memo[key]);
+            }
+            else if (key in queues) {
+                queues[key].push(callback);
+            }
+            else {
+                queues[key] = [callback];
+                fn.apply(null, args.concat([function () {
+                    memo[key] = arguments;
+                    var q = queues[key];
+                    delete queues[key];
+                    for (var i = 0, l = q.length; i < l; i++) {
+                      q[i].apply(null, arguments);
+                    }
+                }]));
+            }
+        };
+        memoized.memo = memo;
+        memoized.unmemoized = fn;
+        return memoized;
+    };
+
+    async.unmemoize = function (fn) {
+      return function () {
+        return (fn.unmemoized || fn).apply(null, arguments);
+      };
+    };
+
+    async.times = function (count, iterator, callback) {
+        var counter = [];
+        for (var i = 0; i < count; i++) {
+            counter.push(i);
+        }
+        return async.map(counter, iterator, callback);
+    };
+
+    async.timesSeries = function (count, iterator, callback) {
+        var counter = [];
+        for (var i = 0; i < count; i++) {
+            counter.push(i);
+        }
+        return async.mapSeries(counter, iterator, callback);
+    };
+
+    async.compose = function (/* functions... */) {
+        var fns = Array.prototype.reverse.call(arguments);
+        return function () {
+            var that = this;
+            var args = Array.prototype.slice.call(arguments);
+            var callback = args.pop();
+            async.reduce(fns, args, function (newargs, fn, cb) {
+                fn.apply(that, newargs.concat([function () {
+                    var err = arguments[0];
+                    var nextargs = Array.prototype.slice.call(arguments, 1);
+                    cb(err, nextargs);
+                }]))
+            },
+            function (err, results) {
+                callback.apply(that, [err].concat(results));
+            });
+        };
+    };
+
+    var _applyEach = function (eachfn, fns /*args...*/) {
+        var go = function () {
+            var that = this;
+            var args = Array.prototype.slice.call(arguments);
+            var callback = args.pop();
+            return eachfn(fns, function (fn, cb) {
+                fn.apply(that, args.concat([cb]));
+            },
+            callback);
+        };
+        if (arguments.length > 2) {
+            var args = Array.prototype.slice.call(arguments, 2);
+            return go.apply(this, args);
+        }
+        else {
+            return go;
+        }
+    };
+    async.applyEach = doParallel(_applyEach);
+    async.applyEachSeries = doSeries(_applyEach);
+
+    async.forever = function (fn, callback) {
+        function next(err) {
+            if (err) {
+                if (callback) {
+                    return callback(err);
+                }
+                throw err;
+            }
+            fn(next);
+        }
+        next();
+    };
+
+    // AMD / RequireJS
+    if (typeof define !== 'undefined' && define.amd) {
+        define([], function () {
+            return async;
+        });
+    }
+    // Node.js
+    else if (typeof module !== 'undefined' && module.exports) {
+        module.exports = async;
+    }
+    // included directly via <script> tag
+    else {
+        root.async = async;
+    }
+
+}());
+
+}).call(this,require('_process'))
+},{"_process":12}],6:[function(require,module,exports){
 (function (process,global){
 (function (global, factory) {
     typeof exports === 'object' && typeof module !== 'undefined' ? factory(exports) :
@@ -6160,7 +7268,7 @@ Object.defineProperty(exports, '__esModule', { value: true });
 })));
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"_process":9}],4:[function(require,module,exports){
+},{"_process":12}],7:[function(require,module,exports){
 'use strict'
 
 exports.byteLength = byteLength
@@ -6276,7 +7384,7 @@ function fromByteArray (uint8) {
   return parts.join('')
 }
 
-},{}],5:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 (function (Buffer){
 // Reference https://github.com/bitcoin/bips/blob/master/bip-0066.mediawiki
 // Format: 0x30 [total-length] 0x02 [R-length] [R] 0x02 [S-length] [S]
@@ -6391,7 +7499,7 @@ module.exports = {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":11}],6:[function(require,module,exports){
+},{"buffer":14}],9:[function(require,module,exports){
 (function (module, exports) {
   'use strict';
 
@@ -9820,7 +10928,7 @@ module.exports = {
   };
 })(typeof module === 'undefined' || module, this);
 
-},{}],7:[function(require,module,exports){
+},{}],10:[function(require,module,exports){
 var r;
 
 module.exports = function rand(len) {
@@ -9887,9 +10995,9 @@ if (typeof self === 'object') {
   }
 }
 
-},{"crypto":8}],8:[function(require,module,exports){
+},{"crypto":11}],11:[function(require,module,exports){
 
-},{}],9:[function(require,module,exports){
+},{}],12:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -10071,7 +11179,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],10:[function(require,module,exports){
+},{}],13:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -10183,7 +11291,7 @@ exports.allocUnsafeSlow = function allocUnsafeSlow(size) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"buffer":11}],11:[function(require,module,exports){
+},{"buffer":14}],14:[function(require,module,exports){
 (function (global){
 /*!
  * The buffer module from node.js, for the browser.
@@ -11976,7 +13084,7 @@ function isnan (val) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"base64-js":4,"ieee754":43,"isarray":47}],12:[function(require,module,exports){
+},{"base64-js":7,"ieee754":49,"isarray":53}],15:[function(require,module,exports){
 (function (Buffer){
 var Transform = require('stream').Transform
 var inherits = require('inherits')
@@ -12070,7 +13178,7 @@ CipherBase.prototype._toString = function (value, enc, fin) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":11,"inherits":44,"stream":84,"string_decoder":85}],13:[function(require,module,exports){
+},{"buffer":14,"inherits":50,"stream":92,"string_decoder":93}],16:[function(require,module,exports){
 (function (Buffer){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -12181,7 +13289,7 @@ function objectToString(o) {
 }
 
 }).call(this,{"isBuffer":require("../../is-buffer/index.js")})
-},{"../../is-buffer/index.js":45}],14:[function(require,module,exports){
+},{"../../is-buffer/index.js":51}],17:[function(require,module,exports){
 (function (Buffer){
 'use strict';
 var inherits = require('inherits')
@@ -12237,7 +13345,7 @@ module.exports = function createHash (alg) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./md5":16,"buffer":11,"cipher-base":12,"inherits":44,"ripemd160":68,"sha.js":77}],15:[function(require,module,exports){
+},{"./md5":19,"buffer":14,"cipher-base":15,"inherits":50,"ripemd160":76,"sha.js":85}],18:[function(require,module,exports){
 (function (Buffer){
 'use strict';
 var intSize = 4;
@@ -12274,7 +13382,7 @@ function hash(buf, fn, hashSize, bigEndian) {
 }
 exports.hash = hash;
 }).call(this,require("buffer").Buffer)
-},{"buffer":11}],16:[function(require,module,exports){
+},{"buffer":14}],19:[function(require,module,exports){
 'use strict';
 /*
  * A JavaScript implementation of the RSA Data Security, Inc. MD5 Message
@@ -12431,7 +13539,7 @@ function bit_rol(num, cnt)
 module.exports = function md5(buf) {
   return helpers.hash(buf, core_md5, 16);
 };
-},{"./helpers":15}],17:[function(require,module,exports){
+},{"./helpers":18}],20:[function(require,module,exports){
 'use strict';
 
 var elliptic = exports;
@@ -12446,7 +13554,7 @@ elliptic.curves = require('./elliptic/curves');
 elliptic.ec = require('./elliptic/ec');
 elliptic.eddsa = require('./elliptic/eddsa');
 
-},{"../package.json":32,"./elliptic/curve":20,"./elliptic/curves":23,"./elliptic/ec":24,"./elliptic/eddsa":27,"./elliptic/utils":31,"brorand":7}],18:[function(require,module,exports){
+},{"../package.json":35,"./elliptic/curve":23,"./elliptic/curves":26,"./elliptic/ec":27,"./elliptic/eddsa":30,"./elliptic/utils":34,"brorand":10}],21:[function(require,module,exports){
 'use strict';
 
 var BN = require('bn.js');
@@ -12823,7 +13931,7 @@ BasePoint.prototype.dblp = function dblp(k) {
   return r;
 };
 
-},{"../../elliptic":17,"bn.js":6}],19:[function(require,module,exports){
+},{"../../elliptic":20,"bn.js":9}],22:[function(require,module,exports){
 'use strict';
 
 var curve = require('../curve');
@@ -13258,7 +14366,7 @@ Point.prototype.eqXToP = function eqXToP(x) {
 Point.prototype.toP = Point.prototype.normalize;
 Point.prototype.mixedAdd = Point.prototype.add;
 
-},{"../../elliptic":17,"../curve":20,"bn.js":6,"inherits":44}],20:[function(require,module,exports){
+},{"../../elliptic":20,"../curve":23,"bn.js":9,"inherits":50}],23:[function(require,module,exports){
 'use strict';
 
 var curve = exports;
@@ -13268,7 +14376,7 @@ curve.short = require('./short');
 curve.mont = require('./mont');
 curve.edwards = require('./edwards');
 
-},{"./base":18,"./edwards":19,"./mont":21,"./short":22}],21:[function(require,module,exports){
+},{"./base":21,"./edwards":22,"./mont":24,"./short":25}],24:[function(require,module,exports){
 'use strict';
 
 var curve = require('../curve');
@@ -13450,7 +14558,7 @@ Point.prototype.getX = function getX() {
   return this.x.fromRed();
 };
 
-},{"../../elliptic":17,"../curve":20,"bn.js":6,"inherits":44}],22:[function(require,module,exports){
+},{"../../elliptic":20,"../curve":23,"bn.js":9,"inherits":50}],25:[function(require,module,exports){
 'use strict';
 
 var curve = require('../curve');
@@ -14390,7 +15498,7 @@ JPoint.prototype.isInfinity = function isInfinity() {
   return this.z.cmpn(0) === 0;
 };
 
-},{"../../elliptic":17,"../curve":20,"bn.js":6,"inherits":44}],23:[function(require,module,exports){
+},{"../../elliptic":20,"../curve":23,"bn.js":9,"inherits":50}],26:[function(require,module,exports){
 'use strict';
 
 var curves = exports;
@@ -14597,7 +15705,7 @@ defineCurve('secp256k1', {
   ]
 });
 
-},{"../elliptic":17,"./precomputed/secp256k1":30,"hash.js":36}],24:[function(require,module,exports){
+},{"../elliptic":20,"./precomputed/secp256k1":33,"hash.js":42}],27:[function(require,module,exports){
 'use strict';
 
 var BN = require('bn.js');
@@ -14839,7 +15947,7 @@ EC.prototype.getKeyRecoveryParam = function(e, signature, Q, enc) {
   throw new Error('Unable to find valid recovery factor');
 };
 
-},{"../../elliptic":17,"./key":25,"./signature":26,"bn.js":6,"hmac-drbg":42}],25:[function(require,module,exports){
+},{"../../elliptic":20,"./key":28,"./signature":29,"bn.js":9,"hmac-drbg":48}],28:[function(require,module,exports){
 'use strict';
 
 var BN = require('bn.js');
@@ -14960,7 +16068,7 @@ KeyPair.prototype.inspect = function inspect() {
          ' pub: ' + (this.pub && this.pub.inspect()) + ' >';
 };
 
-},{"../../elliptic":17,"bn.js":6}],26:[function(require,module,exports){
+},{"../../elliptic":20,"bn.js":9}],29:[function(require,module,exports){
 'use strict';
 
 var BN = require('bn.js');
@@ -15097,7 +16205,7 @@ Signature.prototype.toDER = function toDER(enc) {
   return utils.encode(res, enc);
 };
 
-},{"../../elliptic":17,"bn.js":6}],27:[function(require,module,exports){
+},{"../../elliptic":20,"bn.js":9}],30:[function(require,module,exports){
 'use strict';
 
 var hash = require('hash.js');
@@ -15217,7 +16325,7 @@ EDDSA.prototype.isPoint = function isPoint(val) {
   return val instanceof this.pointClass;
 };
 
-},{"../../elliptic":17,"./key":28,"./signature":29,"hash.js":36}],28:[function(require,module,exports){
+},{"../../elliptic":20,"./key":31,"./signature":32,"hash.js":42}],31:[function(require,module,exports){
 'use strict';
 
 var elliptic = require('../../elliptic');
@@ -15315,7 +16423,7 @@ KeyPair.prototype.getPublic = function getPublic(enc) {
 
 module.exports = KeyPair;
 
-},{"../../elliptic":17}],29:[function(require,module,exports){
+},{"../../elliptic":20}],32:[function(require,module,exports){
 'use strict';
 
 var BN = require('bn.js');
@@ -15383,7 +16491,7 @@ Signature.prototype.toHex = function toHex() {
 
 module.exports = Signature;
 
-},{"../../elliptic":17,"bn.js":6}],30:[function(require,module,exports){
+},{"../../elliptic":20,"bn.js":9}],33:[function(require,module,exports){
 module.exports = {
   doubles: {
     step: 4,
@@ -16165,7 +17273,7 @@ module.exports = {
   }
 };
 
-},{}],31:[function(require,module,exports){
+},{}],34:[function(require,module,exports){
 'use strict';
 
 var utils = exports;
@@ -16287,7 +17395,7 @@ function intFromLE(bytes) {
 utils.intFromLE = intFromLE;
 
 
-},{"bn.js":6,"minimalistic-assert":54,"minimalistic-crypto-utils":55}],32:[function(require,module,exports){
+},{"bn.js":9,"minimalistic-assert":61,"minimalistic-crypto-utils":62}],35:[function(require,module,exports){
 module.exports={
   "_args": [
     [
@@ -16412,7 +17520,299 @@ module.exports={
   "version": "6.4.0"
 }
 
-},{}],33:[function(require,module,exports){
+},{}],36:[function(require,module,exports){
+function _asyncToGenerator(fn) { return function () { var gen = fn.apply(this, arguments); return new Promise(function (resolve, reject) { function step(key, arg) { try { var info = gen[key](arg); var value = info.value; } catch (error) { reject(error); return; } if (info.done) { resolve(value); } else { return Promise.resolve(value).then(function (value) { step("next", value); }, function (err) { step("throw", err); }); } } return step("next"); }); }; }
+
+// const EthQuery = require('ethjs-query')
+const EthQuery = require('eth-query');
+const AsyncEventEmitter = require('async-eventemitter');
+const pify = require('pify');
+const incrementHexNumber = require('./lib/hexUtils').incrementHexNumber;
+
+class RpcBlockTracker extends AsyncEventEmitter {
+
+  constructor(opts = {}) {
+    super();
+    if (!opts.provider) throw new Error('RpcBlockTracker - no provider specified.');
+    this._query = new EthQuery(opts.provider);
+    // config
+    this._pollingInterval = opts.pollingInterval || 800;
+    // state
+    this._trackingBlock = null;
+    this._currentBlock = null;
+    this._isRunning = false;
+    // bind methods for cleaner syntax later
+    this.emit = this.emit.bind(this);
+    this._performSync = this._performSync.bind(this);
+  }
+
+  getTrackingBlock() {
+    return this._trackingBlock;
+  }
+
+  getCurrentBlock() {
+    return this._currentBlock;
+  }
+
+  start(opts = {}) {
+    var _this = this;
+
+    return _asyncToGenerator(function* () {
+      // abort if already started
+      if (_this._isRunning) return;
+      _this._isRunning = true;
+      // if this._currentBlock
+      if (opts.fromBlock) {
+        // use specified start point
+        yield _this._setTrackingBlock((yield _this._fetchBlockByNumber(opts.fromBlock)));
+      } else {
+        // or query for latest
+        yield _this._setTrackingBlock((yield _this._fetchLatestBlock()));
+      }
+      _this._performSync().catch(function (err) {
+        if (err) console.error(err);
+      });
+    })();
+  }
+
+  stop() {
+    this._isRunning = false;
+  }
+
+  //
+  // private
+  //
+
+  _setTrackingBlock(newBlock) {
+    var _this2 = this;
+
+    return _asyncToGenerator(function* () {
+      if (_this2._trackingBlock && _this2._trackingBlock.hash === newBlock.hash) return;
+      _this2._trackingBlock = newBlock;
+      yield pify(_this2.emit)('block', newBlock);
+    })();
+  }
+
+  _setCurrentBlock(newBlock) {
+    var _this3 = this;
+
+    return _asyncToGenerator(function* () {
+      if (_this3._currentBlock && _this3._currentBlock.hash === newBlock.hash) return;
+      _this3._currentBlock = newBlock;
+      yield pify(_this3.emit)('latest', newBlock);
+    })();
+  }
+
+  _pollForNextBlock() {
+    var _this4 = this;
+
+    return _asyncToGenerator(function* () {
+      setTimeout(function () {
+        return _this4._performSync();
+      }, _this4._pollingInterval);
+    })();
+  }
+
+  _performSync() {
+    var _this5 = this;
+
+    return _asyncToGenerator(function* () {
+      if (!_this5._isRunning) return;
+      const trackingBlock = _this5.getTrackingBlock();
+      if (!trackingBlock) throw new Error('RpcBlockTracker - tracking block is missing');
+      const nextNumber = incrementHexNumber(trackingBlock.number);
+      try {
+        const newBlock = yield _this5._fetchBlockByNumber(nextNumber);
+        if (newBlock) {
+          // set as new tracking block
+          yield _this5._setTrackingBlock(newBlock);
+          // ask for next block
+          _this5._performSync();
+        } else {
+          // set tracking block as current block
+          yield _this5._setCurrentBlock(trackingBlock);
+          // setup poll for next block
+          _this5._pollForNextBlock();
+        }
+      } catch (err) {
+        if (err) console.error(err);
+      }
+    })();
+  }
+
+  _fetchLatestBlock() {
+    return pify(this._query.getBlockByNumber).call(this._query, 'latest', false);
+  }
+
+  _fetchBlockByNumber(hexNumber) {
+    return pify(this._query.getBlockByNumber).call(this._query, hexNumber, false);
+  }
+
+}
+
+module.exports = RpcBlockTracker;
+
+// ├─ difficulty: 0x2892ddca
+// ├─ extraData: 0xd983010507846765746887676f312e372e348777696e646f7773
+// ├─ gasLimit: 0x47e7c4
+// ├─ gasUsed: 0x6384
+// ├─ hash: 0xf60903687b1559b9c80f2d935b4c4f468ad95c3076928c432ec34f2ef3d4eec9
+// ├─ logsBloom: 0x00000000000000000000000000000000000000000000000000000000000020000000000000000000000000040000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000200000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000040000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000100000000000000000000000000000000000000000000000000000000000000000000000000000
+// ├─ miner: 0x01711853335f857442ef6f349b2467c531731318
+// ├─ mixHash: 0xf0d9bec999600eec92e8e4da8fc1182e357468c9ed2f849aa17e0e900412b352
+// ├─ nonce: 0xd556d5a5504198e4
+// ├─ number: 0x72ac8
+// ├─ parentHash: 0xf5239c3ce1085194521435a5052494c02bbb1002b019684dcf368490ea6208e5
+// ├─ receiptsRoot: 0x78c6f8236094b392bcc43b47b0dc1ce93ecd2875bfb5e4e4c3431e5af698ff99
+// ├─ sha3Uncles: 0x1dcc4de8dec75d7aab85b567b6ccd41ad312451b948a7413f0a142fd40d49347
+// ├─ size: 0x2ad
+// ├─ stateRoot: 0x0554f145c481df2fa02ecd2da17071672740c3aa948c896f1465e6772f741ac6
+// ├─ timestamp: 0x58955844
+// ├─ totalDifficulty: 0x751d0dfa03c1
+// ├─ transactions
+// │  └─ 0
+// │     ├─ blockHash: 0xf60903687b1559b9c80f2d935b4c4f468ad95c3076928c432ec34f2ef3d4eec9
+// │     ├─ blockNumber: 0x72ac8
+// │     ├─ from: 0x201354729f8d0f8b64e9a0c353c672c6a66b3857
+// │     ├─ gas: 0x15f90
+// │     ├─ gasPrice: 0x4a817c800
+// │     ├─ hash: 0xd5a15d7c2449150db4f74f42a6ca0702150a24c46c5b406a7e1b3e44908ef44d
+// │     ├─ input: 0xe1fa8e849bc10d87fb03c6b0603b05a3e29043c7e0b7c927119576a4bec457e96c7d7cde
+// │     ├─ nonce: 0x323e
+// │     ├─ to: 0xd10e3be2bc8f959bc8c41cf65f60de721cf89adf
+// │     ├─ transactionIndex: 0x0
+// │     ├─ value: 0x0
+// │     ├─ v: 0x29
+// │     ├─ r: 0xf35f8ab241e6bb3ccaffd21b268dbfc7fcb5df1c1fb83ee5306207e4a1a3e954
+// │     └─ s: 0x1610cdac2782c91065fd43584cd8974f7f3b4e6d46a2aafe7b101788285bf3f2
+// ├─ transactionsRoot: 0xb090c32d840dec1e9752719f21bbae4a73e58333aecb89bc3b8ed559fb2712a3
+// └─ uncles
+
+},{"./lib/hexUtils":37,"async-eventemitter":3,"eth-query":38,"pify":63}],37:[function(require,module,exports){
+const ethjsUtil = require('ethjs-util');
+
+module.exports = {
+  incrementHexNumber
+};
+
+function incrementHexNumber(hexNum) {
+  return ethjsUtil.intToHex(parseInt(hexNum, 16) + 1);
+}
+
+},{"ethjs-util":40}],38:[function(require,module,exports){
+const extend = require('xtend')
+const async = require('async')
+const createRandomId = require('json-rpc-random-id')()
+
+module.exports = EthQuery
+
+
+function EthQuery(provider){
+  const self = this
+  self.currentProvider = provider
+}
+
+//
+// base queries
+//
+
+// default block 
+EthQuery.prototype.getBalance =                          generateFnWithDefaultBlockFor(2, 'eth_getBalance')
+EthQuery.prototype.getCode =                             generateFnWithDefaultBlockFor(2, 'eth_getCode')
+EthQuery.prototype.getTransactionCount =                 generateFnWithDefaultBlockFor(2, 'eth_getTransactionCount')
+EthQuery.prototype.getStorageAt =                        generateFnWithDefaultBlockFor(3, 'eth_getStorageAt')
+EthQuery.prototype.call =                                generateFnWithDefaultBlockFor(2, 'eth_call')
+// standard
+EthQuery.prototype.protocolVersion =                     generateFnFor('eth_protocolVersion')
+EthQuery.prototype.syncing =                             generateFnFor('eth_syncing')
+EthQuery.prototype.coinbase =                            generateFnFor('eth_coinbase')
+EthQuery.prototype.mining =                              generateFnFor('eth_mining')
+EthQuery.prototype.hashrate =                            generateFnFor('eth_hashrate')
+EthQuery.prototype.gasPrice =                            generateFnFor('eth_gasPrice')
+EthQuery.prototype.accounts =                            generateFnFor('eth_accounts')
+EthQuery.prototype.blockNumber =                         generateFnFor('eth_blockNumber')
+EthQuery.prototype.getBlockTransactionCountByHash =      generateFnFor('eth_getBlockTransactionCountByHash')
+EthQuery.prototype.getBlockTransactionCountByNumber =    generateFnFor('eth_getBlockTransactionCountByNumber')
+EthQuery.prototype.getUncleCountByBlockHash =            generateFnFor('eth_getUncleCountByBlockHash')
+EthQuery.prototype.getUncleCountByBlockNumber =          generateFnFor('eth_getUncleCountByBlockNumber')
+EthQuery.prototype.sign =                                generateFnFor('eth_sign')
+EthQuery.prototype.sendTransaction =                     generateFnFor('eth_sendTransaction')
+EthQuery.prototype.sendRawTransaction =                  generateFnFor('eth_sendRawTransaction')
+EthQuery.prototype.estimateGas =                         generateFnFor('eth_estimateGas')
+EthQuery.prototype.getBlockByHash =                      generateFnFor('eth_getBlockByHash')
+EthQuery.prototype.getBlockByNumber =                    generateFnFor('eth_getBlockByNumber')
+EthQuery.prototype.getTransactionByHash =                generateFnFor('eth_getTransactionByHash')
+EthQuery.prototype.getTransactionByBlockHashAndIndex =   generateFnFor('eth_getTransactionByBlockHashAndIndex')
+EthQuery.prototype.getTransactionByBlockNumberAndIndex = generateFnFor('eth_getTransactionByBlockNumberAndIndex')
+EthQuery.prototype.getTransactionReceipt =               generateFnFor('eth_getTransactionReceipt')
+EthQuery.prototype.getUncleByBlockHashAndIndex =         generateFnFor('eth_getUncleByBlockHashAndIndex')
+EthQuery.prototype.getUncleByBlockNumberAndIndex =       generateFnFor('eth_getUncleByBlockNumberAndIndex')
+EthQuery.prototype.getCompilers =                        generateFnFor('eth_getCompilers')
+EthQuery.prototype.compileLLL =                          generateFnFor('eth_compileLLL')
+EthQuery.prototype.compileSolidity =                     generateFnFor('eth_compileSolidity')
+EthQuery.prototype.compileSerpent =                      generateFnFor('eth_compileSerpent')
+EthQuery.prototype.newFilter =                           generateFnFor('eth_newFilter')
+EthQuery.prototype.newBlockFilter =                      generateFnFor('eth_newBlockFilter')
+EthQuery.prototype.newPendingTransactionFilter =         generateFnFor('eth_newPendingTransactionFilter')
+EthQuery.prototype.uninstallFilter =                     generateFnFor('eth_uninstallFilter')
+EthQuery.prototype.getFilterChanges =                    generateFnFor('eth_getFilterChanges')
+EthQuery.prototype.getFilterLogs =                       generateFnFor('eth_getFilterLogs')
+EthQuery.prototype.getLogs =                             generateFnFor('eth_getLogs')
+EthQuery.prototype.getWork =                             generateFnFor('eth_getWork')
+EthQuery.prototype.submitWork =                          generateFnFor('eth_submitWork')
+EthQuery.prototype.submitHashrate =                      generateFnFor('eth_submitHashrate')
+
+// network level
+
+EthQuery.prototype.sendAsync = function(opts, cb){
+  const self = this
+  self.currentProvider.sendAsync(createPayload(opts), function(err, response){
+    if (err || response.error) console.log('ethquery failure', opts, err || response.error)
+    if (!err && response.error) err = new Error('EthQuery - RPC Error - '+response.error.message)
+    if (err) return cb(err)
+    cb(null, response.result)
+  })
+}
+
+// util
+
+function generateFnFor(methodName){
+  return function(){
+    const self = this
+    var args = [].slice.call(arguments)
+    var cb = args.pop()
+    self.sendAsync({
+      method: methodName,
+      params: args,
+    }, cb)
+  }
+}
+
+function generateFnWithDefaultBlockFor(argCount, methodName){
+  return function(){
+    const self = this
+    var args = [].slice.call(arguments)
+    var cb = args.pop()
+    // set optional default block param
+    if (args.length < argCount) args.push('latest')
+    self.sendAsync({
+      method: methodName,
+      params: args,
+    }, cb)
+  }
+}
+
+function createPayload(data){
+  return extend({
+    // defaults
+    id: createRandomId(),
+    jsonrpc: '2.0',
+    params: [],
+    // user-specified
+  }, data)
+}
+
+},{"async":6,"json-rpc-random-id":54,"xtend":99}],39:[function(require,module,exports){
 (function (Buffer){
 const createKeccakHash = require('keccak')
 const secp256k1 = require('secp256k1')
@@ -17082,7 +18482,7 @@ exports.defineProperties = function (self, fields, data) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"assert":2,"bn.js":6,"buffer":11,"create-hash":14,"ethjs-util":34,"keccak":48,"rlp":69,"secp256k1":70}],34:[function(require,module,exports){
+},{"assert":2,"bn.js":9,"buffer":14,"create-hash":17,"ethjs-util":40,"keccak":55,"rlp":77,"secp256k1":78}],40:[function(require,module,exports){
 (function (Buffer){
 'use strict';
 
@@ -17305,7 +18705,7 @@ module.exports = {
   isHexString: isHexString
 };
 }).call(this,require("buffer").Buffer)
-},{"buffer":11,"is-hex-prefixed":46,"strip-hex-prefix":86}],35:[function(require,module,exports){
+},{"buffer":14,"is-hex-prefixed":52,"strip-hex-prefix":94}],41:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -17609,7 +19009,7 @@ function isUndefined(arg) {
   return arg === void 0;
 }
 
-},{}],36:[function(require,module,exports){
+},{}],42:[function(require,module,exports){
 var hash = exports;
 
 hash.utils = require('./hash/utils');
@@ -17626,7 +19026,7 @@ hash.sha384 = hash.sha.sha384;
 hash.sha512 = hash.sha.sha512;
 hash.ripemd160 = hash.ripemd.ripemd160;
 
-},{"./hash/common":37,"./hash/hmac":38,"./hash/ripemd":39,"./hash/sha":40,"./hash/utils":41}],37:[function(require,module,exports){
+},{"./hash/common":43,"./hash/hmac":44,"./hash/ripemd":45,"./hash/sha":46,"./hash/utils":47}],43:[function(require,module,exports){
 var hash = require('../hash');
 var utils = hash.utils;
 var assert = utils.assert;
@@ -17719,7 +19119,7 @@ BlockHash.prototype._pad = function pad() {
   return res;
 };
 
-},{"../hash":36}],38:[function(require,module,exports){
+},{"../hash":42}],44:[function(require,module,exports){
 var hmac = exports;
 
 var hash = require('../hash');
@@ -17769,7 +19169,7 @@ Hmac.prototype.digest = function digest(enc) {
   return this.outer.digest(enc);
 };
 
-},{"../hash":36}],39:[function(require,module,exports){
+},{"../hash":42}],45:[function(require,module,exports){
 var hash = require('../hash');
 var utils = hash.utils;
 
@@ -17915,7 +19315,7 @@ var sh = [
   8, 5, 12, 9, 12, 5, 14, 6, 8, 13, 6, 5, 15, 13, 11, 11
 ];
 
-},{"../hash":36}],40:[function(require,module,exports){
+},{"../hash":42}],46:[function(require,module,exports){
 var hash = require('../hash');
 var utils = hash.utils;
 var assert = utils.assert;
@@ -18481,7 +19881,7 @@ function g1_512_lo(xh, xl) {
   return r;
 }
 
-},{"../hash":36}],41:[function(require,module,exports){
+},{"../hash":42}],47:[function(require,module,exports){
 var utils = exports;
 var inherits = require('inherits');
 
@@ -18740,7 +20140,7 @@ function shr64_lo(ah, al, num) {
 };
 exports.shr64_lo = shr64_lo;
 
-},{"inherits":44}],42:[function(require,module,exports){
+},{"inherits":50}],48:[function(require,module,exports){
 'use strict';
 
 var hash = require('hash.js');
@@ -18855,7 +20255,7 @@ HmacDRBG.prototype.generate = function generate(len, enc, add, addEnc) {
   return utils.encode(res, enc);
 };
 
-},{"hash.js":36,"minimalistic-assert":54,"minimalistic-crypto-utils":55}],43:[function(require,module,exports){
+},{"hash.js":42,"minimalistic-assert":61,"minimalistic-crypto-utils":62}],49:[function(require,module,exports){
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
   var eLen = nBytes * 8 - mLen - 1
@@ -18941,7 +20341,7 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128
 }
 
-},{}],44:[function(require,module,exports){
+},{}],50:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -18966,7 +20366,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],45:[function(require,module,exports){
+},{}],51:[function(require,module,exports){
 /*!
  * Determine if an object is a Buffer
  *
@@ -18989,7 +20389,7 @@ function isSlowBuffer (obj) {
   return typeof obj.readFloatLE === 'function' && typeof obj.slice === 'function' && isBuffer(obj.slice(0, 0))
 }
 
-},{}],46:[function(require,module,exports){
+},{}],52:[function(require,module,exports){
 /**
  * Returns a `Boolean` on whether or not the a `String` starts with '0x'
  * @param {String} str the string input value
@@ -19004,18 +20404,32 @@ module.exports = function isHexPrefixed(str) {
   return str.slice(0, 2) === '0x';
 }
 
-},{}],47:[function(require,module,exports){
+},{}],53:[function(require,module,exports){
 var toString = {}.toString;
 
 module.exports = Array.isArray || function (arr) {
   return toString.call(arr) == '[object Array]';
 };
 
-},{}],48:[function(require,module,exports){
+},{}],54:[function(require,module,exports){
+module.exports = IdIterator
+
+function IdIterator(opts){
+  opts = opts || {}
+  var max = opts.max || Number.MAX_SAFE_INTEGER
+  var idCounter = typeof opts.start !== 'undefined' ? opts.start : Math.floor(Math.random() * max)
+
+  return function createRandomId () {
+    idCounter = idCounter % max
+    return idCounter++
+  }
+
+}
+},{}],55:[function(require,module,exports){
 'use strict'
 module.exports = require('./lib/api')(require('./lib/keccak'))
 
-},{"./lib/api":49,"./lib/keccak":53}],49:[function(require,module,exports){
+},{"./lib/api":56,"./lib/keccak":60}],56:[function(require,module,exports){
 'use strict'
 var createKeccak = require('./keccak')
 var createShake = require('./shake')
@@ -19045,7 +20459,7 @@ module.exports = function (KeccakState) {
   }
 }
 
-},{"./keccak":50,"./shake":51}],50:[function(require,module,exports){
+},{"./keccak":57,"./shake":58}],57:[function(require,module,exports){
 (function (Buffer){
 'use strict'
 var Transform = require('stream').Transform
@@ -19132,7 +20546,7 @@ module.exports = function (KeccakState) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":11,"inherits":44,"stream":84}],51:[function(require,module,exports){
+},{"buffer":14,"inherits":50,"stream":92}],58:[function(require,module,exports){
 (function (Buffer){
 'use strict'
 var Transform = require('stream').Transform
@@ -19210,7 +20624,7 @@ module.exports = function (KeccakState) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":11,"inherits":44,"stream":84}],52:[function(require,module,exports){
+},{"buffer":14,"inherits":50,"stream":92}],59:[function(require,module,exports){
 'use strict'
 var P1600_ROUND_CONSTANTS = [1, 0, 32898, 0, 32906, 2147483648, 2147516416, 2147483648, 32907, 0, 2147483649, 0, 2147516545, 2147483648, 32777, 2147483648, 138, 0, 136, 0, 2147516425, 0, 2147483658, 0, 2147516555, 0, 139, 2147483648, 32905, 2147483648, 32771, 2147483648, 32770, 2147483648, 128, 2147483648, 32778, 0, 2147483658, 2147483648, 2147516545, 2147483648, 32896, 2147483648, 2147483649, 0, 2147516424, 2147483648]
 
@@ -19399,7 +20813,7 @@ exports.p1600 = function (s) {
   }
 }
 
-},{}],53:[function(require,module,exports){
+},{}],60:[function(require,module,exports){
 (function (Buffer){
 'use strict'
 var keccakState = require('./keccak-state-unroll')
@@ -19472,7 +20886,7 @@ Keccak.prototype.copy = function (dest) {
 module.exports = Keccak
 
 }).call(this,require("buffer").Buffer)
-},{"./keccak-state-unroll":52,"buffer":11}],54:[function(require,module,exports){
+},{"./keccak-state-unroll":59,"buffer":14}],61:[function(require,module,exports){
 module.exports = assert;
 
 function assert(val, msg) {
@@ -19485,7 +20899,7 @@ assert.equal = function assertEqual(l, r, msg) {
     throw new Error(msg || ('Assertion failed: ' + l + ' != ' + r));
 };
 
-},{}],55:[function(require,module,exports){
+},{}],62:[function(require,module,exports){
 'use strict';
 
 var utils = exports;
@@ -19545,7 +20959,77 @@ utils.encode = function encode(arr, enc) {
     return arr;
 };
 
-},{}],56:[function(require,module,exports){
+},{}],63:[function(require,module,exports){
+'use strict';
+
+var processFn = function (fn, P, opts) {
+	return function () {
+		var that = this;
+		var args = new Array(arguments.length);
+
+		for (var i = 0; i < arguments.length; i++) {
+			args[i] = arguments[i];
+		}
+
+		return new P(function (resolve, reject) {
+			args.push(function (err, result) {
+				if (err) {
+					reject(err);
+				} else if (opts.multiArgs) {
+					var results = new Array(arguments.length - 1);
+
+					for (var i = 1; i < arguments.length; i++) {
+						results[i - 1] = arguments[i];
+					}
+
+					resolve(results);
+				} else {
+					resolve(result);
+				}
+			});
+
+			fn.apply(that, args);
+		});
+	};
+};
+
+var pify = module.exports = function (obj, P, opts) {
+	if (typeof P !== 'function') {
+		opts = P;
+		P = Promise;
+	}
+
+	opts = opts || {};
+	opts.exclude = opts.exclude || [/.+Sync$/];
+
+	var filter = function (key) {
+		var match = function (pattern) {
+			return typeof pattern === 'string' ? key === pattern : pattern.test(key);
+		};
+
+		return opts.include ? opts.include.some(match) : !opts.exclude.some(match);
+	};
+
+	var ret = typeof obj === 'function' ? function () {
+		if (opts.excludeMain) {
+			return obj.apply(this, arguments);
+		}
+
+		return processFn(obj, P, opts).apply(this, arguments);
+	} : {};
+
+	return Object.keys(obj).reduce(function (ret, key) {
+		var x = obj[key];
+
+		ret[key] = typeof x === 'function' && filter(key) ? processFn(x, P, opts) : x;
+
+		return ret;
+	}, ret);
+};
+
+pify.all = pify;
+
+},{}],64:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -19592,10 +21076,10 @@ function nextTick(fn, arg1, arg2, arg3) {
 }
 
 }).call(this,require('_process'))
-},{"_process":9}],57:[function(require,module,exports){
+},{"_process":12}],65:[function(require,module,exports){
 module.exports = require("./lib/_stream_duplex.js")
 
-},{"./lib/_stream_duplex.js":58}],58:[function(require,module,exports){
+},{"./lib/_stream_duplex.js":66}],66:[function(require,module,exports){
 // a duplex stream is just a stream that is both readable and writable.
 // Since JS doesn't have multiple prototypal inheritance, this class
 // prototypally inherits from Readable, and then parasitically from
@@ -19671,7 +21155,7 @@ function forEach(xs, f) {
     f(xs[i], i);
   }
 }
-},{"./_stream_readable":60,"./_stream_writable":62,"core-util-is":13,"inherits":44,"process-nextick-args":56}],59:[function(require,module,exports){
+},{"./_stream_readable":68,"./_stream_writable":70,"core-util-is":16,"inherits":50,"process-nextick-args":64}],67:[function(require,module,exports){
 // a passthrough stream.
 // basically just the most minimal sort of Transform stream.
 // Every written chunk gets output as-is.
@@ -19698,7 +21182,7 @@ function PassThrough(options) {
 PassThrough.prototype._transform = function (chunk, encoding, cb) {
   cb(null, chunk);
 };
-},{"./_stream_transform":61,"core-util-is":13,"inherits":44}],60:[function(require,module,exports){
+},{"./_stream_transform":69,"core-util-is":16,"inherits":50}],68:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -20642,7 +22126,7 @@ function indexOf(xs, x) {
   return -1;
 }
 }).call(this,require('_process'))
-},{"./_stream_duplex":58,"./internal/streams/BufferList":63,"_process":9,"buffer":11,"buffer-shims":10,"core-util-is":13,"events":35,"inherits":44,"isarray":47,"process-nextick-args":56,"string_decoder/":85,"util":8}],61:[function(require,module,exports){
+},{"./_stream_duplex":66,"./internal/streams/BufferList":71,"_process":12,"buffer":14,"buffer-shims":13,"core-util-is":16,"events":41,"inherits":50,"isarray":53,"process-nextick-args":64,"string_decoder/":93,"util":11}],69:[function(require,module,exports){
 // a transform stream is a readable/writable stream where you do
 // something with the data.  Sometimes it's called a "filter",
 // but that's not a great name for it, since that implies a thing where
@@ -20825,7 +22309,7 @@ function done(stream, er, data) {
 
   return stream.push(null);
 }
-},{"./_stream_duplex":58,"core-util-is":13,"inherits":44}],62:[function(require,module,exports){
+},{"./_stream_duplex":66,"core-util-is":16,"inherits":50}],70:[function(require,module,exports){
 (function (process){
 // A bit simpler than readable streams.
 // Implement an async ._write(chunk, encoding, cb), and it'll handle all
@@ -21379,7 +22863,7 @@ function CorkedRequest(state) {
   };
 }
 }).call(this,require('_process'))
-},{"./_stream_duplex":58,"_process":9,"buffer":11,"buffer-shims":10,"core-util-is":13,"events":35,"inherits":44,"process-nextick-args":56,"util-deprecate":87}],63:[function(require,module,exports){
+},{"./_stream_duplex":66,"_process":12,"buffer":14,"buffer-shims":13,"core-util-is":16,"events":41,"inherits":50,"process-nextick-args":64,"util-deprecate":95}],71:[function(require,module,exports){
 'use strict';
 
 var Buffer = require('buffer').Buffer;
@@ -21444,10 +22928,10 @@ BufferList.prototype.concat = function (n) {
   }
   return ret;
 };
-},{"buffer":11,"buffer-shims":10}],64:[function(require,module,exports){
+},{"buffer":14,"buffer-shims":13}],72:[function(require,module,exports){
 module.exports = require("./lib/_stream_passthrough.js")
 
-},{"./lib/_stream_passthrough.js":59}],65:[function(require,module,exports){
+},{"./lib/_stream_passthrough.js":67}],73:[function(require,module,exports){
 (function (process){
 var Stream = (function (){
   try {
@@ -21467,13 +22951,13 @@ if (!process.browser && process.env.READABLE_STREAM === 'disable' && Stream) {
 }
 
 }).call(this,require('_process'))
-},{"./lib/_stream_duplex.js":58,"./lib/_stream_passthrough.js":59,"./lib/_stream_readable.js":60,"./lib/_stream_transform.js":61,"./lib/_stream_writable.js":62,"_process":9}],66:[function(require,module,exports){
+},{"./lib/_stream_duplex.js":66,"./lib/_stream_passthrough.js":67,"./lib/_stream_readable.js":68,"./lib/_stream_transform.js":69,"./lib/_stream_writable.js":70,"_process":12}],74:[function(require,module,exports){
 module.exports = require("./lib/_stream_transform.js")
 
-},{"./lib/_stream_transform.js":61}],67:[function(require,module,exports){
+},{"./lib/_stream_transform.js":69}],75:[function(require,module,exports){
 module.exports = require("./lib/_stream_writable.js")
 
-},{"./lib/_stream_writable.js":62}],68:[function(require,module,exports){
+},{"./lib/_stream_writable.js":70}],76:[function(require,module,exports){
 (function (Buffer){
 /*
 CryptoJS v3.1.2
@@ -21687,7 +23171,7 @@ function ripemd160 (message) {
 module.exports = ripemd160
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":11}],69:[function(require,module,exports){
+},{"buffer":14}],77:[function(require,module,exports){
 (function (Buffer){
 const assert = require('assert')
 /**
@@ -21920,11 +23404,11 @@ function toBuffer (v) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"assert":2,"buffer":11}],70:[function(require,module,exports){
+},{"assert":2,"buffer":14}],78:[function(require,module,exports){
 'use strict'
 module.exports = require('./lib')(require('./lib/elliptic'))
 
-},{"./lib":74,"./lib/elliptic":73}],71:[function(require,module,exports){
+},{"./lib":82,"./lib/elliptic":81}],79:[function(require,module,exports){
 (function (Buffer){
 'use strict'
 var toString = Object.prototype.toString
@@ -21972,7 +23456,7 @@ exports.isNumberInInterval = function (number, x, y, message) {
 }
 
 }).call(this,{"isBuffer":require("../../is-buffer/index.js")})
-},{"../../is-buffer/index.js":45}],72:[function(require,module,exports){
+},{"../../is-buffer/index.js":51}],80:[function(require,module,exports){
 (function (Buffer){
 'use strict'
 var bip66 = require('bip66')
@@ -22173,7 +23657,7 @@ exports.signatureImportLax = function (sig) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"bip66":5,"buffer":11}],73:[function(require,module,exports){
+},{"bip66":8,"buffer":14}],81:[function(require,module,exports){
 (function (Buffer){
 'use strict'
 var createHash = require('create-hash')
@@ -22424,7 +23908,7 @@ exports.ecdhUnsafe = function (publicKey, privateKey, compressed) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"../messages.json":75,"bn.js":6,"buffer":11,"create-hash":14,"elliptic":17}],74:[function(require,module,exports){
+},{"../messages.json":83,"bn.js":9,"buffer":14,"create-hash":17,"elliptic":20}],82:[function(require,module,exports){
 'use strict'
 var assert = require('./assert')
 var der = require('./der')
@@ -22657,7 +24141,7 @@ module.exports = function (secp256k1) {
   }
 }
 
-},{"./assert":71,"./der":72,"./messages.json":75}],75:[function(require,module,exports){
+},{"./assert":79,"./der":80,"./messages.json":83}],83:[function(require,module,exports){
 module.exports={
   "COMPRESSED_TYPE_INVALID": "compressed should be a boolean",
   "EC_PRIVATE_KEY_TYPE_INVALID": "private key should be a Buffer",
@@ -22695,7 +24179,7 @@ module.exports={
   "TWEAK_LENGTH_INVALID": "tweak length is invalid"
 }
 
-},{}],76:[function(require,module,exports){
+},{}],84:[function(require,module,exports){
 (function (Buffer){
 // prototype class for hash functions
 function Hash (blockSize, finalSize) {
@@ -22768,7 +24252,7 @@ Hash.prototype._update = function () {
 module.exports = Hash
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":11}],77:[function(require,module,exports){
+},{"buffer":14}],85:[function(require,module,exports){
 var exports = module.exports = function SHA (algorithm) {
   algorithm = algorithm.toLowerCase()
 
@@ -22785,7 +24269,7 @@ exports.sha256 = require('./sha256')
 exports.sha384 = require('./sha384')
 exports.sha512 = require('./sha512')
 
-},{"./sha":78,"./sha1":79,"./sha224":80,"./sha256":81,"./sha384":82,"./sha512":83}],78:[function(require,module,exports){
+},{"./sha":86,"./sha1":87,"./sha224":88,"./sha256":89,"./sha384":90,"./sha512":91}],86:[function(require,module,exports){
 (function (Buffer){
 /*
  * A JavaScript implementation of the Secure Hash Algorithm, SHA-0, as defined
@@ -22882,7 +24366,7 @@ Sha.prototype._hash = function () {
 module.exports = Sha
 
 }).call(this,require("buffer").Buffer)
-},{"./hash":76,"buffer":11,"inherits":44}],79:[function(require,module,exports){
+},{"./hash":84,"buffer":14,"inherits":50}],87:[function(require,module,exports){
 (function (Buffer){
 /*
  * A JavaScript implementation of the Secure Hash Algorithm, SHA-1, as defined
@@ -22984,7 +24468,7 @@ Sha1.prototype._hash = function () {
 module.exports = Sha1
 
 }).call(this,require("buffer").Buffer)
-},{"./hash":76,"buffer":11,"inherits":44}],80:[function(require,module,exports){
+},{"./hash":84,"buffer":14,"inherits":50}],88:[function(require,module,exports){
 (function (Buffer){
 /**
  * A JavaScript implementation of the Secure Hash Algorithm, SHA-256, as defined
@@ -23040,7 +24524,7 @@ Sha224.prototype._hash = function () {
 module.exports = Sha224
 
 }).call(this,require("buffer").Buffer)
-},{"./hash":76,"./sha256":81,"buffer":11,"inherits":44}],81:[function(require,module,exports){
+},{"./hash":84,"./sha256":89,"buffer":14,"inherits":50}],89:[function(require,module,exports){
 (function (Buffer){
 /**
  * A JavaScript implementation of the Secure Hash Algorithm, SHA-256, as defined
@@ -23178,7 +24662,7 @@ Sha256.prototype._hash = function () {
 module.exports = Sha256
 
 }).call(this,require("buffer").Buffer)
-},{"./hash":76,"buffer":11,"inherits":44}],82:[function(require,module,exports){
+},{"./hash":84,"buffer":14,"inherits":50}],90:[function(require,module,exports){
 (function (Buffer){
 var inherits = require('inherits')
 var SHA512 = require('./sha512')
@@ -23238,7 +24722,7 @@ Sha384.prototype._hash = function () {
 module.exports = Sha384
 
 }).call(this,require("buffer").Buffer)
-},{"./hash":76,"./sha512":83,"buffer":11,"inherits":44}],83:[function(require,module,exports){
+},{"./hash":84,"./sha512":91,"buffer":14,"inherits":50}],91:[function(require,module,exports){
 (function (Buffer){
 var inherits = require('inherits')
 var Hash = require('./hash')
@@ -23501,7 +24985,7 @@ Sha512.prototype._hash = function () {
 module.exports = Sha512
 
 }).call(this,require("buffer").Buffer)
-},{"./hash":76,"buffer":11,"inherits":44}],84:[function(require,module,exports){
+},{"./hash":84,"buffer":14,"inherits":50}],92:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -23630,7 +25114,7 @@ Stream.prototype.pipe = function(dest, options) {
   return dest;
 };
 
-},{"events":35,"inherits":44,"readable-stream/duplex.js":57,"readable-stream/passthrough.js":64,"readable-stream/readable.js":65,"readable-stream/transform.js":66,"readable-stream/writable.js":67}],85:[function(require,module,exports){
+},{"events":41,"inherits":50,"readable-stream/duplex.js":65,"readable-stream/passthrough.js":72,"readable-stream/readable.js":73,"readable-stream/transform.js":74,"readable-stream/writable.js":75}],93:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -23853,7 +25337,7 @@ function base64DetectIncompleteChar(buffer) {
   this.charLength = this.charReceived ? 3 : 0;
 }
 
-},{"buffer":11}],86:[function(require,module,exports){
+},{"buffer":14}],94:[function(require,module,exports){
 var isHexPrefixed = require('is-hex-prefixed');
 
 /**
@@ -23869,7 +25353,7 @@ module.exports = function stripHexPrefix(str) {
   return isHexPrefixed(str) ? str.slice(2) : str;
 }
 
-},{"is-hex-prefixed":46}],87:[function(require,module,exports){
+},{"is-hex-prefixed":52}],95:[function(require,module,exports){
 (function (global){
 
 /**
@@ -23940,16 +25424,16 @@ function config (name) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],88:[function(require,module,exports){
-arguments[4][44][0].apply(exports,arguments)
-},{"dup":44}],89:[function(require,module,exports){
+},{}],96:[function(require,module,exports){
+arguments[4][50][0].apply(exports,arguments)
+},{"dup":50}],97:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],90:[function(require,module,exports){
+},{}],98:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -24539,7 +26023,7 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":89,"_process":9,"inherits":88}],91:[function(require,module,exports){
+},{"./support/isBuffer":97,"_process":12,"inherits":96}],99:[function(require,module,exports){
 module.exports = extend
 
 var hasOwnProperty = Object.prototype.hasOwnProperty;
@@ -24560,7 +26044,7 @@ function extend() {
     return target
 }
 
-},{}],92:[function(require,module,exports){
+},{}],100:[function(require,module,exports){
 const getRandomId = require('./random-id.js')
 const extend = require('xtend')
 
@@ -24577,7 +26061,7 @@ function createPayload(data){
   }, data)
 }
 
-},{"./random-id.js":93,"xtend":91}],93:[function(require,module,exports){
+},{"./random-id.js":101,"xtend":99}],101:[function(require,module,exports){
 // gotta keep it within MAX_SAFE_INTEGER
 const extraDigits = 3
 
@@ -24592,7 +26076,7 @@ function createRandomId(){
   // 16 digits
   return datePart+extraPart
 }
-},{}],94:[function(require,module,exports){
+},{}],102:[function(require,module,exports){
 module.exports = {
   cacheIdentifierForPayload: cacheIdentifierForPayload,
   canCache: canCache,
@@ -24734,7 +26218,7 @@ function cacheTypeForPayload(payload) {
   }
 }
 
-},{}],95:[function(require,module,exports){
+},{}],103:[function(require,module,exports){
 const EventEmitter = require('events').EventEmitter
 const inherits = require('util').inherits
 
@@ -24769,5 +26253,5 @@ Stoplight.prototype.await = function(fn){
     setTimeout(fn)
   }
 }
-},{"events":35,"util":90}]},{},[1])(1)
+},{"events":41,"util":98}]},{},[1])(1)
 });

@@ -46,7 +46,7 @@ function Web3ProviderEngine(opts) {
 Web3ProviderEngine.prototype.start = function(){
   const self = this
   // start block polling
-  self._blockTracker.start()
+  // self._blockTracker.start()
 }
 
 Web3ProviderEngine.prototype.stop = function(){
@@ -67,7 +67,7 @@ Web3ProviderEngine.prototype.send = function(payload){
 
 Web3ProviderEngine.prototype.sendAsync = function(payload, cb){
   const self = this
-  self._ready.await(function(){
+  // self._ready.await(function(){
 
     if (Array.isArray(payload)) {
       // handle batch
@@ -77,7 +77,7 @@ Web3ProviderEngine.prototype.sendAsync = function(payload, cb){
       self._handleAsync(payload, cb)
     }
 
-  })
+  //})
 }
 
 // private
