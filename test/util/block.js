@@ -13,11 +13,20 @@ module.exports = TestBlockProvider
 inherits(TestBlockProvider, FixtureProvider)
 function TestBlockProvider(methods){
   const self = this
-  self._currentBlock = createBlock()
+  self._blockChain = {}
   self._pendingTxs = []
+  self.nextBlock()
   FixtureProvider.call(self, {
     eth_getBlockByNumber: function(payload, next, end){
-      end(null, self._currentBlock)
+      const blockRef = payload.params[0]
+      let result
+      if (blockRef === 'latest') {
+        result = self._currentBlock
+      } else {
+        result = self._blockChain[blockRef]
+      }
+      
+      end(null, result)
     },
     eth_getLogs: function(payload, next, end){
       end(null, self._currentBlock.transactions)
@@ -31,8 +40,10 @@ TestBlockProvider.incrementHex = incrementHex
 
 TestBlockProvider.prototype.nextBlock = function(blockParams){
   const self = this
-  self._currentBlock = createBlock(blockParams, self._currentBlock, self._pendingTxs)
+  const newBlock = createBlock(blockParams, self._currentBlock, self._pendingTxs)
   self._pendingTxs = []
+  self._currentBlock = newBlock
+  self._blockChain[newBlock.number] = newBlock
   return self._currentBlock
 }
 

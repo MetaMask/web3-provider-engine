@@ -1,10 +1,11 @@
 const EventEmitter = require('events').EventEmitter
 const inherits = require('util').inherits
+const ethUtil = require('ethereumjs-util')
+const EthBlockTracker = require('eth-block-tracker')
+const async = require('async')
 const Stoplight = require('./util/stoplight.js')
 const cacheUtils = require('./util/rpc-cache-utils.js')
 const createPayload = require('./util/create-payload.js')
-const ethUtil = require('ethereumjs-util')
-const async = require('async')
 
 module.exports = Web3ProviderEngine
 
@@ -15,16 +16,26 @@ function Web3ProviderEngine(opts) {
   const self = this
   EventEmitter.call(self)
   self.setMaxListeners(30)
+  // parse options
+  opts = opts || {}
+  // block polling
+  const skipInitBlockProvider = { sendAsync: self._handleAsync.bind(self) }
+  self._blockTracker = new EthBlockTracker({
+    provider: skipInitBlockProvider,
+    pollingInterval: opts.pollingInterval || 4000,
+  })
+  // handle new block
+  self._blockTracker.on('block', (jsonBlock) => {
+    const bufferBlock = toBufferBlock(jsonBlock)
+    self._setCurrentBlock(bufferBlock)
+  })
   // set initialization blocker
   self._ready = new Stoplight()
   // unblock initialization after first block
-  self.once('block', function(){
+  self._blockTracker.once('latest', () => {
+    console.log('_blockTracker wait for first block')
     self._ready.go()
   })
-  // parse options
-  opts = opts || {}
-  self._pollingShouldUnref = opts.pollingShouldUnref
-  self._pollingInterval = opts.pollingInterval || 4000
   // local state
   self.currentBlock = null
   self._providers = []
@@ -35,13 +46,13 @@ function Web3ProviderEngine(opts) {
 Web3ProviderEngine.prototype.start = function(){
   const self = this
   // start block polling
-  self._startPolling()
+  self._blockTracker.start()
 }
 
 Web3ProviderEngine.prototype.stop = function(){
   const self = this
   // stop block polling
-  self._stopPolling()
+  self._blockTracker.stop()
 }
 
 Web3ProviderEngine.prototype.addProvider = function(source){
@@ -138,112 +149,40 @@ Web3ProviderEngine.prototype._handleAsync = function(payload, finished) {
 // from remote-data
 //
 
-Web3ProviderEngine.prototype._startPolling = function(){
-  const self = this
-
-  self._fetchLatestBlock()
-
-  self._pollIntervalId = setInterval(function() {
-    self._fetchLatestBlock()
-  }, self._pollingInterval)
-
-  // Tell node that block polling shouldn't keep the process open.
-  // https://nodejs.org/api/timers.html#timers_timeout_unref
-  if (self._pollIntervalId.unref && self._pollingShouldUnref) {
-    self._pollIntervalId.unref()
-  }
-}
-
-Web3ProviderEngine.prototype._stopPolling = function(){
-  const self = this
-  clearInterval(self._pollIntervalId)
-}
-
-Web3ProviderEngine.prototype._fetchLatestBlock = function(cb) {
-  if (!cb) cb = function(err) { if (err) return console.error(err) }
-
-  const self = this
-
-  self._fetchBlock('latest', function(err, block) {
-    if (err) {
-      self.emit('error', err)
-      return cb(err)
-    }
-
-    if (!self.currentBlock || 0 !== self.currentBlock.hash.compare(block.hash)) {
-      self._setCurrentBlock(block)
-    }
-
-    cb(null, block)
-  })
-}
-
 Web3ProviderEngine.prototype._setCurrentBlock = function(block){
   const self = this
   self.currentBlock = block
   self.emit('block', block)
 }
 
-Web3ProviderEngine.prototype._fetchBlock = function(number, cb){
+Web3ProviderEngine.prototype._inspectResponseForNewBlock = function(payload, resultObj, cb) {
   const self = this
 
-  // skip: cache, readiness, block number rewrite
-  self._handleAsync(createPayload({
-    method: 'eth_getBlockByNumber',
-    params: [number, false],
-  }), function(err, resultObj){
-    if (err) return cb(err)
-    if (resultObj.error) return cb(resultObj.error)
-    var data = resultObj.result
-
-    // json -> buffers
-    var block = {
-      number:           ethUtil.toBuffer(data.number),
-      hash:             ethUtil.toBuffer(data.hash),
-      parentHash:       ethUtil.toBuffer(data.parentHash),
-      nonce:            ethUtil.toBuffer(data.nonce),
-      sha3Uncles:       ethUtil.toBuffer(data.sha3Uncles),
-      logsBloom:        ethUtil.toBuffer(data.logsBloom),
-      transactionsRoot: ethUtil.toBuffer(data.transactionsRoot),
-      stateRoot:        ethUtil.toBuffer(data.stateRoot),
-      receiptsRoot:     ethUtil.toBuffer(data.receiptRoot || data.receiptsRoot),
-      miner:            ethUtil.toBuffer(data.miner),
-      difficulty:       ethUtil.toBuffer(data.difficulty),
-      totalDifficulty:  ethUtil.toBuffer(data.totalDifficulty),
-      size:             ethUtil.toBuffer(data.size),
-      extraData:        ethUtil.toBuffer(data.extraData),
-      gasLimit:         ethUtil.toBuffer(data.gasLimit),
-      gasUsed:          ethUtil.toBuffer(data.gasUsed),
-      timestamp:        ethUtil.toBuffer(data.timestamp),
-      transactions:     data.transactions,
-    }
-
-    cb(null, block)
-  })
-}
-
-Web3ProviderEngine.prototype._inspectResponseForNewBlock = function(payload, resultObj, cb) {
-
   // these methods return responses with a block reference
-  if (payload.method != 'eth_getTransactionByHash'
-   && payload.method != 'eth_getTransactionReceipt') {
+  if (payload.method !== 'eth_getTransactionByHash'
+   && payload.method !== 'eth_getTransactionReceipt') {
     return cb(null, resultObj)
   }
 
-  if (resultObj.result == null || resultObj.result.blockNumber == null) {
+  if (resultObj.result === null
+   || resultObj.result.blockNumber === null) {
     return cb(null, resultObj)
   }
 
-  var blockNumber = ethUtil.toBuffer(resultObj.result.blockNumber)
+  const blockNumber = ethUtil.toBuffer(resultObj.result.blockNumber)
 
   // If we found a new block number on the result,
-  // fetch the block details before returning the original response.
+  // and it is higher than our current block,
+  // fetch for a new latest block before returning the original response.
   // We do this b/c a user might be polling for a tx by hash,
-  // and when getting a response may assume that we are on the new block and
+  // and may get a result that includes a reference to a block we havent seen yet.
+  // Without this blocker, the user may assume that we are on the new block and
   // try to query data from that block but would otherwise get old data due to
   // our blockTag-rewriting mechanism
-  if (0 !== this.currentBlock.number.compare(blockNumber)) {
-    this._fetchLatestBlock(function(err, block) {
+  if (-1 === self.currentBlock.number.compare(blockNumber)) {
+    console.log('_inspectResponseForNewBlock start')
+    self._blockTracker._performSync().then(() => {
+      console.log('_inspectResponseForNewBlock end')
       cb(null, resultObj)
     })
   } else {
@@ -254,7 +193,29 @@ Web3ProviderEngine.prototype._inspectResponseForNewBlock = function(payload, res
 
 // util
 
-function SourceNotFoundError(payload){
+function SourceNotFoundError (payload) {
   return new Error('Source for RPC method "'+payload.method+'" not found.')
 }
 
+function toBufferBlock (jsonBlock) {
+  return {
+    number:           ethUtil.toBuffer(jsonBlock.number),
+    hash:             ethUtil.toBuffer(jsonBlock.hash),
+    parentHash:       ethUtil.toBuffer(jsonBlock.parentHash),
+    nonce:            ethUtil.toBuffer(jsonBlock.nonce),
+    sha3Uncles:       ethUtil.toBuffer(jsonBlock.sha3Uncles),
+    logsBloom:        ethUtil.toBuffer(jsonBlock.logsBloom),
+    transactionsRoot: ethUtil.toBuffer(jsonBlock.transactionsRoot),
+    stateRoot:        ethUtil.toBuffer(jsonBlock.stateRoot),
+    receiptsRoot:     ethUtil.toBuffer(jsonBlock.receiptRoot || jsonBlock.receiptsRoot),
+    miner:            ethUtil.toBuffer(jsonBlock.miner),
+    difficulty:       ethUtil.toBuffer(jsonBlock.difficulty),
+    totalDifficulty:  ethUtil.toBuffer(jsonBlock.totalDifficulty),
+    size:             ethUtil.toBuffer(jsonBlock.size),
+    extraData:        ethUtil.toBuffer(jsonBlock.extraData),
+    gasLimit:         ethUtil.toBuffer(jsonBlock.gasLimit),
+    gasUsed:          ethUtil.toBuffer(jsonBlock.gasUsed),
+    timestamp:        ethUtil.toBuffer(jsonBlock.timestamp),
+    transactions:     jsonBlock.transactions,
+  }
+}
