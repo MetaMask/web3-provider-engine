@@ -34,6 +34,19 @@ RpcSource.prototype.handleRequest = function(payload, next, end){
       body: JSON.stringify(newPayload),
     }).then((_res) => {
       res = _res
+
+      switch (res.status) {
+
+        case 504:
+          let msg = `Gateway timeout. The request took too long to process. `
+          msg += `This can happen when querying logs over too wide a block range.`
+          err = new Error(msg)
+          throw new JsonRpcError.InternalError(err)
+
+        default:
+          return res.json()
+      }
+
       return res.json()
     }).then((body) => {
       // check for error code
