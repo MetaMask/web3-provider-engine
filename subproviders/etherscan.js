@@ -31,7 +31,7 @@ inherits(EtherscanProvider, Subprovider)
 
 function EtherscanProvider(opts) {
   opts = opts || {}
-  this.network = (opts.network !== 'api' && opts.network !== 'testnet') ? 'api' : opts.network
+  this.network = opts.network || 'api'
   this.proto = (opts.https || false) ? 'https' : 'http'
   this.requests = [];
   this.times = isNaN(opts.times) ? 4 : opts.times;
