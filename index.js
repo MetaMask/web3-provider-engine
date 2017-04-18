@@ -46,7 +46,7 @@ function Web3ProviderEngine(opts) {
 Web3ProviderEngine.prototype.start = function(){
   const self = this
   // start block polling
-  self._blockTracker.start()
+  // self._blockTracker.start()
 }
 
 Web3ProviderEngine.prototype.stop = function(){
@@ -67,7 +67,7 @@ Web3ProviderEngine.prototype.send = function(payload){
 
 Web3ProviderEngine.prototype.sendAsync = function(payload, cb){
   const self = this
-  self._ready.await(function(){
+  // self._ready.await(function(){
 
     if (Array.isArray(payload)) {
       // handle batch
@@ -77,7 +77,7 @@ Web3ProviderEngine.prototype.sendAsync = function(payload, cb){
       self._handleAsync(payload, cb)
     }
 
-  })
+  //})
 }
 
 // private
@@ -168,26 +168,9 @@ Web3ProviderEngine.prototype._inspectResponseForNewBlock = function(payload, res
    || resultObj.result.blockNumber === null) {
     return cb(null, resultObj)
   }
+  
+  cb(null, resultObj)
 
-  const blockNumber = ethUtil.toBuffer(resultObj.result.blockNumber)
-
-  // If we found a new block number on the result,
-  // and it is higher than our current block,
-  // fetch for a new latest block before returning the original response.
-  // We do this b/c a user might be polling for a tx by hash,
-  // and may get a result that includes a reference to a block we havent seen yet.
-  // Without this blocker, the user may assume that we are on the new block and
-  // try to query data from that block but would otherwise get old data due to
-  // our blockTag-rewriting mechanism
-  if (-1 === self.currentBlock.number.compare(blockNumber)) {
-    console.log('_inspectResponseForNewBlock start')
-    self._blockTracker._performSync().then(() => {
-      console.log('_inspectResponseForNewBlock end')
-      cb(null, resultObj)
-    })
-  } else {
-    cb(null, resultObj)
-  }
 
 }
 

@@ -98,6 +98,14 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
       ], end)
       return
 
+    case 'eth_signTransaction':
+      var txParams = payload.params[0]
+      async.waterfall([
+        (cb) => self.validateTransaction(txParams, cb),
+        (cb) => self.processSignTransaction(txParams, cb),
+      ], end)
+      return
+
     case 'eth_sign':
       var address = payload.params[0]
       var message = payload.params[1]
@@ -160,6 +168,16 @@ HookedWalletSubprovider.prototype.processTransaction = function(txParams, cb) {
     (cb) => self.approveTransaction(txParams, cb),
     (didApprove, cb) => self.checkApproval('transaction', didApprove, cb),
     (cb) => self.finalizeAndSubmitTx(txParams, cb),
+  ], cb)
+}
+
+
+HookedWalletSubprovider.prototype.processSignTransaction = function(txParams, cb) {
+  const self = this
+  async.waterfall([
+    (cb) => self.approveTransaction(txParams, cb),
+    (didApprove, cb) => self.checkApproval('transaction', didApprove, cb),
+    (cb) => self.finalizeTx(txParams, cb),
   ], cb)
 }
 
@@ -282,6 +300,22 @@ HookedWalletSubprovider.prototype.finalizeAndSubmitTx = function(txParams, cb) {
       self.nonceLock.leave()
       if (err) return cb(err)
       cb(null, txHash)
+    })
+  })
+}
+
+HookedWalletSubprovider.prototype.finalizeTx = function(txParams, cb) {
+  const self = this
+  // can only allow one tx to pass through this flow at a time
+  // so we can atomically consume a nonce
+  self.nonceLock.take(function(){
+    async.waterfall([
+      self.fillInTxExtras.bind(self, txParams),
+      self.signTransaction.bind(self),
+    ], function(err, signedTx){
+      self.nonceLock.leave()
+      if (err) return cb(err)
+      cb(null, {raw: signedTx, tx: txParams})
     })
   })
 }
