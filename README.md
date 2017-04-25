@@ -89,7 +89,7 @@ Categorically, we don’t want / can’t have the following types of RPC calls g
 
 ##### 12.0.0
 
-- moved block polling to [`eth-block-tracker`](https://github.com/kumavis/eth-block-tracker), which requires node 7 (sorry).
+- moved block polling to [`eth-block-tracker`](https://github.com/kumavis/eth-block-tracker).
 
 ##### 11.0.0
 
