@@ -27,7 +27,7 @@ NonceTrackerSubprovider.prototype.handleRequest = function(payload, next, end){
 
     case 'eth_getTransactionCount':
       var blockTag = blockTagForPayload(payload)
-      var address = payload.params[0]
+      var address = payload.params[0].toLowerCase()
       var cachedResult = self.nonceCache[address]
       // only handle requests against the 'pending' blockTag
       if (blockTag === 'pending') {
@@ -60,7 +60,7 @@ NonceTrackerSubprovider.prototype.handleRequest = function(payload, next, end){
         var rawData = new Buffer(ethUtil.stripHexPrefix(rawTx), 'hex')
         var tx = new Transaction(new Buffer(ethUtil.stripHexPrefix(rawTx), 'hex'))
         // extract address
-        var address = '0x'+tx.getSenderAddress().toString('hex')
+        var address = '0x'+tx.getSenderAddress().toString('hex').toLowerCase()
         // extract nonce and increment
         var nonce = ethUtil.bufferToInt(tx.nonce)
         nonce++

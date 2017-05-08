@@ -19,6 +19,7 @@
  *
  * 2) Via non-native methods
  * - eth_getBalance
+ * - eth_listTransactions (non-standard)
  */
 
 const xhr = process.browser ? require('xhr') : require('request')
@@ -31,7 +32,7 @@ inherits(EtherscanProvider, Subprovider)
 
 function EtherscanProvider(opts) {
   opts = opts || {}
-  this.network = (opts.network !== 'api' && opts.network !== 'testnet') ? 'api' : opts.network
+  this.network = opts.network || 'api'
   this.proto = (opts.https || false) ? 'https' : 'http'
   this.requests = [];
   this.times = isNaN(opts.times) ? 4 : opts.times;
@@ -97,6 +98,24 @@ function handlePayload(proto, network, payload, next, end){
       etherscanXHR(true, proto, network, 'account', 'balance', {
         address: payload.params[0],
         tag: payload.params[1] }, end)
+      return
+
+    case 'eth_listTransactions':
+      const props = [
+        'address',
+        'startblock',
+        'endblock',
+        'sort',
+        'page',
+        'offset'
+      ]
+
+      const params = {}
+      for (let i = 0, l = Math.min(payload.params.length, props.length); i < l; i++) {
+        params[props[i]] = payload.params[i]
+      }
+
+      etherscanXHR(true, proto, network, 'account', 'txlist', params, end)
       return
 
     case 'eth_call':
