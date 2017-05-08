@@ -1,4 +1,4 @@
-const async = require('async')
+const doWhilst = require('async/doWhilst')
 const inherits = require('util').inherits
 const Stoplight = require('../util/stoplight.js')
 const createVm = require('ethereumjs-vm/lib/hooked').fromWeb3Provider
@@ -70,7 +70,7 @@ VmSubprovider.prototype.estimateGas = function(payload, end) {
 
     var minDiffBetweenIterations = 1200
     var prevGasLimit = self._blockGasLimit
-    async.doWhilst(
+    doWhilst(
       function(callback) {
         // Take a guess at the gas, and check transaction validity
         var mid = (hi + lo) / 2

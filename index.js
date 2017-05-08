@@ -2,7 +2,8 @@ const EventEmitter = require('events').EventEmitter
 const inherits = require('util').inherits
 const ethUtil = require('ethereumjs-util')
 const EthBlockTracker = require('eth-block-tracker')
-const async = require('async')
+const map = require('async/map')
+const eachSeries = require('async/eachSeries')
 const Stoplight = require('./util/stoplight.js')
 const cacheUtils = require('./util/rpc-cache-utils.js')
 const createPayload = require('./util/create-payload.js')
@@ -71,7 +72,7 @@ Web3ProviderEngine.prototype.sendAsync = function(payload, cb){
 
     if (Array.isArray(payload)) {
       // handle batch
-      async.map(payload, self._handleAsync.bind(self), cb)
+      map(payload, self._handleAsync.bind(self), cb)
     } else {
       // handle single
       self._handleAsync(payload, cb)
@@ -114,7 +115,7 @@ Web3ProviderEngine.prototype._handleAsync = function(payload, finished) {
     error = _error
     result = _result
 
-    async.eachSeries(stack, function(fn, callback) {
+    eachSeries(stack, function(fn, callback) {
 
       if (fn) {
         fn(error, result, callback)
