@@ -252,13 +252,13 @@ FilterSubprovider.prototype.onNewPendingBlock = function(block, cb){
 
 FilterSubprovider.prototype._getBlockNumber = function(cb) {
   const self = this
-  var blockNumber = bufferToHex(self.engine.currentBlock.number)
+  var blockNumber = bufferToNumberHex(self.engine.currentBlock.number)
   cb(null, blockNumber)
 }
 
 FilterSubprovider.prototype._logsForBlock = function(block, cb) {
   const self = this
-  var blockNumber = bufferToHex(block.number)
+  var blockNumber = bufferToNumberHex(block.number)
   self.emitPayload({
     method: 'eth_getLogs',
     params: [{
@@ -471,6 +471,18 @@ function hexToInt(hexString) {
 
 function bufferToHex(buffer) {
   return '0x'+buffer.toString('hex')
+}
+
+function bufferToNumberHex(buffer) {
+  return stripLeadingZero(buffer.toString('hex'))
+}
+
+function stripLeadingZero(hexNum) {
+  let stripped = ethUtil.stripHexPrefix(hexNum)
+  while (stripped[0] === '0') {
+    stripped = stripped.substr(1)
+  }
+  return `0x${stripped}`
 }
 
 function blockTagIsNumber(blockTag){
