@@ -1,14 +1,14 @@
-const Duplex = require('readable-stream').Duplex
+const Readable = require('stream').Readable
 const inherits = require('util').inherits
-const Subprovider = require('web3-provider-engine/subproviders/subprovider.js')
+const Subprovider = require('./subprovider.js')
 
 module.exports = StreamSubprovider
 
 
-inherits(StreamSubprovider, Duplex)
+inherits(StreamSubprovider, Readable)
 
 function StreamSubprovider(){
-  Duplex.call(this, {
+  Readable.call(this, {
     objectMode: true,
   })
 
@@ -27,10 +27,31 @@ StreamSubprovider.prototype.handleRequest = function(payload, next, end){
   }
   // store request details
   this._payloads[id] = [payload, end]
+  // console.log('payload for plugin:', payload)
   this.push(payload)
 }
 
-StreamSubprovider.prototype.setEngine = noop
+// private
+
+StreamSubprovider.prototype._onResponse = function(response){
+  // console.log('StreamSubprovider - got response', payload)
+  var id = response.id
+  // handle batch requests
+  if (Array.isArray(response)) {
+    id = generateBatchId(response)
+  }
+  var data = this._payloads[id]
+  if (!data) throw new Error('StreamSubprovider - Unknown response id')
+  delete this._payloads[id]
+  var payload = data[0]
+  var callback = data[1]
+
+  // run callback on empty stack,
+  // prevent internal stream-handler from catching errors
+  setTimeout(function(){
+    callback(null, response)
+  })
+}
 
 // stream plumbing
 
@@ -40,27 +61,6 @@ StreamSubprovider.prototype._write = function(msg, encoding, cb){
   this._onResponse(msg)
   cb()
 }
-
-// private
-
-StreamSubprovider.prototype._onResponse = function(response){
-  var id = response.id
-  // handle batch requests
-  if (Array.isArray(response)) {
-    id = generateBatchId(response)
-  }
-  var data = this._payloads[id]
-  if (!data) throw new Error('StreamSubprovider - Unknown response id')
-  delete this._payloads[id]
-  var callback = data[1]
-
-  // run callback on empty stack,
-  // prevent internal stream-handler from catching errors
-  setTimeout(function(){
-    callback(null, response.result)
-  })
-}
-
 
 // util
 
