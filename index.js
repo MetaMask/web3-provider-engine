@@ -33,8 +33,7 @@ function Web3ProviderEngine(opts) {
   // set initialization blocker
   self._ready = new Stoplight()
   // unblock initialization after first block
-  self._blockTracker.once('latest', () => {
-    console.log('_blockTracker wait for first block')
+  self._blockTracker.once('block', () => {
     self._ready.go()
   })
   // local state
