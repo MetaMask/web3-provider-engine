@@ -1,3 +1,5 @@
+const stringify = require('json-stable-stringify')
+
 module.exports = {
   cacheIdentifierForPayload: cacheIdentifierForPayload,
   canCache: canCache,
@@ -10,7 +12,7 @@ module.exports = {
 function cacheIdentifierForPayload(payload){
   var simpleParams = paramsWithoutBlockTag(payload)
   if (canCache(payload)) {
-    return payload.method+':'+JSON.stringify(simpleParams)
+    return payload.method+':'+ stringify(simpleParams)
   } else {
     return null
   }
