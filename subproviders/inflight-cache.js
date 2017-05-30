@@ -22,28 +22,27 @@ class InflightCacheSubprovider extends Subprovider {
     let activeRequestHandlers = this.inflightRequests[cacheId]
 
     if (!activeRequestHandlers) {
+
       // setup response handler array for subsequent requests
       activeRequestHandlers = []
       this.inflightRequests[cacheId] = activeRequestHandlers
 
       // allow request to be handled normally
-      next((done) => {
+      next((err, result, cb) => {
         // clear inflight requests
         delete this.inflightRequests[cacheId]
         // complete this request
         done(null, )
         // once request has been handled, call all waiting handlers
-        activeRequestHandlers.forEach((handler) => handler(res))
+        activeRequestHandlers.forEach((handler) => handler(err, result))
+        cb()
       })
+
     // if found, wait for the active request to be handled
     } else {
+
       // setup the response lister
-      activeRequestHandlers.push((handledRes) => {
-        const res = {}
-        res.result = handledRes.result
-        res.error = handledRes.error
-        end(null, res)
-      })
+      activeRequestHandlers.push(end)
     }
   }
 }
