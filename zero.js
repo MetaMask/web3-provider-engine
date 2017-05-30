@@ -3,6 +3,7 @@ const DefaultFixture = require('./subproviders/default-fixture.js')
 const NonceTrackerSubprovider = require('./subproviders/nonce-tracker.js')
 const CacheSubprovider = require('./subproviders/cache.js')
 const FilterSubprovider = require('./subproviders/filters.js')
+const InflightCacheSubprovider = require('./subproviders/inflight-cache')
 const HookedWalletSubprovider = require('./subproviders/hooked-wallet.js')
 const SanitizingSubprovider = require('./subproviders/sanitizer.js')
 const RpcSubprovider = require('./subproviders/rpc.js')
@@ -35,6 +36,10 @@ function ZeroClientProvider(opts){
   // filters
   const filterSubprovider = new FilterSubprovider()
   engine.addProvider(filterSubprovider)
+
+  // inflight cache
+  const inflightCache = new InflightCacheSubprovider()
+  engine.addProvider(inflightCache)
 
   // id mgmt
   const idmgmtSubprovider = new HookedWalletSubprovider({

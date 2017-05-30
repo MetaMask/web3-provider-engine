@@ -25,7 +25,6 @@ function TestBlockProvider(methods){
       } else {
         result = self._blockChain[blockRef]
       }
-      
       end(null, result)
     },
     eth_getLogs: function(payload, next, end){
@@ -72,7 +71,7 @@ TestBlockProvider.prototype.addTx = function(txParams){
 function createBlock(blockParams, prevBlock, txs) {
   blockParams = blockParams || {}
   txs = txs || []
-  var defaultNumber = prevBlock ? incrementHex(prevBlock.number) : '0x01'
+  var defaultNumber = prevBlock ? incrementHex(prevBlock.number) : '0x1'
   var defaultGasLimit = ethUtil.intToHex(4712388)
   return extend({
     // defaults
@@ -99,9 +98,17 @@ function createBlock(blockParams, prevBlock, txs) {
 }
 
 function incrementHex(hexString){
-  return ethUtil.intToHex(Number(hexString)+1)
+  return stripLeadingZeroes(ethUtil.intToHex(Number(hexString)+1))
 }
 
 function randomHash(){
   return ethUtil.intToHex(Math.floor(Math.random()*Number.MAX_SAFE_INTEGER))
+}
+
+function stripLeadingZeroes (hexString) {
+  let strippedHex = ethUtil.stripHexPrefix(hexString)
+  while (strippedHex[0] === '0') {
+    strippedHex = strippedHex.substr(1)
+  }
+  return ethUtil.addHexPrefix(strippedHex)
 }
