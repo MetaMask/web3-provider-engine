@@ -1,6 +1,6 @@
 {
   "name": "web3-provider-engine",
-  "version": "12.1.0",
+  "version": "12.1.1",
   "description": "",
   "repository": "https://github.com/MetaMask/provider-engine",
   "main": "index.js",
@@ -23,6 +23,7 @@
     "ethereumjs-vm": "^2.0.2",
     "fetch-ponyfill": "^4.0.0",
     "json-rpc-error": "^2.0.0",
+    "json-stable-stringify": "^1.0.1",
     "promise-to-callback": "^1.0.0",
     "readable-stream": "^2.2.9",
     "request": "^2.67.0",

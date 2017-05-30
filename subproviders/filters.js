@@ -3,6 +3,7 @@ const inherits = require('util').inherits
 const ethUtil = require('ethereumjs-util')
 const Subprovider = require('./subprovider.js')
 const Stoplight = require('../util/stoplight.js')
+const stringify = require('json-stable-stringify')
 
 module.exports = FilterSubprovider
 
@@ -28,6 +29,8 @@ function FilterSubprovider(opts) {
   self._ready.go()
   self.pendingBlockTimeout = opts.pendingBlockTimeout || 4000
   self.checkForPendingBlocksActive = false
+  self.cacheIdToFilters = {}
+  self.txIdToFilters = {}
 
   // we dont have engine immeditately
   setTimeout(function(){
@@ -90,9 +93,11 @@ FilterSubprovider.prototype.handleRequest = function(payload, next, end){
 }
 
 FilterSubprovider.prototype.newBlockFilter = function(cb) {
-  const self = this
+  if (this.blockFilterIndex) {
+    return cb(null, this.blockFilterIndex)
+  }
 
-  self._getBlockNumber(function(err, blockNumber){
+  this._getBlockNumber((err, blockNumber) => {
     if (err) return cb(err)
 
     var filter = new BlockFilter({
@@ -100,15 +105,16 @@ FilterSubprovider.prototype.newBlockFilter = function(cb) {
     })
 
     var newBlockHandler = filter.update.bind(filter)
-    self.engine.on('block', newBlockHandler)
-    var destroyHandler = function(){
-      self.engine.removeListener('block', newBlockHandler)
+    this.engine.on('block', newBlockHandler)
+    var destroyHandler = () => {
+      this.engine.removeListener('block', newBlockHandler)
     }
 
-    self.filterIndex++
-    var hexFilterIndex = intToHex(self.filterIndex)
-    self.filters[hexFilterIndex] = filter
-    self.filterDestroyHandlers[hexFilterIndex] = destroyHandler
+    this.filterIndex++
+    var hexFilterIndex = intToHex(this.filterIndex)
+    this.filters[hexFilterIndex] = filter
+    this.filterDestroyHandlers[hexFilterIndex] = destroyHandler
+    this.blockFilterIndex = hexFilterIndex
 
     cb(null, hexFilterIndex)
   })
@@ -116,6 +122,10 @@ FilterSubprovider.prototype.newBlockFilter = function(cb) {
 
 FilterSubprovider.prototype.newLogFilter = function(opts, cb) {
   const self = this
+  const cacheId = stringify(opts)
+  if (this.cacheIdToFilters[cacheId]) {
+    return cb(null, this.cacheIdToFilters[cacheId])
+  }
 
   self._getBlockNumber(function(err, blockNumber){
     if (err) return cb(err)
@@ -134,6 +144,7 @@ FilterSubprovider.prototype.newLogFilter = function(opts, cb) {
     self.asyncBlockHandlers[self.filterIndex] = blockHandler
     var hexFilterIndex = intToHex(self.filterIndex)
     self.filters[hexFilterIndex] = filter
+    self.cacheIdToFilters[cacheId] = hexFilterIndex
 
     cb(null, hexFilterIndex)
   })
@@ -141,6 +152,10 @@ FilterSubprovider.prototype.newLogFilter = function(opts, cb) {
 
 FilterSubprovider.prototype.newPendingTransactionFilter = function(cb) {
   const self = this
+  const cacheId = stringify(opts)
+  if (this.txIdToFilters[cacheId]) {
+    return cb(null, this.txIdToFilters[cacheId])
+  }
 
   var filter = new PendingTransactionFilter()
   var newTxHandler = filter.update.bind(filter)
@@ -156,6 +171,7 @@ FilterSubprovider.prototype.newPendingTransactionFilter = function(cb) {
   self.asyncPendingBlockHandlers[self.filterIndex] = blockHandler
   var hexFilterIndex = intToHex(self.filterIndex)
   self.filters[hexFilterIndex] = filter
+  self.txIdToFilters[cacheId] = hexFilterIndex
 
   cb(null, hexFilterIndex)
 }

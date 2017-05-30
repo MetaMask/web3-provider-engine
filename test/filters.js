@@ -19,7 +19,7 @@ filterTest('basic block filter', { method: 'eth_newBlockFilter' },
     cb()
   },
   function filterChangesTwo(t, testMeta, response, cb){
-    var results = response.result        
+    var results = response.result
     t.equal(results.length, 0, 'correct number of results')
     cb()
   }
@@ -49,7 +49,7 @@ filterTest('log filter - basic', {
     cb()
   },
   function filterChangesTwo(t, testMeta, response, cb){
-    var results = response.result        
+    var results = response.result
     t.equal(results.length, 0, 'correct number of results')
     cb()
   }
@@ -88,7 +88,7 @@ filterTest('log filter - and logic', {
     cb()
   },
   function filterChangesTwo(t, testMeta, response, cb){
-    var results = response.result        
+    var results = response.result
     t.equal(results.length, 0, 'correct number of results')
     cb()
   }
@@ -134,7 +134,7 @@ filterTest('log filter - or logic', {
     cb()
   },
   function filterChangesTwo(t, testMeta, response, cb){
-    var results = response.result        
+    var results = response.result
     t.equal(results.length, 0, 'correct number of results')
     cb()
   }
@@ -181,7 +181,7 @@ filterTest('log filter - wildcard logic', {
     cb()
   },
   function filterChangesTwo(t, testMeta, response, cb){
-    var results = response.result        
+    var results = response.result
     t.equal(results.length, 0, 'correct number of results')
     cb()
   }
@@ -211,7 +211,10 @@ function filterTest(label, filterPayload, afterInstall, filterChangesOne, filter
     engine.addProvider(filterProvider)
     engine.addProvider(blockProvider)
     engine.once('block', startTest)
-    engine.start()
+
+    setTimeout(() => {
+      engine.start()
+    }, 1)
 
     function startTest(){
       // install block filter
@@ -228,7 +231,6 @@ function filterTest(label, filterPayload, afterInstall, filterChangesOne, filter
 
         afterInstall(t, testMeta, response, function(err){
           t.ifError(err, 'did not error')
-
           engine.once('block', continueTest)
         })
       })
