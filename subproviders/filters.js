@@ -106,8 +106,6 @@ FilterSubprovider.prototype.newBlockFilter = function(cb) {
 
     var newBlockHandler = filter.update.bind(filter)
     this.engine.on('block', newBlockHandler)
-    this.engine.on('block', () => {
-    })
     var destroyHandler = () => {
       this.engine.removeListener('block', newBlockHandler)
     }
