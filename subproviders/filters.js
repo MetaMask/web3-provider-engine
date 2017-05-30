@@ -131,8 +131,8 @@ FilterSubprovider.prototype.newLogFilter = function(opts, cb) {
     }
 
     self.filterIndex++
-    self.asyncBlockHandlers[self.filterIndex] = blockHandler
     var hexFilterIndex = intToHex(self.filterIndex)
+    self.asyncBlockHandlers[hexFilterIndex] = blockHandler
     self.filters[hexFilterIndex] = filter
 
     cb(null, hexFilterIndex)
@@ -153,8 +153,8 @@ FilterSubprovider.prototype.newPendingTransactionFilter = function(cb) {
   }
 
   self.filterIndex++
-  self.asyncPendingBlockHandlers[self.filterIndex] = blockHandler
   var hexFilterIndex = intToHex(self.filterIndex)
+  self.asyncPendingBlockHandlers[hexFilterIndex] = blockHandler
   self.filters[hexFilterIndex] = filter
 
   cb(null, hexFilterIndex)
