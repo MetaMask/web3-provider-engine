@@ -98,14 +98,14 @@ function createBlock(blockParams, prevBlock, txs) {
 }
 
 function incrementHex(hexString){
-  return stripZeroPrefix(ethUtil.intToHex(Number(hexString)+1))
+  return stripLeadingZeroes(ethUtil.intToHex(Number(hexString)+1))
 }
 
 function randomHash(){
   return ethUtil.intToHex(Math.floor(Math.random()*Number.MAX_SAFE_INTEGER))
 }
 
-function stripZeroPrefix (hexString) {
+function stripLeadingZeroes (hexString) {
   let strippedHex = ethUtil.stripHexPrefix(hexString)
   while (strippedHex[0] === '0') {
     strippedHex = strippedHex.substr(1)
