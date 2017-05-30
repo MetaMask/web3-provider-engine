@@ -33295,7 +33295,7 @@ FilterSubprovider.prototype.handleRequest = function(payload, next, end){
 
 FilterSubprovider.prototype.newBlockFilter = function(cb) {
   if (this.blockFilterIndex) {
-    return cb(null, this.filters[this.blockFilterIndex])
+    return cb(null, this.blockFilterIndex)
   }
 
   this._getBlockNumber((err, blockNumber) => {
@@ -33307,7 +33307,7 @@ FilterSubprovider.prototype.newBlockFilter = function(cb) {
 
     var newBlockHandler = filter.update.bind(filter)
     this.engine.on('block', newBlockHandler)
-    var destroyHandler = function(){
+    var destroyHandler = () => {
       this.engine.removeListener('block', newBlockHandler)
     }
 
