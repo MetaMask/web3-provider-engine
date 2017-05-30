@@ -211,7 +211,10 @@ function filterTest(label, filterPayload, afterInstall, filterChangesOne, filter
     engine.addProvider(filterProvider)
     engine.addProvider(blockProvider)
     engine.once('block', startTest)
-    engine.start()
+
+    setTimeout(() => {
+      engine.start()
+    }, 1)
 
     function startTest(){
       // install block filter
