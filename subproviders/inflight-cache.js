@@ -31,19 +31,14 @@ class InflightCacheSubprovider extends Subprovider {
       next((err, result, cb) => {
         // clear inflight requests
         delete this.inflightRequests[cacheId]
-        // complete this request
-        done(null, )
         // once request has been handled, call all waiting handlers
         activeRequestHandlers.forEach((handler) => handler(err, result))
         cb()
       })
-
-    // if found, wait for the active request to be handled
-    } else {
-
-      // setup the response lister
-      activeRequestHandlers.push(end)
     }
+
+    // setup the response lister
+    activeRequestHandlers.push(end)
   }
 }
 
