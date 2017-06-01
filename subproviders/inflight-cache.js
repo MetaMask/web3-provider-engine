@@ -14,7 +14,7 @@ class InflightCacheSubprovider extends Subprovider {
   }
 
   handleRequest (req, next, end) {
-    const cacheId = payload.method+':'+ stringify(req.params)
+    const cacheId = req.method+':'+ stringify(req.params)
 
     // if not cacheable, skip
     if (!cacheId) return next()
