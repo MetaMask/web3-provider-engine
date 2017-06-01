@@ -86,11 +86,21 @@ cacheTest('getCode for an unspecified block, then for the latest, should return 
   params: ['0x1234', 'latest'],
 }], true)
 
+
+cacheTest('getBlockForNumber for latest then block 0', [{
+  method: 'eth_getBlockByNumber',
+  params: ['latest'],
+}, {
+  method: 'eth_getBlockByNumber',
+  params: ['0x0'],
+}], false)
+
+
 // test helper for caching
 // 1. Sets up caching and data provider
 // 2. Performs first request
 // 3. Performs second request
-// 4. checks if cache hit or missed 
+// 4. checks if cache hit or missed
 
 function cacheTest(label, payloads, shouldHitCacheOnSecondRequest){
 
