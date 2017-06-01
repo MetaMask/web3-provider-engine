@@ -1,4 +1,5 @@
 const stringify = require('json-stable-stringify')
+const wordBlockTags = ['latest', 'earliest', 'pending']
 
 module.exports = {
   cacheIdentifierForPayload: cacheIdentifierForPayload,
@@ -39,6 +40,11 @@ function paramsWithoutBlockTag(payload){
   // Block tag param not passed.
   if (index >= payload.params.length) {
     return payload.params;
+  }
+
+  // Still include numeric block tags:
+  if (!wordBlockTags.includes(payload.params[index])) {
+    return payload.params
   }
 
   return payload.params.slice(0,index);
