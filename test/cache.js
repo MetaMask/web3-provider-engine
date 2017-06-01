@@ -86,6 +86,7 @@ cacheTest('getCode for an unspecified block, then for the latest, should return 
   params: ['0x1234', 'latest'],
 }], true)
 
+// blocks
 
 cacheTest('getBlockForNumber for latest then block 0', [{
   method: 'eth_getBlockByNumber',
@@ -94,6 +95,38 @@ cacheTest('getBlockForNumber for latest then block 0', [{
   method: 'eth_getBlockByNumber',
   params: ['0x0'],
 }], false)
+
+cacheTest('getBlockForNumber for latest then block 1', [{
+  method: 'eth_getBlockByNumber',
+  params: ['latest'],
+}, {
+  method: 'eth_getBlockByNumber',
+  params: ['0x1'],
+}], false)
+
+cacheTest('getBlockForNumber for 0 then block 1', [{
+  method: 'eth_getBlockByNumber',
+  params: ['0x0'],
+}, {
+  method: 'eth_getBlockByNumber',
+  params: ['0x1'],
+}], false)
+
+cacheTest('getBlockForNumber for block 2', [{
+  method: 'eth_getBlockByNumber',
+  params: ['0x0'],
+}, {
+  method: 'eth_getBlockByNumber',
+  params: ['0x0'],
+}], true)
+
+cacheTest('getBlockForNumber for block 1', [{
+  method: 'eth_getBlockByNumber',
+  params: ['0x1'],
+}, {
+  method: 'eth_getBlockByNumber',
+  params: ['0x1'],
+}], true)
 
 
 // test helper for caching
