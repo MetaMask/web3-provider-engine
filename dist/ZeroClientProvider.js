@@ -32789,7 +32789,7 @@ function extend() {
 },{}],282:[function(require,module,exports){
 module.exports={
   "name": "web3-provider-engine",
-  "version": "12.1.0",
+  "version": "12.2.1",
   "description": "",
   "repository": "https://github.com/MetaMask/provider-engine",
   "main": "index.js",
@@ -32823,6 +32823,8 @@ module.exports={
     "xtend": "^4.0.1"
   },
   "devDependencies": {
+    "babel-preset-es2015": "^6.24.1",
+    "babel-preset-stage-0": "^6.24.1",
     "browserify": "^14.0.0"
   },
   "browser": {
@@ -33332,8 +33334,8 @@ FilterSubprovider.prototype.newLogFilter = function(opts, cb) {
     }
 
     self.filterIndex++
-    self.asyncBlockHandlers[self.filterIndex] = blockHandler
     var hexFilterIndex = intToHex(self.filterIndex)
+    self.asyncBlockHandlers[hexFilterIndex] = blockHandler
     self.filters[hexFilterIndex] = filter
 
     cb(null, hexFilterIndex)
@@ -33354,8 +33356,8 @@ FilterSubprovider.prototype.newPendingTransactionFilter = function(cb) {
   }
 
   self.filterIndex++
-  self.asyncPendingBlockHandlers[self.filterIndex] = blockHandler
   var hexFilterIndex = intToHex(self.filterIndex)
+  self.asyncPendingBlockHandlers[hexFilterIndex] = blockHandler
   self.filters[hexFilterIndex] = filter
 
   cb(null, hexFilterIndex)
@@ -34123,7 +34125,7 @@ function isValidHex(data) {
 }
 
 },{"../util/estimate-gas.js":295,"./subprovider.js":293,"async/parallel":27,"async/waterfall":28,"eth-sig-util":167,"ethereumjs-util":170,"semaphore":262,"util":279,"xtend":281}],289:[function(require,module,exports){
-const cacheIdentifierForPayload = require('../util/rpc-cache-utils.js').cacheIdentifierForPayload
+const stringify = require('json-stable-stringify')
 const Subprovider = require('./subprovider.js')
 
 
@@ -34139,7 +34141,7 @@ class InflightCacheSubprovider extends Subprovider {
   }
 
   handleRequest (req, next, end) {
-    const cacheId = cacheIdentifierForPayload(req)
+    const cacheId = req.method+':'+ stringify(req.params)
 
     // if not cacheable, skip
     if (!cacheId) return next()
@@ -34168,7 +34170,7 @@ class InflightCacheSubprovider extends Subprovider {
 module.exports = InflightCacheSubprovider
 
 
-},{"../util/rpc-cache-utils.js":297,"./subprovider.js":293}],290:[function(require,module,exports){
+},{"./subprovider.js":293,"json-stable-stringify":194}],290:[function(require,module,exports){
 (function (Buffer){
 const inherits = require('util').inherits
 const Transaction = require('ethereumjs-tx')
@@ -34492,6 +34494,7 @@ function createRandomId(){
 }
 },{}],297:[function(require,module,exports){
 const stringify = require('json-stable-stringify')
+const wordBlockTags = ['latest', 'earliest', 'pending']
 
 module.exports = {
   cacheIdentifierForPayload: cacheIdentifierForPayload,
@@ -34532,6 +34535,11 @@ function paramsWithoutBlockTag(payload){
   // Block tag param not passed.
   if (index >= payload.params.length) {
     return payload.params;
+  }
+
+  // Still include numeric block tags:
+  if (!wordBlockTags.includes(payload.params[index])) {
+    return payload.params
   }
 
   return payload.params.slice(0,index);
