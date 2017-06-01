@@ -62,14 +62,6 @@ cacheTest('getCode for latest block, then for earliest block, should not return 
   params: ['0x1234', 'earliest'],
 }], false)
 
-cacheTest('getCode for a specific block, then for the one before it, should not return cached response on second request', [{
-  method: 'eth_getCode',
-  params: ['0x1234', '0x3'],
-}, {
-  method: 'eth_getCode',
-  params: ['0x1234', '0x2'],
-}], false)
-
 cacheTest('getBlockForNumber for latest then block 0', [{
   method: 'eth_getBlockByNumber',
   params: ['latest'],
