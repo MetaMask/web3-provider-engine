@@ -20,10 +20,13 @@ function TestBlockProvider(methods){
     eth_getBlockByNumber: function(payload, next, end){
       const blockRef = payload.params[0]
       const result = self.getBlockByRef(blockRef)
-      end(null, result)
+      // return result asynchronously
+      setTimeout(() => end(null, result))
     },
     eth_getLogs: function(payload, next, end){
-      end(null, self._currentBlock.transactions)
+      const transactions = self._currentBlock.transactions
+      // return result asynchronously
+      setTimeout(() => end(null, transactions))
     },
   })
 }

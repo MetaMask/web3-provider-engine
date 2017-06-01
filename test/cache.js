@@ -202,6 +202,7 @@ function cacheTest(label, payloads, shouldHitCacheOnSecondRequest){
       dataProvider.clearMetrics()
       blockProvider.clearMetrics()
 
+      // determine which provider will handle the request
       const isBlockTest = (payloads[0].method === 'eth_getBlockByNumber')
       const handlingProvider = isBlockTest ? blockProvider : dataProvider
 

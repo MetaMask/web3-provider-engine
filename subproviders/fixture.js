@@ -19,7 +19,8 @@ FixtureProvider.prototype.handleRequest = function(payload, next, end){
     staticResponse(payload, next, end)
   // static response - null is valid response
   } else if (staticResponse !== undefined) {
-    end(null, staticResponse)
+    // return result asynchronously
+    setTimeout(() => end(null, staticResponse))
   // no prepared response - skip
   } else {
     next()
