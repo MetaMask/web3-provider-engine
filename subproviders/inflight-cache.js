@@ -1,4 +1,4 @@
-const cacheIdentifierForPayload = require('../util/rpc-cache-utils.js').cacheIdentifierForPayload
+const stringify = require('json-stable-stringify')
 const Subprovider = require('./subprovider.js')
 
 
@@ -14,7 +14,7 @@ class InflightCacheSubprovider extends Subprovider {
   }
 
   handleRequest (req, next, end) {
-    const cacheId = cacheIdentifierForPayload(req)
+    const cacheId = payload.method+':'+ stringify(req.params)
 
     // if not cacheable, skip
     if (!cacheId) return next()
