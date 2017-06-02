@@ -6,4 +6,6 @@ require('./solc')
 require('./wallet')
 require('./subproviders/sanitizer')
 require('./subproviders/vm')
+// require('./subproviders/ipc')
+// require('./subproviders/etherscan')
 
