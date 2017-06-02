@@ -112,7 +112,7 @@ cacheTest('getBlockForNumber for 0 then block 1', [{
   params: ['0x1'],
 }], false)
 
-cacheTest('getBlockForNumber for block 2', [{
+cacheTest('getBlockForNumber for block 0', [{
   method: 'eth_getBlockByNumber',
   params: ['0x0'],
 }, {
