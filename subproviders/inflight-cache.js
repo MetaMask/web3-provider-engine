@@ -14,7 +14,7 @@ class InflightCacheSubprovider extends Subprovider {
   }
 
   handleRequest (req, next, end) {
-    const cacheId = cacheIdentifierForPayload(req)
+    const cacheId = cacheIdentifierForPayload(req, { includeBlockRef: true })
 
     // if not cacheable, skip
     if (!cacheId) return next()
@@ -23,17 +23,20 @@ class InflightCacheSubprovider extends Subprovider {
     let activeRequestHandlers = this.inflightRequests[cacheId]
 
     if (!activeRequestHandlers) {
+      // create inflight cache for cacheId
       activeRequestHandlers = []
       this.inflightRequests[cacheId] = activeRequestHandlers
 
       next((err, result, cb) => {
+        // complete inflight for cacheId
         delete this.inflightRequests[cacheId]
         activeRequestHandlers.forEach((handler) => handler(err, result))
         cb(err, result)
       })
 
     } else {
-      // setup the response lister
+      // hit inflight cache for cacheId
+      // setup the response listener
       activeRequestHandlers.push(end)
     }
 

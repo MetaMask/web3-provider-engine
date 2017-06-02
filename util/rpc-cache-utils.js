@@ -9,13 +9,11 @@ module.exports = {
   cacheTypeForPayload: cacheTypeForPayload,
 }
 
-function cacheIdentifierForPayload(payload){
-  var simpleParams = paramsWithoutBlockTag(payload)
-  if (canCache(payload)) {
-    return payload.method+':'+ stringify(simpleParams)
-  } else {
-    return null
-  }
+function cacheIdentifierForPayload(payload, opts = {}){
+  if (!canCache(payload)) return null
+  const { includeBlockRef } = opts
+  const params = includeBlockRef ? payload.params : paramsWithoutBlockTag(payload)
+  return payload.method + ':' + stringify(params)
 }
 
 function canCache(payload){

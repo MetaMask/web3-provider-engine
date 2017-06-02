@@ -19,23 +19,39 @@ function TestBlockProvider(methods){
   FixtureProvider.call(self, {
     eth_getBlockByNumber: function(payload, next, end){
       const blockRef = payload.params[0]
-      let result
-      if (blockRef === 'latest') {
-        result = self._currentBlock
-      } else {
-        result = self._blockChain[blockRef]
-      }
-      end(null, result)
+      const result = self.getBlockByRef(blockRef)
+      // return result asynchronously
+      setTimeout(() => end(null, result))
     },
     eth_getLogs: function(payload, next, end){
-      end(null, self._currentBlock.transactions)
+      const transactions = self._currentBlock.transactions
+      // return result asynchronously
+      setTimeout(() => end(null, transactions))
     },
   })
 }
 
-// class methods
+// class _currentBlocks
 TestBlockProvider.createBlock = createBlock
 TestBlockProvider.incrementHex = incrementHex
+
+TestBlockProvider.prototype.getBlockByRef = function(blockRef){
+  const self = this
+  if (blockRef === 'latest') {
+    return self._currentBlock
+  } else {
+    // if present, return block at reference
+    let block = self._blockChain[blockRef]
+    if (block) return block
+    // check if we should create the new block
+    const blockNum = Number(blockRef)
+    if (blockNum > Number(self._currentBlock.number)) return
+    // create, store, and return the new block
+    block = createBlock({ number: blockRef })
+    self._blockChain[blockRef] = block
+    return block
+  }
+}
 
 TestBlockProvider.prototype.nextBlock = function(blockParams){
   const self = this
