@@ -138,7 +138,7 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
       // and the second param is definitely not, but is hex.
       if (resemblesData(second) && resemblesAddress(first)) {
         let warning = `The eth_personalSign method requires params ordered `
-        warning += `warning, then address. This was previously handled incorrectly, `
+        warning += `[message, address]. This was previously handled incorrectly, `
         warning += `and has been corrected automatically. `
         warning += `Please switch this param order for smooth behavior in the future.`
         console.warn(warning)
