@@ -124,8 +124,8 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
       return
 
     case 'personal_sign':
-      var address = payload.params[0]
-      var message = payload.params[1]
+      var message = payload.params[0]
+      var address = payload.params[1]
       // non-standard "extraParams" to be appended to our "msgParams" obj
       // good place for metadata
       var extraParams = payload.params[2] || {}
