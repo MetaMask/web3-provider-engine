@@ -86,13 +86,59 @@ cacheTest('getCode for an unspecified block, then for the latest, should return 
   params: ['0x1234', 'latest'],
 }], true)
 
+// blocks
+
+cacheTest('getBlockForNumber for latest then block 0', [{
+  method: 'eth_getBlockByNumber',
+  params: ['latest'],
+}, {
+  method: 'eth_getBlockByNumber',
+  params: ['0x0'],
+}], false)
+
+cacheTest('getBlockForNumber for latest then block 1', [{
+  method: 'eth_getBlockByNumber',
+  params: ['latest'],
+}, {
+  method: 'eth_getBlockByNumber',
+  params: ['0x1'],
+}], false)
+
+cacheTest('getBlockForNumber for 0 then block 1', [{
+  method: 'eth_getBlockByNumber',
+  params: ['0x0'],
+}, {
+  method: 'eth_getBlockByNumber',
+  params: ['0x1'],
+}], false)
+
+cacheTest('getBlockForNumber for block 0', [{
+  method: 'eth_getBlockByNumber',
+  params: ['0x0'],
+}, {
+  method: 'eth_getBlockByNumber',
+  params: ['0x0'],
+}], true)
+
+cacheTest('getBlockForNumber for block 1', [{
+  method: 'eth_getBlockByNumber',
+  params: ['0x1'],
+}, {
+  method: 'eth_getBlockByNumber',
+  params: ['0x1'],
+}], true)
+
+
 // test helper for caching
 // 1. Sets up caching and data provider
 // 2. Performs first request
 // 3. Performs second request
-// 4. checks if cache hit or missed 
+// 4. checks if cache hit or missed
 
 function cacheTest(label, payloads, shouldHitCacheOnSecondRequest){
+  if (!Array.isArray(payloads)) {
+    payloads = [payloads, payloads]
+  }
 
   test('cache - '+label, function(t){
     t.plan(12)
@@ -146,18 +192,27 @@ function cacheTest(label, payloads, shouldHitCacheOnSecondRequest){
     engine.addProvider(dataProvider)
     engine.addProvider(blockProvider)
 
+    // run polling until first block
     engine.start()
-
-    cacheCheck(t, engine, cacheProvider, dataProvider, payloads, function(err, response) {
+    engine.once('block', () => {
+      // stop polling
       engine.stop()
-      t.end()
+      // clear subprovider metrics
+      cacheProvider.clearMetrics()
+      dataProvider.clearMetrics()
+      blockProvider.clearMetrics()
+
+      // determine which provider will handle the request
+      const isBlockTest = (payloads[0].method === 'eth_getBlockByNumber')
+      const handlingProvider = isBlockTest ? blockProvider : dataProvider
+
+      // begin cache test
+      cacheCheck(t, engine, cacheProvider, handlingProvider, payloads, function(err, response) {
+        t.end()
+      })
     })
 
-    function cacheCheck(t, engine, cacheProvider, dataProvider, payloads, cb) {
-      if (!Array.isArray(payloads)) {
-        payloads = [payloads, payloads]
-      }
-
+    function cacheCheck(t, engine, cacheProvider, handlingProvider, payloads, cb) {
       var method = payloads[0].method
       requestTwice(payloads, function(err, response){
         // first request
@@ -167,8 +222,8 @@ function cacheTest(label, payloads, shouldHitCacheOnSecondRequest){
         t.equal(cacheProvider.getWitnessed(method).length, 1, 'cacheProvider did see "'+method+'"')
         t.equal(cacheProvider.getHandled(method).length, 0, 'cacheProvider did NOT handle "'+method+'"')
 
-        t.equal(dataProvider.getWitnessed(method).length, 1, 'dataProvider did see "'+method+'"')
-        t.equal(dataProvider.getHandled(method).length, 1, 'dataProvider did handle "'+method+'"')
+        t.equal(handlingProvider.getWitnessed(method).length, 1, 'handlingProvider did see "'+method+'"')
+        t.equal(handlingProvider.getHandled(method).length, 1, 'handlingProvider did handle "'+method+'"')
 
       }, function(err, response){
         // second request
@@ -179,14 +234,14 @@ function cacheTest(label, payloads, shouldHitCacheOnSecondRequest){
           t.equal(cacheProvider.getWitnessed(method).length, 2, 'cacheProvider did see "'+method+'"')
           t.equal(cacheProvider.getHandled(method).length, 1, 'cacheProvider did handle "'+method+'"')
 
-          t.equal(dataProvider.getWitnessed(method).length, 1, 'dataProvider did NOT see "'+method+'"')
-          t.equal(dataProvider.getHandled(method).length, 1, 'dataProvider did NOT handle "'+method+'"')
+          t.equal(handlingProvider.getWitnessed(method).length, 1, 'handlingProvider did NOT see "'+method+'"')
+          t.equal(handlingProvider.getHandled(method).length, 1, 'handlingProvider did NOT handle "'+method+'"')
         } else {
           t.equal(cacheProvider.getWitnessed(method).length, 2, 'cacheProvider did see "'+method+'"')
           t.equal(cacheProvider.getHandled(method).length, 0, 'cacheProvider did handle "'+method+'"')
 
-          t.equal(dataProvider.getWitnessed(method).length, 2, 'dataProvider did NOT see "'+method+'"')
-          t.equal(dataProvider.getHandled(method).length, 2, 'dataProvider did NOT handle "'+method+'"')
+          t.equal(handlingProvider.getWitnessed(method).length, 2, 'handlingProvider did NOT see "'+method+'"')
+          t.equal(handlingProvider.getHandled(method).length, 2, 'handlingProvider did NOT handle "'+method+'"')
         }
 
         cb()

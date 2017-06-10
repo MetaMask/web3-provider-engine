@@ -2,11 +2,14 @@
 module.exports = injectSubproviderMetrics
 
 function injectSubproviderMetrics(subprovider){
-  subprovider.payloadsWitnessed = {}
-  subprovider.payloadsHandled = {}
-
   subprovider.getWitnessed = getWitnessed.bind(subprovider)
   subprovider.getHandled = getHandled.bind(subprovider)
+  subprovider.clearMetrics = () => {
+    subprovider.payloadsWitnessed = {}
+    subprovider.payloadsHandled = {}
+  }
+
+  subprovider.clearMetrics()
 
   var _super = subprovider.handleRequest.bind(subprovider)
   subprovider.handleRequest = handleRequest.bind(subprovider, _super)
