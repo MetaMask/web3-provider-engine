@@ -180,9 +180,7 @@ Web3ProviderEngine.prototype._inspectResponseForNewBlock = function(payload, res
   // try to query data from that block but would otherwise get old data due to
   // our blockTag-rewriting mechanism
   if (-1 === self.currentBlock.number.compare(blockNumber)) {
-    console.log('_inspectResponseForNewBlock start')
     self._blockTracker._performSync().then(() => {
-      console.log('_inspectResponseForNewBlock end')
       cb(null, resultObj)
     })
   } else {
