@@ -124,8 +124,32 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
       return
 
     case 'personal_sign':
-      var address = payload.params[0]
-      var message = payload.params[1]
+      const first = payload.params[0]
+      const second = payload.params[1]
+
+      var message, address
+
+      // We initially incorrectly ordered these parameters.
+      // To gracefully respect users who adopted this API early,
+      // we are currently gracefully recovering from the wrong param order
+      // when it is clearly identifiable.
+      //
+      // That means when the first param is definitely an address,
+      // and the second param is definitely not, but is hex.
+      if (resemblesData(second) && resemblesAddress(first)) {
+        let warning = `The eth_personalSign method requires params ordered `
+        warning += `[message, address]. This was previously handled incorrectly, `
+        warning += `and has been corrected automatically. `
+        warning += `Please switch this param order for smooth behavior in the future.`
+        console.warn(warning)
+
+        address = payload.params[0]
+        message = payload.params[1]
+      } else {
+        message = payload.params[0]
+        address = payload.params[1]
+      }
+
       // non-standard "extraParams" to be appended to our "msgParams" obj
       // good place for metadata
       var extraParams = payload.params[2] || {}
@@ -384,6 +408,20 @@ function cloneTxParams(txParams){
 
 function toLowerCase(string){
   return string.toLowerCase()
+}
+
+function resemblesAddress (string) {
+  const fixed = ethUtil.addHexPrefix(string)
+  const isValid = ethUtil.isValidAddress(fixed)
+  return isValid
+}
+
+// Returns true if resembles hex data
+// but definitely not a valid address.
+function resemblesData (string) {
+  const fixed = ethUtil.addHexPrefix(string)
+  const isValidAddress = ethUtil.isValidAddress(fixed)
+  return !isValidAddress && isValidHex(string)
 }
 
 function isValidHex(data) {

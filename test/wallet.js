@@ -17,7 +17,7 @@ test('tx sig', function(t){
   var privateKey = new Buffer('cccd8f4d88de61f92f3747e4a9604a0395e6ad5138add4bec4a2ddf231ee24f9', 'hex')
   var address = new Buffer('1234362ef32bcd26d3dd18ca749378213625ba0b', 'hex')
   var addressHex = '0x'+address.toString('hex')
-  
+
   // sign all tx's
   var providerA = injectMetrics(new HookedWalletProvider({
     getAccounts: function(cb){
@@ -80,7 +80,7 @@ test('tx sig', function(t){
 
     // gas price
     t.equal(providerC.getWitnessed('eth_gasPrice').length, 1, 'providerB did see "eth_gasPrice"')
-    t.equal(providerC.getHandled('eth_gasPrice').length, 1, 'providerB did handle "eth_gasPrice"')  
+    t.equal(providerC.getHandled('eth_gasPrice').length, 1, 'providerB did handle "eth_gasPrice"')
 
     // send raw tx
     t.equal(providerC.getWitnessed('eth_sendRawTransaction').length, 1, 'providerC did see "eth_sendRawTransaction"')
@@ -97,7 +97,7 @@ test('no such account', function(t){
 
   var addressHex = '0x1234362ef32bcd26d3dd18ca749378213625ba0b'
   var otherAddressHex = '0x4321362ef32bcd26d3dd18ca749378213625ba0c'
-  
+
   // sign all tx's
   var providerA = injectMetrics(new HookedWalletProvider({
     getAccounts: function(cb){
@@ -153,7 +153,7 @@ test('sign message', function(t){
 
   var privateKey = new Buffer('cccd8f4d88de61f92f3747e4a9604a0395e6ad5138add4bec4a2ddf231ee24f9', 'hex')
   var addressHex = '0x1234362ef32bcd26d3dd18ca749378213625ba0b'
-  
+
   var message = 'haay wuurl'
   var signature = '0x2c865e6843caf741a694522f86281c9ee86294ade3c8cd1889c9f2c9a24e20802b2b6eb79ba49412661bdbf40245d9b01abb393a843734e5be79b38e7dd408ef1c'
 
@@ -322,6 +322,22 @@ function signatureTest({ testLabel, method, privateKey, addressHex, message, sig
     engine,
     expectedResult: signature,
   })
+
+  // Personal sign is supposed to have params
+  // ordered in this direction, not the other.
+  if (payload.method === 'personal_sign') {
+    var payload = {
+      method: method,
+      params: [message, addressHex],
+    }
+
+    singleRpcTest({
+      testLabel: `sign message ${method} - ${testLabel}`,
+      payload,
+      engine,
+      expectedResult: signature,
+    })
+  }
 }
 
 function recoverTest({ testLabel, method, addressHex, message, signature }) {
