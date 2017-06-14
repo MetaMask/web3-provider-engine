@@ -87,6 +87,10 @@ Categorically, we don’t want / can’t have the following types of RPC calls g
 
 ### Change Log
 
+##### 13.0.0
+
+- txs included in blocks via [`eth-block-tracker`](https://github.com/kumavis/eth-block-tracker)@2.0.0
+
 ##### 12.0.0
 
 - moved block polling to [`eth-block-tracker`](https://github.com/kumavis/eth-block-tracker).
