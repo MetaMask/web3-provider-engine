@@ -145,7 +145,7 @@ Web3ProviderEngine.prototype._handleAsync = function(payload, finished) {
         // respond with both error formats
         finished(error, resultObj)
       } else {
-        self._inspectResponseForNewBlock(payload, resultObj, finished)
+        finished(null, resultObj)
       }
     })
   }
@@ -161,45 +161,7 @@ Web3ProviderEngine.prototype._setCurrentBlock = function(block){
   self.emit('block', block)
 }
 
-Web3ProviderEngine.prototype._inspectResponseForNewBlock = function(payload, resultObj, cb) {
-  const self = this
-
-  // these methods return responses with a block reference
-  if (payload.method !== 'eth_getTransactionByHash'
-   && payload.method !== 'eth_getTransactionReceipt') {
-    return cb(null, resultObj)
-  }
-
-  if (resultObj.result === null
-   || resultObj.result.blockNumber === null) {
-    return cb(null, resultObj)
-  }
-
-  const blockNumber = ethUtil.toBuffer(resultObj.result.blockNumber)
-
-  // If we found a new block number on the result,
-  // and it is higher than our current block,
-  // fetch for a new latest block before returning the original response.
-  // We do this b/c a user might be polling for a tx by hash,
-  // and may get a result that includes a reference to a block we havent seen yet.
-  // Without this blocker, the user may assume that we are on the new block and
-  // try to query data from that block but would otherwise get old data due to
-  // our blockTag-rewriting mechanism
-  if (-1 === self.currentBlock.number.compare(blockNumber)) {
-    self._blockTracker._performSync().then(() => {
-      cb(null, resultObj)
-    })
-  } else {
-    cb(null, resultObj)
-  }
-
-}
-
 // util
-
-function SourceNotFoundError (payload) {
-  return new Error('Source for RPC method "'+payload.method+'" not found.')
-}
 
 function toBufferBlock (jsonBlock) {
   return {
