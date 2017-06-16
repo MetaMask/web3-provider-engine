@@ -30,6 +30,12 @@ function Web3ProviderEngine(opts) {
     const bufferBlock = toBufferBlock(jsonBlock)
     self._setCurrentBlock(bufferBlock)
   })
+
+  // emit block events from the block tracker
+  self._blockTracker.on('block', self.emit.bind(self, 'rawBlock'))
+  self._blockTracker.on('sync', self.emit.bind(self, 'sync'))
+  self._blockTracker.on('latest', self.emit.bind(self, 'latest'))
+
   // set initialization blocker
   self._ready = new Stoplight()
   // unblock initialization after first block
