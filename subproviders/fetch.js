@@ -13,26 +13,37 @@ inherits(RpcSource, Subprovider)
 function RpcSource(opts) {
   const self = this
   self.rpcUrl = opts.rpcUrl
+  self.originHttpHeaderKey
 }
 
 RpcSource.prototype.handleRequest = function(payload, next, end){
   const self = this
   const targetUrl = self.rpcUrl
+  const originDomain = payload.origin
 
-  // overwrite id to conflict with other concurrent users
-  let newPayload = createPayload(payload)
+  // overwrite id to not conflict with other concurrent users
+  const newPayload = createPayload(payload)
+  // remove extra parameter from request
+  delete newPayload.origin
+
+  const reqParams = {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(newPayload),
+  }
+
+  if (self.originHttpHeaderKey && originDomain) {
+    reqParams.headers[self.originHttpHeaderKey] = originDomain
+  }
+
   let res, err
 
   promiseToCallback(
 
-    fetch(targetUrl, {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(newPayload),
-    }).then((_res) => {
+    fetch(targetUrl, reqParams).then((_res) => {
       res = _res
 
       switch (res.status) {
