@@ -66,6 +66,7 @@ function ZeroClientProvider(opts){
   // data source
   const fetchSubprovider = new FetchSubprovider({
     rpcUrl: opts.rpcUrl || 'https://mainnet.infura.io/',
+    originHttpHeaderKey: opts.originHttpHeaderKey,
   })
   engine.addProvider(fetchSubprovider)
 

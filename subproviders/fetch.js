@@ -13,7 +13,7 @@ inherits(RpcSource, Subprovider)
 function RpcSource(opts) {
   const self = this
   self.rpcUrl = opts.rpcUrl
-  self.originHttpHeaderKey
+  self.originHttpHeaderKey = opts.originHttpHeaderKey
 }
 
 RpcSource.prototype.handleRequest = function(payload, next, end){
