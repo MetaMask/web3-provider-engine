@@ -60,16 +60,11 @@ RpcSource.prototype._submitRequest = function(reqParams, cb){
         throw new JsonRpcError.MethodNotFound()
 
       case 418:
-        let msg = `Request is being rate limited.`
-        err = new Error(msg)
-        throw new JsonRpcError.InternalError(err)
+        throw createRatelimitError()
 
       case 503:
       case 504:
-        let msg = `Gateway timeout. The request took too long to process. `
-        msg += `This can happen when querying logs over too wide a block range.`
-        err = new Error(msg)
-        throw new JsonRpcError.InternalError(err)
+        throw createTimeoutError()
 
     }
 
@@ -84,8 +79,21 @@ RpcSource.prototype._submitRequest = function(reqParams, cb){
       // check for rpc error
       if (body.error) throw new JsonRpcError.InternalError(body.error)
       // return successful result
-      end(body.result)
+      end(null, body.result)
     })
   })
 
+}
+
+function createRatelimitError() {
+  let msg = `Request is being rate limited.`
+  const err = new Error(msg)
+  return new JsonRpcError.InternalError(err)
+}
+
+function createTimeoutError() {
+  let msg = `Gateway timeout. The request took too long to process. `
+  msg += `This can happen when querying logs over too wide a block range.`
+  const err = new Error(msg)
+  return new JsonRpcError.InternalError(err)
 }
