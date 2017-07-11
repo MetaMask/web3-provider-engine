@@ -13,7 +13,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "async": "^2.1.2",
+    "async": "^2.5.0",
     "clone": "^2.0.0",
     "eth-block-tracker": "^2.0.1",
     "eth-sig-util": "^1.2.1",
