@@ -57,14 +57,14 @@ RpcSource.prototype._submitRequest = function(reqParams, cb){
     switch (res.status) {
 
       case 405:
-        throw new JsonRpcError.MethodNotFound()
+        return cb(new JsonRpcError.MethodNotFound())
 
       case 418:
-        throw createRatelimitError()
+        return cb(createRatelimitError())
 
       case 503:
       case 504:
-        throw createTimeoutError()
+        return cb(createTimeoutError())
 
     }
 
@@ -74,10 +74,10 @@ RpcSource.prototype._submitRequest = function(reqParams, cb){
 
       // check for error code
       if (res.status != 200) {
-        throw new JsonRpcError.InternalError(body)
+        return cb(new JsonRpcError.InternalError(body))
       }
       // check for rpc error
-      if (body.error) throw new JsonRpcError.InternalError(body.error)
+      if (body.error) return cb(new JsonRpcError.InternalError(body.error))
       // return successful result
       cb(null, body.result)
     })
