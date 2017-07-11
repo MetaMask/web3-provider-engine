@@ -1,12 +1,13 @@
 const fetch = global.fetch || require('fetch-ponyfill')().fetch
 const inherits = require('util').inherits
-const createPayload = require('../util/create-payload.js')
-const Subprovider = require('./subprovider.js')
+const retry = require('async/retry')
 const JsonRpcError = require('json-rpc-error')
 const promiseToCallback = require('promise-to-callback')
-
+const createPayload = require('../util/create-payload.js')
+const Subprovider = require('./subprovider.js')
 
 module.exports = RpcSource
+
 
 inherits(RpcSource, Subprovider)
 
@@ -18,7 +19,6 @@ function RpcSource(opts) {
 
 RpcSource.prototype.handleRequest = function(payload, next, end){
   const self = this
-  const targetUrl = self.rpcUrl
   const originDomain = payload.origin
 
   // overwrite id to not conflict with other concurrent users
@@ -38,6 +38,17 @@ RpcSource.prototype.handleRequest = function(payload, next, end){
   if (self.originHttpHeaderKey && originDomain) {
     reqParams.headers[self.originHttpHeaderKey] = originDomain
   }
+
+  retry({
+    times: 5,
+    interval: 1000,
+    errorFilter: (err) => err.message.includes('Gateway timeout'),
+  }, (cb) => self._submitRequest(reqParams, cb), end)
+}
+
+RpcSource.prototype._submitRequest = function(reqParams, cb){
+  const self = this
+  const targetUrl = self.rpcUrl
 
   promiseToCallback(fetch(targetUrl, reqParams))((err, res) => {
     if (err) return end(err)
