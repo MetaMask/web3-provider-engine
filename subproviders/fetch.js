@@ -90,7 +90,7 @@ RpcSource.prototype._submitRequest = function(reqParams, cb){
       if (body.error) return cb(new JsonRpcError.InternalError(body.error))
       // return successful result
       cb(null, body.result)
-    })
+    }
   })
 
 }
