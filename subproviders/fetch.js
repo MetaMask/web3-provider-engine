@@ -79,7 +79,7 @@ RpcSource.prototype._submitRequest = function(reqParams, cb){
       // check for rpc error
       if (body.error) throw new JsonRpcError.InternalError(body.error)
       // return successful result
-      end(null, body.result)
+      cb(null, body.result)
     })
   })
 
