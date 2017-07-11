@@ -1,6 +1,7 @@
 const fetch = global.fetch || require('fetch-ponyfill')().fetch
 const inherits = require('util').inherits
 const retry = require('async/retry')
+const waterfall = require('async/waterfall')
 const JsonRpcError = require('json-rpc-error')
 const promiseToCallback = require('promise-to-callback')
 const createPayload = require('../util/create-payload.js')
@@ -53,25 +54,34 @@ RpcSource.prototype._submitRequest = function(reqParams, cb){
   promiseToCallback(fetch(targetUrl, reqParams))((err, res) => {
     if (err) return cb(err)
 
-    // check for errors
-    switch (res.status) {
+    // continue parsing result
+    waterfall([
+      checkForHttpErrors,
+      // buffer body
+      (cb) => promiseToCallback(res.text())(cb),
+      // parse body
+      asyncify((rawBody) => JSON.parse(rawBody)),
+      parseResponse,
+    ], cb)
 
-      case 405:
-        return cb(new JsonRpcError.MethodNotFound())
+    function checkForHttpErrors(cb) {
+      // check for errors
+      switch (res.status) {
 
-      case 418:
-        return cb(createRatelimitError())
+        case 405:
+          return cb(new JsonRpcError.MethodNotFound())
 
-      case 503:
-      case 504:
-        return cb(createTimeoutError())
+        case 418:
+          return cb(createRatelimitError())
 
+        case 503:
+        case 504:
+          return cb(createTimeoutError())
+
+      }
     }
 
-    // continue parsing result
-    promiseToCallback(res.json())((err, body) => {
-      if (err) return cb(err)
-
+    function parseResponse(body, cb) {
       // check for error code
       if (res.status != 200) {
         return cb(new JsonRpcError.InternalError(body))
