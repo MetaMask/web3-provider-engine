@@ -81,7 +81,7 @@ RpcSource.prototype._submitRequest = function (reqParams, cb) {
 
     function parseResponse (body, cb) {
       // check for error code
-      if (res.status != 200) {
+      if (res.status !== 200) {
         return cb(new JsonRpcError.InternalError(body))
       }
       // check for rpc error
