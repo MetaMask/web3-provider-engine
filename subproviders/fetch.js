@@ -51,7 +51,7 @@ RpcSource.prototype._submitRequest = function(reqParams, cb){
   const targetUrl = self.rpcUrl
 
   promiseToCallback(fetch(targetUrl, reqParams))((err, res) => {
-    if (err) return end(err)
+    if (err) return cb(err)
 
     // check for errors
     switch (res.status) {
@@ -70,7 +70,7 @@ RpcSource.prototype._submitRequest = function(reqParams, cb){
 
     // continue parsing result
     promiseToCallback(res.json())((err, body) => {
-      if (err) return end(err)
+      if (err) return cb(err)
 
       // check for error code
       if (res.status != 200) {
