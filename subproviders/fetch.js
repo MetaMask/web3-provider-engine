@@ -39,39 +39,42 @@ RpcSource.prototype.handleRequest = function(payload, next, end){
     reqParams.headers[self.originHttpHeaderKey] = originDomain
   }
 
-  let res, err
+  promiseToCallback(fetch(targetUrl, reqParams))((err, res) => {
+    if (err) return end(err)
 
-  promiseToCallback(
+    // check for errors
+    switch (res.status) {
 
-    fetch(targetUrl, reqParams).then((_res) => {
-      res = _res
+      case 405:
+        throw new JsonRpcError.MethodNotFound()
 
-      switch (res.status) {
+      case 418:
+        let msg = `Request is being rate limited.`
+        err = new Error(msg)
+        throw new JsonRpcError.InternalError(err)
 
-        case 504:
-          let msg = `Gateway timeout. The request took too long to process. `
-          msg += `This can happen when querying logs over too wide a block range.`
-          err = new Error(msg)
-          throw new JsonRpcError.InternalError(err)
+      case 503:
+      case 504:
+        let msg = `Gateway timeout. The request took too long to process. `
+        msg += `This can happen when querying logs over too wide a block range.`
+        err = new Error(msg)
+        throw new JsonRpcError.InternalError(err)
 
-        default:
-          return res.json()
-      }
+    }
 
-      return res.json()
-    }).then((body) => {
+    // continue parsing result
+    promiseToCallback(res.json())((err, body) => {
+      if (err) return end(err)
+
       // check for error code
-      switch (res.status) {
-        case 405:
-          throw new JsonRpcError.MethodNotFound()
-        default:
-          if (res.status != 200) {
-            throw new JsonRpcError.InternalError(body)
-          }
+      if (res.status != 200) {
+        throw new JsonRpcError.InternalError(body)
       }
+      // check for rpc error
       if (body.error) throw new JsonRpcError.InternalError(body.error)
-      return body.result
+      // return successful result
+      end(body.result)
     })
+  })
 
-  )(end)
 }
