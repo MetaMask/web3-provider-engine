@@ -10,16 +10,15 @@ const Subprovider = require('./subprovider.js')
 
 module.exports = RpcSource
 
-
 inherits(RpcSource, Subprovider)
 
-function RpcSource(opts) {
+function RpcSource (opts) {
   const self = this
   self.rpcUrl = opts.rpcUrl
   self.originHttpHeaderKey = opts.originHttpHeaderKey
 }
 
-RpcSource.prototype.handleRequest = function(payload, next, end){
+RpcSource.prototype.handleRequest = function (payload, next, end) {
   const self = this
   const originDomain = payload.origin
 
@@ -32,9 +31,9 @@ RpcSource.prototype.handleRequest = function(payload, next, end){
     method: 'POST',
     headers: {
       'Accept': 'application/json',
-      'Content-Type': 'application/json',
+      'Content-Type': 'application/json'
     },
-    body: JSON.stringify(newPayload),
+    body: JSON.stringify(newPayload)
   }
 
   if (self.originHttpHeaderKey && originDomain) {
@@ -44,11 +43,11 @@ RpcSource.prototype.handleRequest = function(payload, next, end){
   retry({
     times: 5,
     interval: 1000,
-    errorFilter: (err) => err.message.includes('Gateway timeout'),
+    errorFilter: (err) => err.message.includes('Gateway timeout')
   }, (cb) => self._submitRequest(reqParams, cb), end)
 }
 
-RpcSource.prototype._submitRequest = function(reqParams, cb){
+RpcSource.prototype._submitRequest = function (reqParams, cb) {
   const self = this
   const targetUrl = self.rpcUrl
 
@@ -62,13 +61,12 @@ RpcSource.prototype._submitRequest = function(reqParams, cb){
       (cb) => promiseToCallback(res.text())(cb),
       // parse body
       asyncify((rawBody) => JSON.parse(rawBody)),
-      parseResponse,
+      parseResponse
     ], cb)
 
-    function checkForHttpErrors(cb) {
+    function checkForHttpErrors (cb) {
       // check for errors
       switch (res.status) {
-
         case 405:
           return cb(new JsonRpcError.MethodNotFound())
 
@@ -78,11 +76,10 @@ RpcSource.prototype._submitRequest = function(reqParams, cb){
         case 503:
         case 504:
           return cb(createTimeoutError())
-
       }
     }
 
-    function parseResponse(body, cb) {
+    function parseResponse (body, cb) {
       // check for error code
       if (res.status != 200) {
         return cb(new JsonRpcError.InternalError(body))
@@ -93,16 +90,15 @@ RpcSource.prototype._submitRequest = function(reqParams, cb){
       cb(null, body.result)
     }
   })
-
 }
 
-function createRatelimitError() {
+function createRatelimitError () {
   let msg = `Request is being rate limited.`
   const err = new Error(msg)
   return new JsonRpcError.InternalError(err)
 }
 
-function createTimeoutError() {
+function createTimeoutError () {
   let msg = `Gateway timeout. The request took too long to process. `
   msg += `This can happen when querying logs over too wide a block range.`
   const err = new Error(msg)
