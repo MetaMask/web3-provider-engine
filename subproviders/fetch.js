@@ -76,6 +76,9 @@ RpcSource.prototype._submitRequest = function (reqParams, cb) {
         case 503:
         case 504:
           return cb(createTimeoutError())
+
+        default:
+          return cb()
       }
     }
 
