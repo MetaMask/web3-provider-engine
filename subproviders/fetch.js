@@ -16,6 +16,7 @@ function RpcSource (opts) {
   const self = this
   self.rpcUrl = opts.rpcUrl
   self.originHttpHeaderKey = opts.originHttpHeaderKey
+  self.allowCrossOrigin = opts.allowCrossOrigin
 }
 
 RpcSource.prototype.handleRequest = function (payload, next, end) {
@@ -35,6 +36,8 @@ RpcSource.prototype.handleRequest = function (payload, next, end) {
     },
     body: JSON.stringify(newPayload)
   }
+
+  if (self.allowCrossOrigin) reqParams.headers['Access-Control-Allow-Origin'] = self.allowCrossOrigin
 
   if (self.originHttpHeaderKey && originDomain) {
     reqParams.headers[self.originHttpHeaderKey] = originDomain
