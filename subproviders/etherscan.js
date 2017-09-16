@@ -39,7 +39,8 @@ function EtherscanProvider(opts) {
   this.interval = isNaN(opts.interval) ? 1000 : opts.interval;
   this.retryFailed = typeof opts.retryFailed === 'boolean' ? opts.retryFailed : true; // not built yet
   
-  setInterval(this.handleRequests, this.interval, this);
+  const interval = setInterval(this.handleRequests, this.interval, this);
+  if (interval.unref) interval.unref();
 }
 
 EtherscanProvider.prototype.handleRequests = function(self){
