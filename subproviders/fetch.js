@@ -31,6 +31,7 @@ RpcSource.prototype.handleRequest = function (payload, next, end) {
     method: 'POST',
     headers: {
       'Accept': 'application/json',
+      'access-control-allow-headers': 'Content-Type',
       'Content-Type': 'application/json'
     },
     body: JSON.stringify(newPayload)
