@@ -135,6 +135,7 @@ Categorically, we don’t want / can’t have the following types of RPC calls g
 - [x] eth_accounts
 - [x] eth_sendTransaction
 - [x] eth_sign
+- [x] [eth_signTypedData](https://github.com/ethereum/EIPs/pull/712)
 
 ##### vm
 - [x] eth_call
