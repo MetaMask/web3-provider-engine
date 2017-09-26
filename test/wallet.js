@@ -313,7 +313,7 @@ function signatureTest({ testLabel, method, privateKey, addressHex, message, sig
 
   var payload = {
     method: method,
-    params: [addressHex, message],
+    params: [message, addressHex],
   }
 
   singleRpcTest({
