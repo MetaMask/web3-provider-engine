@@ -171,7 +171,7 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
       var signature = payload.params[1]
       // non-standard "extraParams" to be appended to our "msgParams" obj
       // good place for metadata
-      var extraParams = payload.params[2] || {}w
+      var extraParams = payload.params[2] || {}
       var msgParams = extend(extraParams, {
         sig: signature,
         data: message,
