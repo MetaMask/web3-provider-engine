@@ -179,7 +179,7 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
       self.recoverPersonalSignature(msgParams, end)
       return
 
-    case 'personal_signTypedData':
+    case 'eth_signTypedData':
       message = payload.params[0]
       address = payload.params[1]
       var extraParams = payload.params[2] || {}
