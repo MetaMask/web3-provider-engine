@@ -15,8 +15,8 @@
   "dependencies": {
     "async": "^2.5.0",
     "clone": "^2.0.0",
+    "eth-sig-util": "^1.3.0",
     "eth-block-tracker": "^2.2.2",
-    "eth-sig-util": "^1.2.1",
     "ethereumjs-block": "^1.2.2",
     "ethereumjs-tx": "^1.2.0",
     "ethereumjs-util": "^5.1.1",

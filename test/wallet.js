@@ -250,6 +250,21 @@ recoverTest({
   addressHex: '0xbe93f9bacbcffc8ee6663f2647917ed7a20a57bb',
 })
 
+signatureTest({
+  testLabel: 'sign typed message',
+  method: 'eth_signTypedData',
+  message: [
+    {
+      type: 'string',
+      name: 'message',
+      value: 'Hi, Alice!'
+    }
+  ],
+  signature: '0xb2c9c7bdaee2cc73f318647c3f6e24792fca86a9f2736d9e7537e64c503545392313ebbbcb623c828fd8f99fd1fb48f8f4da8cb1d1a924e28b21de018c826e181c',
+  addressHex: '0xbe93f9bacbcffc8ee6663f2647917ed7a20a57bb',
+  privateKey: new Buffer('6969696969696969696969696969696969696969696969696969696969696969', 'hex'),
+})
+
 test('sender validation, with mixed-case', function(t){
   t.plan(1)
 
@@ -313,7 +328,7 @@ function signatureTest({ testLabel, method, privateKey, addressHex, message, sig
 
   var payload = {
     method: method,
-    params: [addressHex, message],
+    params: [message, addressHex],
   }
 
   singleRpcTest({

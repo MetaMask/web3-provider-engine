@@ -56,6 +56,14 @@ function HookedWalletEthTxSubprovider(opts) {
     })
   }
 
+  self.signTypedMessage = function (msgParams, cb) {
+    opts.getPrivateKey(msgParams.from, function(err, privateKey) {
+      if (err) return cb(err)
+      const serialized = sigUtil.signTypedData(privateKey, msgParams)
+      cb(null, serialized)
+    })
+  }
+
 }
 
 function concatSig(v, r, s) {

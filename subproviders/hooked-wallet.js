@@ -58,14 +58,17 @@ function HookedWalletSubprovider(opts){
   if (opts.processTransaction) self.processTransaction = opts.processTransaction
   if (opts.processMessage) self.processMessage = opts.processMessage
   if (opts.processPersonalMessage) self.processPersonalMessage = opts.processPersonalMessage
+  if (opts.processTypedMessage) self.processTypedMessage = opts.processTypedMessage
   // approval hooks
   self.approveTransaction = opts.approveTransaction || self.autoApprove
   self.approveMessage = opts.approveMessage || self.autoApprove
   self.approvePersonalMessage = opts.approvePersonalMessage || self.autoApprove
+  self.approveTypedMessage = opts.approveTypedMessage || self.autoApprove
   // actually perform the signature
   if (opts.signTransaction) self.signTransaction = opts.signTransaction
   if (opts.signMessage) self.signMessage = opts.signMessage
   if (opts.signPersonalMessage) self.signPersonalMessage = opts.signPersonalMessage
+  if (opts.signTypedMessage) self.signTypedMessage = opts.signTypedMessage
   if (opts.recoverPersonalSignature) self.recoverPersonalSignature = opts.recoverPersonalSignature
   // publish to network
   if (opts.publishTransaction) self.publishTransaction = opts.publishTransaction
@@ -176,6 +179,20 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
       self.recoverPersonalSignature(msgParams, end)
       return
 
+    case 'eth_signTypedData':
+      message = payload.params[0]
+      address = payload.params[1]
+      var extraParams = payload.params[2] || {}
+      var msgParams = extend(extraParams, {
+        from: address,
+        data: message,
+      })
+      waterfall([
+        (cb) => self.validateTypedMessage(msgParams, cb),
+        (cb) => self.processTypedMessage(msgParams, cb),
+      ], end)
+      return
+
     default:
       next()
       return
@@ -224,6 +241,15 @@ HookedWalletSubprovider.prototype.processPersonalMessage = function(msgParams, c
   ], cb)
 }
 
+HookedWalletSubprovider.prototype.processTypedMessage = function(msgParams, cb) {
+  const self = this
+  waterfall([
+    (cb) => self.approveTypedMessage(msgParams, cb),
+    (didApprove, cb) => self.checkApproval('message', didApprove, cb),
+    (cb) => self.signTypedMessage(msgParams, cb),
+  ], cb)
+}
+
 //
 // approval
 //
@@ -248,6 +274,9 @@ HookedWalletSubprovider.prototype.signMessage = function(msgParams, cb) {
 }
 HookedWalletSubprovider.prototype.signPersonalMessage = function(msgParams, cb) {
   cb(new Error('ProviderEngine - HookedWalletSubprovider - Must provide "signPersonalMessage" fn in constructor options'))
+}
+HookedWalletSubprovider.prototype.signTypedMessage = function(msgParams, cb) {
+  cb(new Error('ProviderEngine - HookedWalletSubprovider - Must provide "signTypedMessage" fn in constructor options'))
 }
 
 HookedWalletSubprovider.prototype.recoverPersonalSignature = function(msgParams, cb) {
@@ -291,6 +320,16 @@ HookedWalletSubprovider.prototype.validatePersonalMessage = function(msgParams, 
   if (msgParams.data === undefined) return cb(new Error(`Undefined message - message required to sign personal message.`))
   if (!isValidHex(msgParams.data)) return cb(new Error(`HookedWalletSubprovider - validateMessage - message was not encoded as hex.`))
   self.validateSender(msgParams.from, function(err, senderIsValid){
+    if (err) return cb(err)
+    if (!senderIsValid) return cb(new Error(`Unknown address - unable to sign message for this address: "${msgParams.from}"`))
+    cb()
+  })
+}
+
+HookedWalletSubprovider.prototype.validateTypedMessage = function(msgParams, cb){
+  if (msgParams.from === undefined) return cb(new Error(`Undefined address - from address required to sign typed data.`))
+  if (msgParams.data === undefined) return cb(new Error(`Undefined data - message required to sign typed data.`))
+  this.validateSender(msgParams.from, function(err, senderIsValid){
     if (err) return cb(err)
     if (!senderIsValid) return cb(new Error(`Unknown address - unable to sign message for this address: "${msgParams.from}"`))
     cb()
