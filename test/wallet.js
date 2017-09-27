@@ -251,7 +251,7 @@ recoverTest({
 })
 
 signatureTest({
-  testLabel: 'kumavis fml manual test I',
+  testLabel: 'sign typed message',
   method: 'eth_signTypedData',
   message: [
     {
