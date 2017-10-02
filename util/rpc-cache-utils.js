@@ -39,6 +39,11 @@ function paramsWithoutBlockTag(payload){
     return payload.params;
   }
 
+  // eth_getBlockByNumber has the block tag first, then the optional includeTx? param
+  if (payload.method === 'eth_getBlockByNumber') {
+    return payload.params.slice(1);
+  }
+
   return payload.params.slice(0,index);
 }
 
