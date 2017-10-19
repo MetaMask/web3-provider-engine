@@ -83,12 +83,17 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
   self._parityRequests = {}
   self._parityRequestCount = 0
 
+  // switch statement is not block scoped
+  // sp we cant repeat var declarations
+  let txParams, msgParams, extraParams
+  let message, address
+
   switch(payload.method) {
 
     case 'eth_coinbase':
       self.getAccounts(function(err, accounts){
         if (err) return end(err)
-        var result = accounts[0] || null
+        let result = accounts[0] || null
         end(null, result)
       })
       return
@@ -101,7 +106,7 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
       return
 
     case 'eth_sendTransaction':
-      var txParams = payload.params[0]
+      txParams = payload.params[0]
       waterfall([
         (cb) => self.validateTransaction(txParams, cb),
         (cb) => self.processTransaction(txParams, cb),
@@ -109,7 +114,7 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
       return
 
     case 'eth_signTransaction':
-      var txParams = payload.params[0]
+      txParams = payload.params[0]
       waterfall([
         (cb) => self.validateTransaction(txParams, cb),
         (cb) => self.processSignTransaction(txParams, cb),
@@ -117,12 +122,12 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
       return
 
     case 'eth_sign':
-      var address = payload.params[0]
-      var message = payload.params[1]
+      address = payload.params[0]
+      message = payload.params[1]
       // non-standard "extraParams" to be appended to our "msgParams" obj
       // good place for metadata
-      var extraParams = payload.params[2] || {}
-      var msgParams = extend(extraParams, {
+      extraParams = payload.params[2] || {}
+      msgParams = extend(extraParams, {
         from: address,
         data: message,
       })
@@ -135,8 +140,6 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
     case 'personal_sign':
       const first = payload.params[0]
       const second = payload.params[1]
-
-      var message, address
 
       // We initially incorrectly ordered these parameters.
       // To gracefully respect users who adopted this API early,
@@ -161,8 +164,8 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
 
       // non-standard "extraParams" to be appended to our "msgParams" obj
       // good place for metadata
-      var extraParams = payload.params[2] || {}
-      var msgParams = extend(extraParams, {
+      extraParams = payload.params[2] || {}
+      msgParams = extend(extraParams, {
         from: address,
         data: message,
       })
@@ -173,12 +176,12 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
       return
 
     case 'personal_ecRecover':
-      var message = payload.params[0]
-      var signature = payload.params[1]
+      message = payload.params[0]
+      let signature = payload.params[1]
       // non-standard "extraParams" to be appended to our "msgParams" obj
       // good place for metadata
-      var extraParams = payload.params[2] || {}
-      var msgParams = extend(extraParams, {
+      extraParams = payload.params[2] || {}
+      msgParams = extend(extraParams, {
         sig: signature,
         data: message,
       })
@@ -188,8 +191,8 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
     case 'eth_signTypedData':
       message = payload.params[0]
       address = payload.params[1]
-      var extraParams = payload.params[2] || {}
-      var msgParams = extend(extraParams, {
+      extraParams = payload.params[2] || {}
+      msgParams = extend(extraParams, {
         from: address,
         data: message,
       })
@@ -200,7 +203,7 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
       return
 
     case 'parity_postTransaction':
-      const txParams = payload.params[0]
+      txParams = payload.params[0]
       self.parityPostTransaction(txParams, end)
       return
 
@@ -391,7 +394,7 @@ HookedWalletSubprovider.prototype.validateSender = function(senderAddress, cb){
   if (!senderAddress) return cb(null, false)
   self.getAccounts(function(err, accounts){
     if (err) return cb(err)
-    var senderIsValid = (accounts.map(toLowerCase).indexOf(senderAddress.toLowerCase()) !== -1)
+    const senderIsValid = (accounts.map(toLowerCase).indexOf(senderAddress.toLowerCase()) !== -1)
     cb(null, senderIsValid)
   })
 }
@@ -446,10 +449,10 @@ HookedWalletSubprovider.prototype.publishTransaction = function(rawTx, cb) {
 
 HookedWalletSubprovider.prototype.fillInTxExtras = function(txParams, cb){
   const self = this
-  var address = txParams.from
+  const address = txParams.from
   // console.log('fillInTxExtras - address:', address)
 
-  var reqs = {}
+  const reqs = {}
 
   if (txParams.gasPrice === undefined) {
     // console.log("need to get gasprice")
@@ -470,7 +473,7 @@ HookedWalletSubprovider.prototype.fillInTxExtras = function(txParams, cb){
     if (err) return cb(err)
     // console.log('fillInTxExtras - result:', result)
 
-    var res = {}
+    const res = {}
     if (result.gasPrice) res.gasPrice = result.gasPrice.result
     if (result.nonce) res.nonce = result.nonce.result
     if (result.gas) res.gas = result.gas
