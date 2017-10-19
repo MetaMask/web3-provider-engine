@@ -27,6 +27,9 @@ module.exports = HookedWalletSubprovider
 //   eth_signTypedData
 //   personal_sign
 //   personal_ecRecover
+//   parity_postTransaction
+//   parity_checkRequest
+//   parity_defaultAccount
 
 //
 // Tx Signature Flow
@@ -66,10 +69,10 @@ function HookedWalletSubprovider(opts){
   self.approvePersonalMessage = opts.approvePersonalMessage || self.autoApprove
   self.approveTypedMessage = opts.approveTypedMessage || self.autoApprove
   // actually perform the signature
-  if (opts.signTransaction) self.signTransaction = opts.signTransaction
-  if (opts.signMessage) self.signMessage = opts.signMessage
-  if (opts.signPersonalMessage) self.signPersonalMessage = opts.signPersonalMessage
-  if (opts.signTypedMessage) self.signTypedMessage = opts.signTypedMessage
+  if (opts.signTransaction) self.signTransaction = opts.signTransaction  || mustProvideInConstructor('signTransaction')
+  if (opts.signMessage) self.signMessage = opts.signMessage  || mustProvideInConstructor('signMessage')
+  if (opts.signPersonalMessage) self.signPersonalMessage = opts.signPersonalMessage  || mustProvideInConstructor('signPersonalMessage')
+  if (opts.signTypedMessage) self.signTypedMessage = opts.signTypedMessage  || mustProvideInConstructor('signTypedMessage')
   if (opts.recoverPersonalSignature) self.recoverPersonalSignature = opts.recoverPersonalSignature
   // publish to network
   if (opts.publishTransaction) self.publishTransaction = opts.publishTransaction
@@ -77,6 +80,8 @@ function HookedWalletSubprovider(opts){
 
 HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
   const self = this
+  self._parityRequests = {}
+  self._parityRequestCount = 0
 
   switch(payload.method) {
 
@@ -194,6 +199,24 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
       ], end)
       return
 
+    case 'parity_postTransaction':
+      const txParams = payload.params[0]
+      self.parityPostTransaction(txParams, end)
+      return
+
+    case 'parity_checkRequest':
+      const requestId = payload.params[0]
+      self.parityCheckRequest(requestId, end)
+      return
+
+    case 'parity_defaultAccount':
+      self.getAccounts(function(err, accounts){
+        if (err) return end(err)
+        const account = accounts[0] || null
+        end(null, account)
+      })
+      return
+
     default:
       next()
       return
@@ -264,21 +287,46 @@ HookedWalletSubprovider.prototype.checkApproval = function(type, didApprove, cb)
 }
 
 //
-// signature and recovery
+// parity
 //
 
-HookedWalletSubprovider.prototype.signTransaction = function(tx, cb) {
-  cb(new Error('ProviderEngine - HookedWalletSubprovider - Must provide "signTransaction" fn in constructor options'))
+HookedWalletSubprovider.prototype.parityPostTransaction = function(txParams, cb) {
+  const self = this
+
+  // get next id
+  const count = self._parityRequestCount
+  const reqId = `0x${count.toString(16)}`
+  self._parityRequestCount++
+
+  self.emitPayload({
+    method: 'eth_sendTransaction',
+    params: [txParams],
+  }, function(error, res){
+    if (error) {
+      self._parityRequests[reqId] = { error }
+      return
+    }
+    const txHash = res.result
+    self._parityRequests[reqId] = txHash
+  })
+
+  cb(null, reqId)
 }
-HookedWalletSubprovider.prototype.signMessage = function(msgParams, cb) {
-  cb(new Error('ProviderEngine - HookedWalletSubprovider - Must provide "signMessage" fn in constructor options'))
+
+HookedWalletSubprovider.prototype.parityCheckRequest = function(reqId, cb) {
+  const self = this
+  const result = self._parityRequests[reqId] || null
+  // tx not handled yet
+  if (!result) return cb(null, null)
+  // tx was rejected (or other error)
+  if (result.error) return cb(result.error)
+  // tx sent
+  cb(null, result)
 }
-HookedWalletSubprovider.prototype.signPersonalMessage = function(msgParams, cb) {
-  cb(new Error('ProviderEngine - HookedWalletSubprovider - Must provide "signPersonalMessage" fn in constructor options'))
-}
-HookedWalletSubprovider.prototype.signTypedMessage = function(msgParams, cb) {
-  cb(new Error('ProviderEngine - HookedWalletSubprovider - Must provide "signTypedMessage" fn in constructor options'))
-}
+
+//
+// signature and recovery
+//
 
 HookedWalletSubprovider.prototype.recoverPersonalSignature = function(msgParams, cb) {
   let senderHex
@@ -472,4 +520,10 @@ function isValidHex(data) {
   const nonPrefixed = data.slice(2)
   const isValid = nonPrefixed.match(hexRegex)
   return isValid
+}
+
+function mustProvideInConstructor(methodName, cb) {
+  return function(params, cb) {
+    cb(new Error('ProviderEngine - HookedWalletSubprovider - Must provide "' + methodName + '" fn in constructor options'))
+  }
 }
