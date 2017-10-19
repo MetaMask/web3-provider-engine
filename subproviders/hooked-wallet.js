@@ -24,6 +24,7 @@ module.exports = HookedWalletSubprovider
 //   eth_accounts
 //   eth_sendTransaction
 //   eth_sign
+//   eth_signTypedData
 //   personal_sign
 //   personal_ecRecover
 
