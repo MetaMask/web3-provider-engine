@@ -522,7 +522,7 @@ function isValidHex(data) {
   return isValid
 }
 
-function mustProvideInConstructor(methodName, cb) {
+function mustProvideInConstructor(methodName) {
   return function(params, cb) {
     cb(new Error('ProviderEngine - HookedWalletSubprovider - Must provide "' + methodName + '" fn in constructor options'))
   }
