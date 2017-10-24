@@ -1,6 +1,6 @@
 {
   "name": "web3-provider-engine",
-  "version": "13.3.2",
+  "version": "13.3.3",
   "description": "",
   "repository": "https://github.com/MetaMask/provider-engine",
   "main": "index.js",
