@@ -44,11 +44,14 @@ RpcSource.prototype.handleRequest = function (payload, next, end) {
     times: 5,
     interval: 1000,
     errorFilter: (err) => {
-      // ignore server overload errors
-      err.message.includes('Gateway timeout')
-      // ignore server sent html error pages
-      // or truncated json responses
-      || err.message.includes('JSON')
+      return [
+        // ignore server overload errors
+        'Gateway timeout',
+        'ETIMEDOUT',
+        // ignore server sent html error pages
+        // or truncated json responses
+        'SyntaxError',
+      ].some(phrase => err.message.includes(phrase))
     },
   }, (cb) => self._submitRequest(reqParams, cb), end)
 }
