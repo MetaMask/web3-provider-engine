@@ -207,6 +207,12 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
       self.parityPostTransaction(txParams, end)
       return
 
+    case 'parity_postSign':
+      address = payload.params[0]
+      message = payload.params[1]
+      self.parityPostSign(address, message, end)
+      return
+
     case 'parity_checkRequest':
       const requestId = payload.params[0]
       self.parityCheckRequest(requestId, end)
@@ -311,6 +317,30 @@ HookedWalletSubprovider.prototype.parityPostTransaction = function(txParams, cb)
     }
     const txHash = res.result
     self._parityRequests[reqId] = txHash
+  })
+
+  cb(null, reqId)
+}
+
+
+HookedWalletSubprovider.prototype.parityPostSign = function(address, message, cb) {
+  const self = this
+
+  // get next id
+  const count = self._parityRequestCount
+  const reqId = `0x${count.toString(16)}`
+  self._parityRequestCount++
+
+  self.emitPayload({
+    method: 'eth_sign',
+    params: [address, message],
+  }, function(error, res){
+    if (error) {
+      self._parityRequests[reqId] = { error }
+      return
+    }
+    const result = res.result
+    self._parityRequests[reqId] = result
   })
 
   cb(null, reqId)
