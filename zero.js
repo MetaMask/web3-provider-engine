@@ -16,7 +16,7 @@ module.exports = ZeroClientProvider
 function ZeroClientProvider(opts){
   opts = opts || {}
 
-  const engine = new ProviderEngine()
+  const engine = new ProviderEngine(opts.engineParams)
 
   // static
   const staticSubprovider = new DefaultFixture(opts.static)
