@@ -20,9 +20,10 @@ function Web3ProviderEngine(opts) {
   // parse options
   opts = opts || {}
   // block polling
-  const skipInitBlockProvider = { sendAsync: self._handleAsync.bind(self) }
+  const skipInitLockProvider = { sendAsync: self._handleAsync.bind(self) }
+  const blockTrackerProvider = opts.blockTrackerProvider || skipInitLockProvider
   self._blockTracker = new EthBlockTracker({
-    provider: skipInitBlockProvider,
+    provider: blockTrackerProvider,
     pollingInterval: opts.pollingInterval || 4000,
   })
   // handle new block
