@@ -26,20 +26,19 @@ SubscriptionSubprovider.prototype.constructor = SubscriptionSubprovider
 
 SubscriptionSubprovider.prototype.subscribe = function(payload, cb) {
   const self = this
-  let method = () => {}
+  let createSubscriptionFilter = () => {}
 
   switch (payload.params[ 0 ]) {
     case 'logs':
       let options = payload.params[ 1 ]
 
-      method = self.newLogFilter.bind(self, options)
+      createSubscriptionFilter = self.newLogFilter.bind(self, options)
       break
     case 'newPendingTransactions':
-      method = self.newPendingTransactionFilter
+      createSubscriptionFilter = self.newPendingTransactionFilter.bind(self)
       break
     case 'newHeads':
-      method = self.newBlockFilter
-      cb(null, id)
+      createSubscriptionFilter = self.newBlockFilter.bind(self)
       return
     case 'syncing':
     default:
@@ -47,44 +46,27 @@ SubscriptionSubprovider.prototype.subscribe = function(payload, cb) {
       return
   }
 
-  method(function(err, id) {
-    if (!err) {
-      self.subscriptions[id] = payload.params[0]
-      self.filters[id].on('data', function(results) {
-        if (!Array.isArray(results)) {
-          result = [results]
-        }
+  createSubscriptionFilter(function(err, id) {
+    if (err) return cb(err)
+    self.subscriptions[id] = payload.params[0]
+    self.filters[id].on('data', function(results) {
+      if (!Array.isArray(results)) {
+        result = [results]
+      }
 
-        var notificationHandler = self._notificationHandler.bind(self, id, payload.params[0])
-        results.forEach(notificationHandler)
-        self.filters[id].clearChanges()
-      })
-    }
-    cb(err, id)
+      var notificationHandler = self._notificationHandler.bind(self, id, payload.params[0])
+      results.forEach(notificationHandler)
+      self.filters[id].clearChanges()
+    })
   })
 }
 
 SubscriptionSubprovider.prototype._notificationHandler = function (id, subscriptionType, result) {
   const self = this
   if (subscriptionType === 'newHeads') {
-    result = {
-      hash: utils.bufferToHex(result.hash),
-      parentHash: utils.bufferToHex(result.parentHash),
-      sha3Uncles: utils.bufferToHex(result.sha3Uncles),
-      miner: utils.bufferToHex(result.miner),
-      stateRoot: utils.bufferToHex(result.stateRoot),
-      transactionsRoot: utils.bufferToHex(result.transactionsRoot),
-      receiptsRoot: utils.bufferToHex(result.receiptsRoot),
-      logsBloom: utils.bufferToHex(result.logsBloom),
-      difficulty: from.intToQuantityHex(utils.bufferToInt(result.difficulty)),
-      number: from.intToQuantityHex(utils.bufferToInt(result.number)),
-      gasLimit: from.intToQuantityHex(utils.bufferToInt(result.gasLimit)),
-      gasUsed: from.intToQuantityHex(utils.bufferToInt(result.gasUsed)),
-      nonce: result.nonce ? utils.bufferToHex(result.nonce): null,
-      timestamp: from.intToQuantityHex(utils.bufferToInt(result.timestamp)),
-      extraData: utils.bufferToHex(result.extraData)
-    }
+    result = self._notificationResultFromBlock(result)
   }
+
   // it seems that web3 doesn't expect there to be a separate error event
   // so we must emit null along with the result object
   self.emit('data', null, {
@@ -97,9 +79,29 @@ SubscriptionSubprovider.prototype._notificationHandler = function (id, subscript
   })
 }
 
+SubscriptionSubprovider.prototype._notificationResultFromBlock = function(block) {
+  return {
+    hash: utils.bufferToHex(result.hash),
+    parentHash: utils.bufferToHex(result.parentHash),
+    sha3Uncles: utils.bufferToHex(result.sha3Uncles),
+    miner: utils.bufferToHex(result.miner),
+    stateRoot: utils.bufferToHex(result.stateRoot),
+    transactionsRoot: utils.bufferToHex(result.transactionsRoot),
+    receiptsRoot: utils.bufferToHex(result.receiptsRoot),
+    logsBloom: utils.bufferToHex(result.logsBloom),
+    difficulty: from.intToQuantityHex(utils.bufferToInt(result.difficulty)),
+    number: from.intToQuantityHex(utils.bufferToInt(result.number)),
+    gasLimit: from.intToQuantityHex(utils.bufferToInt(result.gasLimit)),
+    gasUsed: from.intToQuantityHex(utils.bufferToInt(result.gasUsed)),
+    nonce: result.nonce ? utils.bufferToHex(result.nonce): null,
+    timestamp: from.intToQuantityHex(utils.bufferToInt(result.timestamp)),
+    extraData: utils.bufferToHex(result.extraData)
+  }
+}
+
 SubscriptionSubprovider.prototype.unsubscribe = function(connection, payload, cb) {
   let subscriptionId = payload.params[0]
-  if (!this.subscriptions.hasOwnProperty(subscriptionId.toLowerCase())) {
+  if (!this.subscriptions[subscriptionId]) {
     cb(new Error(`Subscription ID ${subscriptionId} not found.`))
   } else {
     let subscriptionType = this.subscriptions[subscriptionId]
