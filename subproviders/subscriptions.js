@@ -24,7 +24,7 @@ Object.assign(SubscriptionSubprovider.prototype, EventEmitter.prototype)
 // preserve our constructor, though
 SubscriptionSubprovider.prototype.constructor = SubscriptionSubprovider
 
-SubscriptionSubprovider.prototype.subscribe = function(payload, cb) {
+SubscriptionSubprovider.prototype.eth_subscribe = function(payload, cb) {
   const self = this
   let createSubscriptionFilter = () => {}
 
@@ -39,7 +39,7 @@ SubscriptionSubprovider.prototype.subscribe = function(payload, cb) {
       break
     case 'newHeads':
       createSubscriptionFilter = self.newBlockFilter.bind(self)
-      return
+      break
     case 'syncing':
     default:
       cb(new Error('unsupported subscription type'))
@@ -49,15 +49,17 @@ SubscriptionSubprovider.prototype.subscribe = function(payload, cb) {
   createSubscriptionFilter(function(err, id) {
     if (err) return cb(err)
     self.subscriptions[id] = payload.params[0]
+
     self.filters[id].on('data', function(results) {
       if (!Array.isArray(results)) {
-        result = [results]
+        results = [results]
       }
 
       var notificationHandler = self._notificationHandler.bind(self, id, payload.params[0])
       results.forEach(notificationHandler)
       self.filters[id].clearChanges()
     })
+    cb(null, id)
   })
 }
 
@@ -81,49 +83,45 @@ SubscriptionSubprovider.prototype._notificationHandler = function (id, subscript
 
 SubscriptionSubprovider.prototype._notificationResultFromBlock = function(block) {
   return {
-    hash: utils.bufferToHex(result.hash),
-    parentHash: utils.bufferToHex(result.parentHash),
-    sha3Uncles: utils.bufferToHex(result.sha3Uncles),
-    miner: utils.bufferToHex(result.miner),
-    stateRoot: utils.bufferToHex(result.stateRoot),
-    transactionsRoot: utils.bufferToHex(result.transactionsRoot),
-    receiptsRoot: utils.bufferToHex(result.receiptsRoot),
-    logsBloom: utils.bufferToHex(result.logsBloom),
-    difficulty: from.intToQuantityHex(utils.bufferToInt(result.difficulty)),
-    number: from.intToQuantityHex(utils.bufferToInt(result.number)),
-    gasLimit: from.intToQuantityHex(utils.bufferToInt(result.gasLimit)),
-    gasUsed: from.intToQuantityHex(utils.bufferToInt(result.gasUsed)),
-    nonce: result.nonce ? utils.bufferToHex(result.nonce): null,
-    timestamp: from.intToQuantityHex(utils.bufferToInt(result.timestamp)),
-    extraData: utils.bufferToHex(result.extraData)
+    hash: utils.bufferToHex(block.hash),
+    parentHash: utils.bufferToHex(block.parentHash),
+    sha3Uncles: utils.bufferToHex(block.sha3Uncles),
+    miner: utils.bufferToHex(block.miner),
+    stateRoot: utils.bufferToHex(block.stateRoot),
+    transactionsRoot: utils.bufferToHex(block.transactionsRoot),
+    receiptsRoot: utils.bufferToHex(block.receiptsRoot),
+    logsBloom: utils.bufferToHex(block.logsBloom),
+    difficulty: from.intToQuantityHex(utils.bufferToInt(block.difficulty)),
+    number: from.intToQuantityHex(utils.bufferToInt(block.number)),
+    gasLimit: from.intToQuantityHex(utils.bufferToInt(block.gasLimit)),
+    gasUsed: from.intToQuantityHex(utils.bufferToInt(block.gasUsed)),
+    nonce: block.nonce ? utils.bufferToHex(block.nonce): null,
+    timestamp: from.intToQuantityHex(utils.bufferToInt(block.timestamp)),
+    extraData: utils.bufferToHex(block.extraData)
   }
 }
 
-SubscriptionSubprovider.prototype.unsubscribe = function(connection, payload, cb) {
+SubscriptionSubprovider.prototype.eth_unsubscribe = function(payload, cb) {
+  const self = this
   let subscriptionId = payload.params[0]
-  if (!this.subscriptions[subscriptionId]) {
+  if (!self.subscriptions[subscriptionId]) {
     cb(new Error(`Subscription ID ${subscriptionId} not found.`))
   } else {
-    let subscriptionType = this.subscriptions[subscriptionId]
-    if (subscriptionType === 'newHeads') {
-      delete this.subscriptions[subscriptionId]
+    let subscriptionType = self.subscriptions[subscriptionId]
+    self.uninstallFilter(subscriptionId, function (err, result) {
+      delete self.subscriptions[subscriptionId]
       cb(err, result)
-    } else {
-      this.uninstallFilter(subscriptionId, function(err, result) {
-        delete this.subscriptions[subscriptionId]
-        cb(err, result)
-      })
-    }
+    })
   }
 }
 
 SubscriptionSubprovider.prototype.handleRequest = function(payload, next, end) {
   switch(payload.method){
     case 'eth_subscribe':
-      this.subscribe(payload, end)
+      this.eth_subscribe(payload, end)
       break
     case 'eth_unsubscribe':
-      this.unsubscribe(payload, end)
+      this.eth_unsubscribe(payload, end)
       break
     default:
       FilterSubprovider.prototype.handleRequest.apply(this, Array.prototype.slice.call(arguments))
