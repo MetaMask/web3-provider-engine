@@ -27,10 +27,11 @@ SubscriptionSubprovider.prototype.constructor = SubscriptionSubprovider
 SubscriptionSubprovider.prototype.eth_subscribe = function(payload, cb) {
   const self = this
   let createSubscriptionFilter = () => {}
+  let subscriptionType = payload.params[0]
 
-  switch (payload.params[ 0 ]) {
+  switch (subscriptionType) {
     case 'logs':
-      let options = payload.params[ 1 ]
+      let options = payload.params[1]
 
       createSubscriptionFilter = self.newLogFilter.bind(self, options)
       break
@@ -48,17 +49,20 @@ SubscriptionSubprovider.prototype.eth_subscribe = function(payload, cb) {
 
   createSubscriptionFilter(function(err, id) {
     if (err) return cb(err)
-    self.subscriptions[id] = payload.params[0]
+    self.subscriptions[id] = subscriptionType
 
     self.filters[id].on('data', function(results) {
       if (!Array.isArray(results)) {
         results = [results]
       }
 
-      var notificationHandler = self._notificationHandler.bind(self, id, payload.params[0])
+      var notificationHandler = self._notificationHandler.bind(self, id, subscriptionType)
       results.forEach(notificationHandler)
       self.filters[id].clearChanges()
     })
+    if (subscriptionType === 'newPendingTransactions') {
+      self.checkForPendingBlocks()
+    }
     cb(null, id)
   })
 }
