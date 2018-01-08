@@ -67,11 +67,11 @@ function ZeroClientProvider(opts){
   engine.addProvider(idmgmtSubprovider)
 
   // data source
-  const fetchSubprovider = new FetchSubprovider({
+  const dataSubprovider = opts.dataSubprovider || new FetchSubprovider({
     rpcUrl: opts.rpcUrl || 'https://mainnet.infura.io/',
     originHttpHeaderKey: opts.originHttpHeaderKey,
   })
-  engine.addProvider(fetchSubprovider)
+  engine.addProvider(dataSubprovider)
 
   // start polling
   engine.start()
