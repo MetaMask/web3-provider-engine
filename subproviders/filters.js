@@ -206,6 +206,8 @@ FilterSubprovider.prototype.uninstallFilter = function(filterId, cb) {
     return
   }
 
+  self.filters[filterId].removeAllListeners()
+
   var destroyHandler = self.filterDestroyHandlers[filterId]
   delete self.filters[filterId]
   delete self.asyncBlockHandlers[filterId]
