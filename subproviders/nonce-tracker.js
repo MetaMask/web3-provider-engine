@@ -1,10 +1,8 @@
-const inherits = require('util').inherits
-const Transaction = require('ethereumjs-tx')
-const ethUtil = require('ethereumjs-util')
-const Subprovider = require('./subprovider.js')
-const blockTagForPayload = require('../util/rpc-cache-utils').blockTagForPayload
-
-module.exports = NonceTrackerSubprovider
+import {inherits} from 'util';
+import Transaction from 'ethereumjs-tx';
+import ethUtil from 'ethereumjs-util';
+import Subprovider from './subprovider.js';
+import {blockTagForPayload} from '../util/rpc-cache-utils';
 
 // handles the following RPC methods:
 //   eth_getTransactionCount (pending only)
@@ -78,6 +76,7 @@ NonceTrackerSubprovider.prototype.handleRequest = function(payload, next, end){
     default:
       next()
       return
-
   }
 }
+
+export default NonceTrackerSubprovider;

@@ -1,9 +1,7 @@
-const inherits = require('util').inherits
-const extend = require('xtend')
-const FixtureProvider = require('./fixture.js')
-const version = require('../package.json').version
-
-module.exports = DefaultFixtures
+import {inherits} from 'util';
+import extend from 'xtend';
+import FixtureProvider from './fixture.js';
+import {version} from '../package.json';
 
 inherits(DefaultFixtures, FixtureProvider)
 
@@ -18,3 +16,5 @@ function DefaultFixtures(opts) {
   }, opts)
   FixtureProvider.call(self, responses)
 }
+
+export default DefaultFixtures;

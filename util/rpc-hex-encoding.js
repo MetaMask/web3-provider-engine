@@ -1,10 +1,5 @@
-const ethUtil = require('ethereumjs-util')
-const assert = require('./assert.js')
-
-module.exports = {
-  intToQuantityHex: intToQuantityHex,
-  quantityHexToInt: quantityHexToInt,
-}
+import ethUtil from 'ethereumjs-util';
+import assert from './assert.js';
 
 /*
  * As per https://github.com/ethereum/wiki/wiki/JSON-RPC#hex-value-encoding
@@ -31,4 +26,9 @@ function quantityHexToInt(prefixedQuantityHex) {
     }
     var buf = new Buffer(quantityHex, 'hex')
     return ethUtil.bufferToInt(buf)
+}
+
+export {
+  intToQuantityHex,
+  quantityHexToInt,
 }

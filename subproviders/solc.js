@@ -1,8 +1,6 @@
-const inherits = require('util').inherits
-const solc = require('solc')
-const Subprovider = require('./subprovider.js')
-
-module.exports = SolcSubprovider
+import {inherits} from 'util';
+import solc from 'solc';
+import Subprovider from './subprovider.js';
 
 inherits(SolcSubprovider, Subprovider)
 
@@ -57,3 +55,5 @@ SolcSubprovider.prototype._compileSolidity = function(payload, end) {
     end(null, ret)
   }
 }
+
+export default SolcSubprovider;

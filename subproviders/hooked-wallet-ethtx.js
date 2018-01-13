@@ -8,19 +8,17 @@
  * Optionally approveTransaction(), approveMessage() can be supplied too.
  */
 
-const inherits = require('util').inherits
-const HookedWalletProvider = require('./hooked-wallet.js')
-const EthTx = require('ethereumjs-tx')
-const ethUtil = require('ethereumjs-util')
-const sigUtil = require('eth-sig-util')
-
-module.exports = HookedWalletEthTxSubprovider
+import {inherits} from 'util';
+import HookedWalletProvider from './hooked-wallet.js';
+import EthTx from 'ethereumjs-tx';
+import ethUtil from 'ethereumjs-util';
+import sigUtil from 'eth-sig-util';
 
 inherits(HookedWalletEthTxSubprovider, HookedWalletProvider)
 
 function HookedWalletEthTxSubprovider(opts) {
   const self = this
-  
+
   HookedWalletEthTxSubprovider.super_.call(self, opts)
 
   self.signTransaction = function(txData, cb) {
@@ -75,3 +73,5 @@ function concatSig(v, r, s) {
   v = ethUtil.stripHexPrefix(ethUtil.intToHex(v))
   return ethUtil.addHexPrefix(r.concat(s, v).toString("hex"))
 }
+
+export default HookedWalletEthTxSubprovider;

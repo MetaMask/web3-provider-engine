@@ -1,6 +1,6 @@
 const sha3 = require('ethereumjs-util').sha3;
 const test = require('tape')
-const ProviderEngine = require('../../index.js')
+const ProviderEngine = require('../../provider-engine.js')
 const createPayload = require('../../util/create-payload.js')
 const EtherscanSubprovider = require('../../subproviders/etherscan')
 

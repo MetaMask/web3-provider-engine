@@ -1,5 +1,5 @@
 const test = require('tape')
-const ProviderEngine = require('../../index.js')
+const ProviderEngine = require('../../provider-engine.js')
 const createPayload = require('../../util/create-payload.js')
 const FixtureProvider = require('../../subproviders/fixture.js')
 const SanitizerSubprovider = require('../../subproviders/sanitizer')

@@ -3,12 +3,10 @@
  * removes irregular keys
  */
 
-const inherits = require('util').inherits
-const Subprovider = require('./subprovider.js')
-const extend = require('xtend')
-const ethUtil = require('ethereumjs-util')
-
-module.exports = SanitizerSubprovider
+import {inherits} from 'util';
+import Subprovider from './subprovider.js';
+import extend from 'xtend';
+import ethUtil from 'ethereumjs-util';
 
 inherits(SanitizerSubprovider, Subprovider)
 
@@ -76,3 +74,5 @@ function sanitize(value) {
       }
   }
 }
+
+export default SanitizerSubprovider;
