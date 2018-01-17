@@ -1,7 +1,5 @@
-const inherits = require('util').inherits
-const Subprovider = require('./subprovider.js')
-
-module.exports = FixtureProvider
+import {inherits} from 'util';
+import Subprovider from './subprovider.js';
 
 inherits(FixtureProvider, Subprovider)
 
@@ -26,3 +24,5 @@ FixtureProvider.prototype.handleRequest = function(payload, next, end){
     next()
   }
 }
+
+export default FixtureProvider;

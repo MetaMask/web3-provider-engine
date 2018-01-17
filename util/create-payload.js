@@ -1,8 +1,5 @@
-const getRandomId = require('./random-id.js')
-const extend = require('xtend')
-
-module.exports = createPayload
-
+import getRandomId from './random-id.js';
+import extend from 'xtend';
 
 function createPayload(data){
   return extend({
@@ -13,3 +10,5 @@ function createPayload(data){
     // user-specified
   }, data)
 }
+
+export default createPayload;

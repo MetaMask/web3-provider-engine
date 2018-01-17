@@ -1,8 +1,5 @@
-const EventEmitter = require('events').EventEmitter
-const inherits = require('util').inherits
-
-module.exports = Stoplight
-
+import EventEmitter from 'events';
+import {inherits} from 'util';
 
 inherits(Stoplight, EventEmitter)
 
@@ -32,3 +29,5 @@ Stoplight.prototype.await = function(fn){
     setTimeout(fn)
   }
 }
+
+export default Stoplight;

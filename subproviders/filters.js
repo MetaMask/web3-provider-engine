@@ -1,10 +1,8 @@
-const async = require('async')
-const inherits = require('util').inherits
-const ethUtil = require('ethereumjs-util')
-const Subprovider = require('./subprovider.js')
-const Stoplight = require('../util/stoplight.js')
-
-module.exports = FilterSubprovider
+import async from 'async';
+import {inherits} from 'util';
+import ethUtil from 'ethereumjs-util';
+import Subprovider from './subprovider.js';
+import Stoplight from '../util/stoplight.js';
 
 // handles the following RPC methods:
 //   eth_newBlockFilter
@@ -492,3 +490,5 @@ function blockTagIsNumber(blockTag){
 function valuesFor(obj){
   return Object.keys(obj).map(function(key){ return obj[key] })
 }
+
+export default FilterSubprovider;

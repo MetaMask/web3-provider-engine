@@ -1,11 +1,8 @@
-const xhr = (process.browser || global.XMLHttpRequest) ? require('xhr') : require('request')
-const inherits = require('util').inherits
-const createPayload = require('../util/create-payload.js')
-const Subprovider = require('./subprovider.js')
-const JsonRpcError = require('json-rpc-error')
-
-
-module.exports = RpcSource
+import xhr from 'request';
+import {inherits} from 'util';
+import createPayload from '../util/create-payload.js';
+import Subprovider from './subprovider.js';
+import JsonRpcError from 'json-rpc-error';
 
 inherits(RpcSource, Subprovider)
 
@@ -60,5 +57,6 @@ RpcSource.prototype.handleRequest = function(payload, next, end){
 
     end(null, data.result)
   })
-
 }
+
+export default RpcSource;

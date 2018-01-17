@@ -1,7 +1,4 @@
-const createPayload = require('./create-payload.js')
-
-module.exports = estimateGas
-
+import createPayload from './create-payload.js';
 /*
 
 This is a work around for https://github.com/ethereum/go-ethereum/issues/2577
@@ -19,9 +16,11 @@ function estimateGas(provider, txParams, cb) {
       if (err.message === 'no contract code at given address') {
         return cb(null, '0xcf08')
       } else {
-        return cb(err)        
+        return cb(err)
       }
     }
     cb(null, res.result)
   })
 }
+
+export default estimateGas;

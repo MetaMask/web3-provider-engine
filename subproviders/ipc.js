@@ -1,9 +1,7 @@
-const net = require('net');
-const inherits = require('util').inherits
-const createPayload = require('../util/create-payload.js')
-const Subprovider = require('./subprovider.js')
-
-module.exports = IpcSource
+import net from 'net';;
+import {inherits} from 'util';
+import createPayload from '../util/create-payload.js';
+import Subprovider from './subprovider.js';
 
 inherits(IpcSource, Subprovider)
 
@@ -66,3 +64,5 @@ IpcSource.prototype.handleRequest = function(payload, next, end){
   });
 
 }
+
+export default IpcSource;

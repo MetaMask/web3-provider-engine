@@ -1,10 +1,6 @@
-const createPayload = require('../util/create-payload.js')
-
-module.exports = SubProvider
+import createPayload from '../util/create-payload.js';
 
 // this is the base class for a subprovider -- mostly helpers
-
-
 function SubProvider() {
 
 }
@@ -25,3 +21,5 @@ SubProvider.prototype.emitPayload = function(payload, cb){
   const self = this
   self.engine.sendAsync(createPayload(payload), cb)
 }
+
+export default SubProvider;
