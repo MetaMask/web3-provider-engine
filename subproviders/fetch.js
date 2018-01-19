@@ -59,8 +59,8 @@ RpcSource.prototype.handleRequest = function (payload, next, end) {
     // ends on retriable error
     if (err && isErrorRetriable(err)) {
       const errMsg = `FetchSubprovider - cannot complete request. All retries exhausted.\nOriginal Error:\n${err.toString()}\n\n`
-      const retriesExhaustedErr = new Error(errMsg)
-      return end(err)
+      const retriesExhaustedErr = new JsonRpcError.InternalError(errMsg)
+      return end(retriesExhaustedErr)
     }
     // otherwise continue normally
     return end(err, result)
