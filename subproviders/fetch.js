@@ -51,7 +51,7 @@ RpcSource.prototype.handleRequest = function (payload, next, end) {
         // ignore server sent html error pages
         // or truncated json responses
         'SyntaxError',
-      ].some(phrase => err.message.includes(phrase))
+      ].some(phrase => err.toString().includes(phrase))
     },
   }, (cb) => self._submitRequest(reqParams, cb), end)
 }
