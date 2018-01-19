@@ -63,7 +63,7 @@ RpcSource.prototype.handleRequest = function (payload, next, end) {
       return cb(err)
     }
     // otherwise continue normally
-    return cb(err, result)
+    return end(err, result)
   })
 }
 
