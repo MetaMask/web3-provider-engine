@@ -18,6 +18,7 @@ inherits(GaspriceProvider, Subprovider)
 function GaspriceProvider(opts) {
   opts = opts || {}
   this.numberOfBlocks = opts.numberOfBlocks || 10
+  this.delayInBlocks = opts.delayInBlocks || 5
 }
 
 GaspriceProvider.prototype.handleRequest = function(payload, next, end){
@@ -28,7 +29,7 @@ GaspriceProvider.prototype.handleRequest = function(payload, next, end){
 
   self.emitPayload({ method: 'eth_blockNumber' }, function(err, res) {
     // FIXME: convert number using a bignum library
-    var lastBlock = parseInt(res.result, 16)
+    var lastBlock = parseInt(res.result, 16) - self.delayInBlocks
     var blockNumbers = [ ]
     for (var i = 0; i < self.numberOfBlocks; i++) {
       blockNumbers.push('0x' + lastBlock.toString(16))
