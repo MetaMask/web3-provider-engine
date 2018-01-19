@@ -8,6 +8,15 @@ const promiseToCallback = require('promise-to-callback')
 const createPayload = require('../util/create-payload.js')
 const Subprovider = require('./subprovider.js')
 
+const RETRIABLE_ERRORS = [
+  // ignore server overload errors
+  'Gateway timeout',
+  'ETIMEDOUT',
+  // ignore server sent html error pages
+  // or truncated json responses
+  'SyntaxError',
+]
+
 module.exports = RpcSource
 
 inherits(RpcSource, Subprovider)
@@ -43,17 +52,19 @@ RpcSource.prototype.handleRequest = function (payload, next, end) {
   retry({
     times: 5,
     interval: 1000,
-    errorFilter: (err) => {
-      return [
-        // ignore server overload errors
-        'Gateway timeout',
-        'ETIMEDOUT',
-        // ignore server sent html error pages
-        // or truncated json responses
-        'SyntaxError',
-      ].some(phrase => err.toString().includes(phrase))
-    },
-  }, (cb) => self._submitRequest(reqParams, cb), end)
+    errorFilter: isErrorRetriable,
+  },
+  (cb) => self._submitRequest(reqParams, cb),
+  (err, result) => {
+    // ends on retriable error
+    if (err && isErrorRetriable(err)) {
+      const errMsg = `FetchSubprovider - cannot complete request. All retries exhausted.\nOriginal Error:\n${err.toString()}\n\n`
+      const retriesExhaustedErr = new Error(errMsg)
+      return cb(err)
+    }
+    // otherwise continue normally
+    return cb(err, result)
+  })
 }
 
 RpcSource.prototype._submitRequest = function (reqParams, cb) {
@@ -102,6 +113,11 @@ RpcSource.prototype._submitRequest = function (reqParams, cb) {
       cb(null, body.result)
     }
   })
+}
+
+function isErrorRetriable(err){
+  const errMsg = err.toString()
+  return RETRIABLE_ERRORS.some(phrase => errMsg.includes(phrase))
 }
 
 function createRatelimitError () {
