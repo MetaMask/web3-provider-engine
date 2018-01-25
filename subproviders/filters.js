@@ -3,6 +3,7 @@ const inherits = require('util').inherits
 const ethUtil = require('ethereumjs-util')
 const Subprovider = require('./subprovider.js')
 const Stoplight = require('../util/stoplight.js')
+const EventEmitter = require('events').EventEmitter
 
 module.exports = FilterSubprovider
 
@@ -125,7 +126,7 @@ FilterSubprovider.prototype.newLogFilter = function(opts, cb) {
     var blockHandler = function(block, cb){
       self._logsForBlock(block, function(err, logs){
         if (err) return cb(err)
-        logs.forEach(newLogHandler)
+        newLogHandler(logs)
         cb()
       })
     }
@@ -147,7 +148,7 @@ FilterSubprovider.prototype.newPendingTransactionFilter = function(cb) {
   var blockHandler = function(block, cb){
     self._txHashesForBlock(block, function(err, txs){
       if (err) return cb(err)
-      txs.forEach(newTxHandler)
+      newTxHandler(txs)
       cb()
     })
   }
@@ -204,6 +205,8 @@ FilterSubprovider.prototype.uninstallFilter = function(filterId, cb) {
     cb(null, false)
     return
   }
+
+  self.filters[filterId].removeAllListeners()
 
   var destroyHandler = self.filterDestroyHandlers[filterId]
   delete self.filters[filterId]
@@ -292,9 +295,12 @@ FilterSubprovider.prototype._txHashesForBlock = function(block, cb) {
 // BlockFilter
 //
 
+inherits(BlockFilter, EventEmitter)
+
 function BlockFilter(opts) {
   // console.log('BlockFilter - new')
   const self = this
+  EventEmitter.apply(self)
   self.type = 'block'
   self.engine = opts.engine
   self.blockNumber = opts.blockNumber
@@ -306,6 +312,7 @@ BlockFilter.prototype.update = function(block){
   const self = this
   var blockHash = bufferToHex(block.hash)
   self.updates.push(blockHash)
+  self.emit('data', block)
 }
 
 BlockFilter.prototype.getChanges = function(){
@@ -325,9 +332,12 @@ BlockFilter.prototype.clearChanges = function(){
 // LogFilter
 //
 
+inherits(LogFilter, EventEmitter)
+
 function LogFilter(opts) {
   // console.log('LogFilter - new')
   const self = this
+  EventEmitter.apply(self)
   self.type = 'log'
   self.fromBlock = opts.fromBlock || 'latest'
   self.toBlock = opts.toBlock || 'latest'
@@ -376,15 +386,22 @@ LogFilter.prototype.validateLog = function(log){
   return topicsMatch
 }
 
-LogFilter.prototype.update = function(log){
+LogFilter.prototype.update = function(logs){
   // console.log('LogFilter - update')
   const self = this
   // validate filter match
-  var validated = self.validateLog(log)
-  if (!validated) return
-  // add to results
-  self.updates.push(log)
-  self.allResults.push(log)
+  var validLogs = []
+  logs.forEach(function(log) {
+    var validated = self.validateLog(log)
+    if (!validated) return
+    // add to results
+    validLogs.push(log)
+    self.updates.push(log)
+    self.allResults.push(log)
+  })
+  if (validLogs.length > 0) {
+    self.emit('data', validLogs)
+  }
 }
 
 LogFilter.prototype.getChanges = function(){
@@ -411,9 +428,12 @@ LogFilter.prototype.clearChanges = function(){
 // PendingTxFilter
 //
 
+inherits(PendingTransactionFilter, EventEmitter)
+
 function PendingTransactionFilter(){
   // console.log('PendingTransactionFilter - new')
   const self = this
+  EventEmitter.apply(self)
   self.type = 'pendingTx'
   self.updates = []
   self.allResults = []
@@ -424,15 +444,22 @@ PendingTransactionFilter.prototype.validateUnique = function(tx){
   return self.allResults.indexOf(tx) === -1
 }
 
-PendingTransactionFilter.prototype.update = function(tx){
+PendingTransactionFilter.prototype.update = function(txs){
   // console.log('PendingTransactionFilter - update')
   const self = this
-  // validate filter match
-  var validated = self.validateUnique(tx)
-  if (!validated) return
-  // add to results
-  self.updates.push(tx)
-  self.allResults.push(tx)
+  var validTxs = []
+  txs.forEach(function (tx) {
+    // validate filter match
+    var validated = self.validateUnique(tx)
+    if (!validated) return
+    // add to results
+    validTxs.push(tx)
+    self.updates.push(tx)
+    self.allResults.push(tx)
+  })
+  if (validTxs.length > 0) {
+    self.emit('data', validTxs)
+  }
 }
 
 PendingTransactionFilter.prototype.getChanges = function(){
