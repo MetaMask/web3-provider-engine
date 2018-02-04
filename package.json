@@ -21,7 +21,7 @@
     "ethereumjs-tx": "^1.2.0",
     "ethereumjs-util": "^5.1.1",
     "ethereumjs-vm": "^2.0.2",
-    "fetch-ponyfill": "^4.0.0",
+    "fetch-ponyfill": "^5.0.0",
     "json-rpc-error": "^2.0.0",
     "json-stable-stringify": "^1.0.1",
     "promise-to-callback": "^1.0.0",
