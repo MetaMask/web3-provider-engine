@@ -1,8 +1,8 @@
-const EventEmitter = require('events').EventEmitter
-const FilterSubprovider = require('./filters.js')
-const from = require('../util/rpc-hex-encoding.js')
-const inherits = require('util').inherits
-const utils = require('ethereumjs-util')
+import {EventEmitter} from 'events'
+import FilterSubprovider from './filters.js';
+import {intToQuantityHex} from '../util/rpc-hex-encoding.js'
+import {inherits} from 'util';
+import utils from 'ethereumjs-util'
 
 function SubscriptionSubprovider(opts) {
   const self = this
@@ -95,12 +95,12 @@ SubscriptionSubprovider.prototype._notificationResultFromBlock = function(block)
     transactionsRoot: utils.bufferToHex(block.transactionsRoot),
     receiptsRoot: utils.bufferToHex(block.receiptsRoot),
     logsBloom: utils.bufferToHex(block.logsBloom),
-    difficulty: from.intToQuantityHex(utils.bufferToInt(block.difficulty)),
-    number: from.intToQuantityHex(utils.bufferToInt(block.number)),
-    gasLimit: from.intToQuantityHex(utils.bufferToInt(block.gasLimit)),
-    gasUsed: from.intToQuantityHex(utils.bufferToInt(block.gasUsed)),
+    difficulty: intToQuantityHex(utils.bufferToInt(block.difficulty)),
+    number: intToQuantityHex(utils.bufferToInt(block.number)),
+    gasLimit: intToQuantityHex(utils.bufferToInt(block.gasLimit)),
+    gasUsed: intToQuantityHex(utils.bufferToInt(block.gasUsed)),
     nonce: block.nonce ? utils.bufferToHex(block.nonce): null,
-    timestamp: from.intToQuantityHex(utils.bufferToInt(block.timestamp)),
+    timestamp: intToQuantityHex(utils.bufferToInt(block.timestamp)),
     extraData: utils.bufferToHex(block.extraData)
   }
 }
@@ -132,4 +132,4 @@ SubscriptionSubprovider.prototype.handleRequest = function(payload, next, end) {
   }
 }
 
-module.exports = SubscriptionSubprovider
+export default SubscriptionSubprovider

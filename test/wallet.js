@@ -1,15 +1,14 @@
-const test = require('tape')
-const Transaction = require('ethereumjs-tx')
-const ethUtil = require('ethereumjs-util')
-const ProviderEngine = require('../index.js')
-const FixtureProvider = require('../subproviders/fixture.js')
-const NonceTracker = require('../subproviders/nonce-tracker.js')
-const HookedWalletProvider = require('../subproviders/hooked-wallet.js')
-const HookedWalletTxProvider = require('../subproviders/hooked-wallet-ethtx.js')
-const TestBlockProvider = require('./util/block.js')
-const createPayload = require('../util/create-payload.js')
-const injectMetrics = require('./util/inject-metrics')
-
+import test from 'tape'
+import Transaction from 'ethereumjs-tx'
+import ethUtil from 'ethereumjs-util'
+import ProviderEngine from '../provider-engine.js'
+import FixtureProvider from '../subproviders/fixture.js'
+import NonceTracker from '../subproviders/nonce-tracker.js'
+import HookedWalletProvider from '../subproviders/hooked-wallet.js'
+import HookedWalletTxProvider from '../subproviders/hooked-wallet-ethtx.js'
+import TestBlockProvider from './util/block.js'
+import createPayload from '../util/create-payload.js'
+import injectMetrics from './util/inject-metrics'
 
 test('tx sig', function(t){
   t.plan(12)

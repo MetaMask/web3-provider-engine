@@ -1,12 +1,12 @@
-// const test = require('tape')
-// const ProviderEngine = require('../index.js')
-// const PassthroughProvider = require('./util/passthrough.js')
-// const FixtureProvider = require('../subproviders/fixture.js')
-// const SolcProvider = require('../subproviders/solc.js')
-// const TestBlockProvider = require('./util/block.js')
-// const createPayload = require('../util/create-payload.js')
-// const injectMetrics = require('./util/inject-metrics')
-// const solc = require('solc')
+// import test from 'tape'
+// import ProviderEngine from '../provider-engine.js'
+// import PassthroughProvider from './util/passthrough.js'
+// import FixtureProvider from '../subproviders/fixture.js'
+// import SolcProvider from '../subproviders/solc.js'
+// import TestBlockProvider from './util/block.js'
+// import createPayload from '../util/create-payload.js'
+// import injectMetrics from './util/inject-metrics'
+// import solc from 'solc'
 //
 // test('solc test', function(t){
 //   t.plan(15)

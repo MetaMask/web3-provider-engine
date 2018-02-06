@@ -1,7 +1,5 @@
-const inherits = require('util').inherits
-const Subprovider = require('./subprovider.js')
-
-module.exports = Web3Subprovider
+import {inherits} from 'util';
+import Subprovider from './subprovider.js';
 
 inherits(Web3Subprovider, Subprovider)
 
@@ -16,3 +14,5 @@ Web3Subprovider.prototype.handleRequest = function(payload, next, end){
     end(null, response.result);
   });
 }
+
+export default Web3Subprovider;

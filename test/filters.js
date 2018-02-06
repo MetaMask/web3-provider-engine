@@ -1,9 +1,9 @@
-const test = require('tape')
-const ProviderEngine = require('../index.js')
-const FilterProvider = require('../subproviders/filters.js')
-const TestBlockProvider = require('./util/block.js')
-const createPayload = require('../util/create-payload.js')
-const injectMetrics = require('./util/inject-metrics')
+import test from 'tape'
+import ProviderEngine from '../provider-engine.js'
+import FilterProvider from '../subproviders/filters.js'
+import TestBlockProvider from './util/block.js'
+import createPayload from '../util/create-payload.js'
+import injectMetrics from './util/inject-metrics'
 
 
 filterTest('basic block filter', { method: 'eth_newBlockFilter' },

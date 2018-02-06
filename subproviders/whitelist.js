@@ -1,7 +1,5 @@
-const inherits = require('util').inherits
-const Subprovider = require('./subprovider.js')
-
-module.exports = WhitelistProvider
+import {inherits} from 'util';
+import Subprovider from './subprovider.js';
 
 inherits(WhitelistProvider, Subprovider)
 
@@ -41,3 +39,5 @@ WhitelistProvider.prototype.handleRequest = function(payload, next, end){
     end(new Error("Method '" + payload.method + "' not allowed in whitelist."));
   }
 }
+
+export default WhitelistProvider;

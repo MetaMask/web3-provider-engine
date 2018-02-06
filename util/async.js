@@ -1,4 +1,4 @@
-module.exports = {
+export {
   // Works the same as async.parallel
   parallel: function(fns, done) {
     done = done || function() {};

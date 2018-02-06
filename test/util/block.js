@@ -1,9 +1,7 @@
-const inherits = require('util').inherits
-const extend = require('xtend')
-const ethUtil = require('ethereumjs-util')
-const FixtureProvider = require('../../subproviders/fixture.js')
-
-module.exports = TestBlockProvider
+import {inherits} from 'util'
+import extend from 'xtend'
+import ethUtil from 'ethereumjs-util'
+import FixtureProvider from '../../subproviders/fixture.js'
 
 //
 // handles only `eth_getBlockByNumber` requests
@@ -128,3 +126,5 @@ function stripLeadingZeroes (hexString) {
   }
   return ethUtil.addHexPrefix(strippedHex)
 }
+
+export default TestBlockProvider

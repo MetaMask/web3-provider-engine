@@ -1,9 +1,6 @@
-const Duplex = require('readable-stream').Duplex
-const inherits = require('util').inherits
-const Subprovider = require('./subprovider.js')
-
-module.exports = StreamSubprovider
-
+import {Duplex} from 'readable-stream';
+import {inherits} from 'util';
+import Subprovider from './subprovider.js';
 
 inherits(StreamSubprovider, Duplex)
 
@@ -71,4 +68,4 @@ function generateBatchId(batchPayload){
 function noop(){}
 
 
-module.exports = StreamSubprovider
+export default StreamSubprovider;

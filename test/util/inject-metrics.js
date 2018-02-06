@@ -1,6 +1,4 @@
 
-module.exports = injectSubproviderMetrics
-
 function injectSubproviderMetrics(subprovider){
   subprovider.getWitnessed = getWitnessed.bind(subprovider)
   subprovider.getHandled = getHandled.bind(subprovider)
@@ -43,3 +41,5 @@ function handleRequest(_super, payload, next, end){
     end(err, result)
   })
 }
+
+export default injectSubproviderMetrics

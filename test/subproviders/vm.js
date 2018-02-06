@@ -1,12 +1,12 @@
-const test = require('tape')
-const async = require('async')
-const ethUtil = require('ethereumjs-util')
-const ProviderEngine = require('../../index.js')
-const VmSubprovider = require('../../subproviders/vm')
-const TestBlockProvider = require('../util/block.js')
-const RpcSubprovider = require('../../subproviders/rpc')
-const createPayload = require('../../util/create-payload.js')
-const rpcHexEncoding = require('../../util/rpc-hex-encoding.js')
+import test from 'tape'
+import ProviderEngine from '../../provider-engine.js'
+import VmSubprovider from '../../subproviders/vm'
+import async from 'async'
+import ethUtil from 'ethereumjs-util'
+import TestBlockProvider from '../util/block.js'
+import RpcSubprovider from '../../subproviders/rpc.js'
+import createPayload from '../../util/create-payload.js'
+import {quantityHexToInt} from '../../util/rpc-hex-encoding.js'
 
 test('binary search eth_estimateGas implementation', function(t) {
     var gasNeededScenarios = [
@@ -52,7 +52,7 @@ test('binary search eth_estimateGas implementation', function(t) {
           t.ifError(err, 'did not error')
           t.ok(response, 'has response')
 
-          var gasEstimationInt = rpcHexEncoding.quantityHexToInt(response.result)
+          var gasEstimationInt = quantityHexToInt(response.result)
           t.equal(gasEstimationInt, scenario.gasEstimate, 'properly calculates gas needed')
           t.equal(numIterations, scenario.numIterations, 'ran expected number of iterations')
 

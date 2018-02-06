@@ -1,6 +1,6 @@
 const sha3 = require('ethereumjs-util').sha3;
 const test = require('tape')
-const ProviderEngine = require('../../index.js')
+const ProviderEngine = require('../../provider-engine.js')
 const createPayload = require('../../util/create-payload.js')
 const IpcSubprovider = require('../../subproviders/ipc')
 const socketPath = process.argv[2]; // e.g. '/root/.ethereum/geth.ipc'

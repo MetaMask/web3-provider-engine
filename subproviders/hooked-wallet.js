@@ -6,18 +6,15 @@
  * - signTransaction(tx) -- sign a raw transaction object
  */
 
-const waterfall = require('async/waterfall')
-const parallel = require('async/parallel')
-const inherits = require('util').inherits
-const ethUtil = require('ethereumjs-util')
-const sigUtil = require('eth-sig-util')
-const extend = require('xtend')
-const Semaphore = require('semaphore')
-const Subprovider = require('./subprovider.js')
-const estimateGas = require('../util/estimate-gas.js')
+import {parallel, waterfall} from 'async';
+import {inherits} from 'util';
+import ethUtil from 'ethereumjs-util';
+import sigUtil from 'eth-sig-util';
+import extend from 'xtend';
+import Semaphore from 'semaphore';
+import Subprovider from './subprovider.js';
+import estimateGas from '../util/estimate-gas.js';
 const hexRegex = /^[0-9A-Fa-f]+$/g
-
-module.exports = HookedWalletSubprovider
 
 // handles the following RPC methods:
 //   eth_coinbase
@@ -472,3 +469,5 @@ function isValidHex(data) {
   const isValid = nonPrefixed.match(hexRegex)
   return isValid
 }
+
+export default HookedWalletSubprovider;
