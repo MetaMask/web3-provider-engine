@@ -1,6 +1,8 @@
-const inherits = require('util').inherits;
-const solc = require('solc');
-const Subprovider = require('./subprovider.js');
+'use strict';
+
+var inherits = require('util').inherits;
+var solc = require('solc');
+var Subprovider = require('./subprovider.js');
 
 module.exports = SolcSubprovider;
 

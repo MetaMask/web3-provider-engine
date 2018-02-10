@@ -1,3 +1,5 @@
+'use strict';
+
 /*
  * Calculate gasPrice based on last blocks.
  * @author github.com/axic
@@ -7,9 +9,9 @@
  * https://github.com/ethereum/go-ethereum/wiki/Gas-Price-Oracle
  */
 
-const map = require('async/map');
-const inherits = require('util').inherits;
-const Subprovider = require('./subprovider.js');
+var map = require('async/map');
+var inherits = require('util').inherits;
+var Subprovider = require('./subprovider.js');
 
 module.exports = GaspriceProvider;
 
@@ -23,7 +25,7 @@ function GaspriceProvider(opts) {
 GaspriceProvider.prototype.handleRequest = function (payload, next, end) {
   if (payload.method !== 'eth_gasPrice') return next();
 
-  const self = this;
+  var self = this;
 
   self.emitPayload({ method: 'eth_blockNumber' }, function (err, res) {
     // FIXME: convert number using a bignum library

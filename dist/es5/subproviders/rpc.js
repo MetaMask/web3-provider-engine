@@ -1,24 +1,26 @@
-const xhr = process.browser || global.XMLHttpRequest ? require('xhr') : require('request');
-const inherits = require('util').inherits;
-const createPayload = require('../util/create-payload.js');
-const Subprovider = require('./subprovider.js');
-const JsonRpcError = require('json-rpc-error');
+'use strict';
+
+var xhr = process.browser || global.XMLHttpRequest ? require('xhr') : require('request');
+var inherits = require('util').inherits;
+var createPayload = require('../util/create-payload.js');
+var Subprovider = require('./subprovider.js');
+var JsonRpcError = require('json-rpc-error');
 
 module.exports = RpcSource;
 
 inherits(RpcSource, Subprovider);
 
 function RpcSource(opts) {
-  const self = this;
+  var self = this;
   self.rpcUrl = opts.rpcUrl;
 }
 
 RpcSource.prototype.handleRequest = function (payload, next, end) {
-  const self = this;
-  const targetUrl = self.rpcUrl;
+  var self = this;
+  var targetUrl = self.rpcUrl;
 
   // overwrite id to conflict with other concurrent users
-  let newPayload = createPayload(payload);
+  var newPayload = createPayload(payload);
 
   xhr({
     uri: targetUrl,
@@ -38,10 +40,10 @@ RpcSource.prototype.handleRequest = function (payload, next, end) {
         return end(new JsonRpcError.MethodNotFound());
       case 504:
         // Gateway timeout
-        let msg = `Gateway timeout. The request took too long to process. `;
-        msg += `This can happen when querying logs over too wide a block range.`;
-        const err = new Error(msg);
-        return end(new JsonRpcError.InternalError(err));
+        var msg = 'Gateway timeout. The request took too long to process. ';
+        msg += 'This can happen when querying logs over too wide a block range.';
+        var _err = new Error(msg);
+        return end(new JsonRpcError.InternalError(_err));
       default:
         if (res.statusCode != 200) {
           return end(new JsonRpcError.InternalError(res.body));
@@ -49,7 +51,7 @@ RpcSource.prototype.handleRequest = function (payload, next, end) {
     }
 
     // parse response
-    let data;
+    var data = void 0;
     try {
       data = JSON.parse(body);
     } catch (err) {

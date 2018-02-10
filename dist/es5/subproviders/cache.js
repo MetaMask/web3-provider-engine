@@ -1,17 +1,19 @@
-const inherits = require('util').inherits;
-const ethUtil = require('ethereumjs-util');
-const BN = ethUtil.BN;
-const clone = require('clone');
-const cacheUtils = require('../util/rpc-cache-utils.js');
-const Stoplight = require('../util/stoplight.js');
-const Subprovider = require('./subprovider.js');
+'use strict';
+
+var inherits = require('util').inherits;
+var ethUtil = require('ethereumjs-util');
+var BN = ethUtil.BN;
+var clone = require('clone');
+var cacheUtils = require('../util/rpc-cache-utils.js');
+var Stoplight = require('../util/stoplight.js');
+var Subprovider = require('./subprovider.js');
 
 module.exports = BlockCacheProvider;
 
 inherits(BlockCacheProvider, Subprovider);
 
 function BlockCacheProvider(opts) {
-  const self = this;
+  var self = this;
   opts = opts || {};
   // set initialization blocker
   self._ready = new Stoplight();
@@ -27,7 +29,7 @@ function BlockCacheProvider(opts) {
 
 // setup a block listener on 'setEngine'
 BlockCacheProvider.prototype.setEngine = function (engine) {
-  const self = this;
+  var self = this;
   self.engine = engine;
   // unblock initialization after first block
   engine.once('block', function (block) {
@@ -47,7 +49,7 @@ BlockCacheProvider.prototype.setEngine = function (engine) {
 };
 
 BlockCacheProvider.prototype.handleRequest = function (payload, next, end) {
-  const self = this;
+  var self = this;
 
   // skip cache if told to do so
   if (payload.skipCache) {
@@ -69,7 +71,7 @@ BlockCacheProvider.prototype.handleRequest = function (payload, next, end) {
 };
 
 BlockCacheProvider.prototype._handleRequest = function (payload, next, end) {
-  const self = this;
+  var self = this;
 
   var type = cacheUtils.cacheTypeForPayload(payload);
   var strategy = this.strategies[type];
@@ -249,7 +251,7 @@ BlockCacheStrategy.prototype.canCache = function (payload) {
 
 // naively removes older block caches
 BlockCacheStrategy.prototype.cacheRollOff = function (previousBlock) {
-  const self = this;
+  var self = this;
   var previousHex = ethUtil.bufferToHex(previousBlock.number);
   delete self.cache[previousHex];
 };
@@ -269,6 +271,6 @@ function hexToBN(hex) {
 function containsBlockhash(result) {
   if (!result) return false;
   if (!result.blockHash) return false;
-  const hasNonZeroHash = hexToBN(result.blockHash).gt(new BN(0));
+  var hasNonZeroHash = hexToBN(result.blockHash).gt(new BN(0));
   return hasNonZeroHash;
 }

@@ -1,3 +1,5 @@
+'use strict';
+
 /*
  * Etherscan.io API connector
  * @author github.com/axic
@@ -22,9 +24,9 @@
  * - eth_listTransactions (non-standard)
  */
 
-const xhr = process.browser ? require('xhr') : require('request');
-const inherits = require('util').inherits;
-const Subprovider = require('./subprovider.js');
+var xhr = process.browser ? require('xhr') : require('request');
+var inherits = require('util').inherits;
+var Subprovider = require('./subprovider.js');
 
 module.exports = EtherscanProvider;
 
@@ -96,10 +98,10 @@ function handlePayload(proto, network, payload, next, end) {
       return;
 
     case 'eth_listTransactions':
-      const props = ['address', 'startblock', 'endblock', 'sort', 'page', 'offset'];
+      var props = ['address', 'startblock', 'endblock', 'sort', 'page', 'offset'];
 
-      const params = {};
-      for (let i = 0, l = Math.min(payload.params.length, props.length); i < l; i++) {
+      var params = {};
+      for (var i = 0, l = Math.min(payload.params.length, props.length); i < l; i++) {
         params[props[i]] = payload.params[i];
       }
 

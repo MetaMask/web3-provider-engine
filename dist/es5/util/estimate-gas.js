@@ -1,4 +1,6 @@
-const createPayload = require('./create-payload.js');
+'use strict';
+
+var createPayload = require('./create-payload.js');
 
 module.exports = estimateGas;
 

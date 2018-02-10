@@ -1,14 +1,16 @@
-const fetch = global.fetch || require('fetch-ponyfill')().fetch;
-const inherits = require('util').inherits;
-const retry = require('async/retry');
-const waterfall = require('async/waterfall');
-const asyncify = require('async/asyncify');
-const JsonRpcError = require('json-rpc-error');
-const promiseToCallback = require('promise-to-callback');
-const createPayload = require('../util/create-payload.js');
-const Subprovider = require('./subprovider.js');
+'use strict';
 
-const RETRIABLE_ERRORS = [
+var fetch = global.fetch || require('fetch-ponyfill')().fetch;
+var inherits = require('util').inherits;
+var retry = require('async/retry');
+var waterfall = require('async/waterfall');
+var asyncify = require('async/asyncify');
+var JsonRpcError = require('json-rpc-error');
+var promiseToCallback = require('promise-to-callback');
+var createPayload = require('../util/create-payload.js');
+var Subprovider = require('./subprovider.js');
+
+var RETRIABLE_ERRORS = [
 // ignore server overload errors
 'Gateway timeout', 'ETIMEDOUT',
 // ignore server sent html error pages
@@ -20,21 +22,21 @@ module.exports = RpcSource;
 inherits(RpcSource, Subprovider);
 
 function RpcSource(opts) {
-  const self = this;
+  var self = this;
   self.rpcUrl = opts.rpcUrl;
   self.originHttpHeaderKey = opts.originHttpHeaderKey;
 }
 
 RpcSource.prototype.handleRequest = function (payload, next, end) {
-  const self = this;
-  const originDomain = payload.origin;
+  var self = this;
+  var originDomain = payload.origin;
 
   // overwrite id to not conflict with other concurrent users
-  const newPayload = createPayload(payload);
+  var newPayload = createPayload(payload);
   // remove extra parameter from request
   delete newPayload.origin;
 
-  const reqParams = {
+  var reqParams = {
     method: 'POST',
     headers: {
       'Accept': 'application/json',
@@ -51,11 +53,13 @@ RpcSource.prototype.handleRequest = function (payload, next, end) {
     times: 5,
     interval: 1000,
     errorFilter: isErrorRetriable
-  }, cb => self._submitRequest(reqParams, cb), (err, result) => {
+  }, function (cb) {
+    return self._submitRequest(reqParams, cb);
+  }, function (err, result) {
     // ends on retriable error
     if (err && isErrorRetriable(err)) {
-      const errMsg = `FetchSubprovider - cannot complete request. All retries exhausted.\nOriginal Error:\n${err.toString()}\n\n`;
-      const retriesExhaustedErr = new Error(errMsg);
+      var errMsg = 'FetchSubprovider - cannot complete request. All retries exhausted.\nOriginal Error:\n' + err.toString() + '\n\n';
+      var retriesExhaustedErr = new Error(errMsg);
       return end(retriesExhaustedErr);
     }
     // otherwise continue normally
@@ -64,18 +68,22 @@ RpcSource.prototype.handleRequest = function (payload, next, end) {
 };
 
 RpcSource.prototype._submitRequest = function (reqParams, cb) {
-  const self = this;
-  const targetUrl = self.rpcUrl;
+  var self = this;
+  var targetUrl = self.rpcUrl;
 
-  promiseToCallback(fetch(targetUrl, reqParams))((err, res) => {
+  promiseToCallback(fetch(targetUrl, reqParams))(function (err, res) {
     if (err) return cb(err);
 
     // continue parsing result
     waterfall([checkForHttpErrors,
     // buffer body
-    cb => promiseToCallback(res.text())(cb),
+    function (cb) {
+      return promiseToCallback(res.text())(cb);
+    },
     // parse body
-    asyncify(rawBody => JSON.parse(rawBody)), parseResponse], cb);
+    asyncify(function (rawBody) {
+      return JSON.parse(rawBody);
+    }), parseResponse], cb);
 
     function checkForHttpErrors(cb) {
       // check for errors
@@ -109,19 +117,21 @@ RpcSource.prototype._submitRequest = function (reqParams, cb) {
 };
 
 function isErrorRetriable(err) {
-  const errMsg = err.toString();
-  return RETRIABLE_ERRORS.some(phrase => errMsg.includes(phrase));
+  var errMsg = err.toString();
+  return RETRIABLE_ERRORS.some(function (phrase) {
+    return errMsg.includes(phrase);
+  });
 }
 
 function createRatelimitError() {
-  let msg = `Request is being rate limited.`;
-  const err = new Error(msg);
+  var msg = 'Request is being rate limited.';
+  var err = new Error(msg);
   return new JsonRpcError.InternalError(err);
 }
 
 function createTimeoutError() {
-  let msg = `Gateway timeout. The request took too long to process. `;
-  msg += `This can happen when querying logs over too wide a block range.`;
-  const err = new Error(msg);
+  var msg = 'Gateway timeout. The request took too long to process. ';
+  msg += 'This can happen when querying logs over too wide a block range.';
+  var err = new Error(msg);
   return new JsonRpcError.InternalError(err);
 }

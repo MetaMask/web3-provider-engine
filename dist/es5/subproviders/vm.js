@@ -1,13 +1,15 @@
-const doWhilst = require('async/doWhilst');
-const inherits = require('util').inherits;
-const Stoplight = require('../util/stoplight.js');
-const createVm = require('ethereumjs-vm/lib/hooked').fromWeb3Provider;
-const Block = require('ethereumjs-block');
-const FakeTransaction = require('ethereumjs-tx/fake.js');
-const ethUtil = require('ethereumjs-util');
-const createPayload = require('../util/create-payload.js');
-const rpcHexEncoding = require('../util/rpc-hex-encoding.js');
-const Subprovider = require('./subprovider.js');
+'use strict';
+
+var doWhilst = require('async/doWhilst');
+var inherits = require('util').inherits;
+var Stoplight = require('../util/stoplight.js');
+var createVm = require('ethereumjs-vm/lib/hooked').fromWeb3Provider;
+var Block = require('ethereumjs-block');
+var FakeTransaction = require('ethereumjs-tx/fake.js');
+var ethUtil = require('ethereumjs-util');
+var createPayload = require('../util/create-payload.js');
+var rpcHexEncoding = require('../util/rpc-hex-encoding.js');
+var Subprovider = require('./subprovider.js');
 
 module.exports = VmSubprovider;
 
@@ -19,7 +21,7 @@ module.exports = VmSubprovider;
 inherits(VmSubprovider, Subprovider);
 
 function VmSubprovider(opts) {
-  const self = this;
+  var self = this;
   self.opts = opts || {};
   self.methods = ['eth_call', 'eth_estimateGas'];
   // set initialization blocker
@@ -29,7 +31,7 @@ function VmSubprovider(opts) {
 
 // setup a block listener on 'setEngine'
 VmSubprovider.prototype.setEngine = function (engine) {
-  const self = this;
+  var self = this;
   Subprovider.prototype.setEngine.call(self, engine);
   // unblock initialization after first block
   engine.once('block', function (block) {
@@ -43,7 +45,7 @@ VmSubprovider.prototype.handleRequest = function (payload, next, end) {
     return next();
   }
 
-  const self = this;
+  var self = this;
   switch (payload.method) {
 
     case 'eth_call':
@@ -64,7 +66,7 @@ VmSubprovider.prototype.handleRequest = function (payload, next, end) {
 };
 
 VmSubprovider.prototype.estimateGas = function (payload, end) {
-  const self = this;
+  var self = this;
   var lo = 0;
   var hi = self._blockGasLimit;
 
@@ -104,7 +106,7 @@ VmSubprovider.prototype.estimateGas = function (payload, end) {
 };
 
 VmSubprovider.prototype.runVm = function (payload, cb) {
-  const self = this;
+  var self = this;
 
   var blockData = self.currentBlock;
   var block = blockFromBlockData(blockData);

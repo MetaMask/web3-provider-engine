@@ -1,4 +1,6 @@
-const createPayload = require('../util/create-payload.js');
+'use strict';
+
+var createPayload = require('../util/create-payload.js');
 
 module.exports = SubProvider;
 
@@ -8,7 +10,7 @@ module.exports = SubProvider;
 function SubProvider() {}
 
 SubProvider.prototype.setEngine = function (engine) {
-  const self = this;
+  var self = this;
   self.engine = engine;
   engine.on('block', function (block) {
     self.currentBlock = block;
@@ -20,6 +22,6 @@ SubProvider.prototype.handleRequest = function (payload, next, end) {
 };
 
 SubProvider.prototype.emitPayload = function (payload, cb) {
-  const self = this;
+  var self = this;
   self.engine.sendAsync(createPayload(payload), cb);
 };

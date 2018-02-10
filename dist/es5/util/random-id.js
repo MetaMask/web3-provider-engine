@@ -1,5 +1,7 @@
+"use strict";
+
 // gotta keep it within MAX_SAFE_INTEGER
-const extraDigits = 3;
+var extraDigits = 3;
 
 module.exports = createRandomId;
 

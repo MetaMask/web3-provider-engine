@@ -1,5 +1,7 @@
-const inherits = require('util').inherits;
-const Subprovider = require('./subprovider.js');
+'use strict';
+
+var inherits = require('util').inherits;
+var Subprovider = require('./subprovider.js');
 
 module.exports = Web3Subprovider;
 

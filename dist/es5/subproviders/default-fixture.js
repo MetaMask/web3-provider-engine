@@ -1,14 +1,16 @@
-const inherits = require('util').inherits;
-const extend = require('xtend');
-const FixtureProvider = require('./fixture.js');
-const version = require('../package.json').version;
+'use strict';
+
+var inherits = require('util').inherits;
+var extend = require('xtend');
+var FixtureProvider = require('./fixture.js');
+var version = require('../package.json').version;
 
 module.exports = DefaultFixtures;
 
 inherits(DefaultFixtures, FixtureProvider);
 
 function DefaultFixtures(opts) {
-  const self = this;
+  var self = this;
   opts = opts || {};
   var responses = extend({
     web3_clientVersion: 'ProviderEngine/v' + version + '/javascript',

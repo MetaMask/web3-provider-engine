@@ -1,5 +1,7 @@
-const ethUtil = require('ethereumjs-util');
-const assert = require('./assert.js');
+'use strict';
+
+var ethUtil = require('ethereumjs-util');
+var assert = require('./assert.js');
 
 module.exports = {
     intToQuantityHex: intToQuantityHex,

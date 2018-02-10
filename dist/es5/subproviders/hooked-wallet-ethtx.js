@@ -1,3 +1,5 @@
+'use strict';
+
 /*
  * Uses ethereumjs-tx to sign a transaction.
  *
@@ -8,18 +10,18 @@
  * Optionally approveTransaction(), approveMessage() can be supplied too.
  */
 
-const inherits = require('util').inherits;
-const HookedWalletProvider = require('./hooked-wallet.js');
-const EthTx = require('ethereumjs-tx');
-const ethUtil = require('ethereumjs-util');
-const sigUtil = require('eth-sig-util');
+var inherits = require('util').inherits;
+var HookedWalletProvider = require('./hooked-wallet.js');
+var EthTx = require('ethereumjs-tx');
+var ethUtil = require('ethereumjs-util');
+var sigUtil = require('eth-sig-util');
 
 module.exports = HookedWalletEthTxSubprovider;
 
 inherits(HookedWalletEthTxSubprovider, HookedWalletProvider);
 
 function HookedWalletEthTxSubprovider(opts) {
-  const self = this;
+  var self = this;
 
   HookedWalletEthTxSubprovider.super_.call(self, opts);
 
@@ -51,7 +53,7 @@ function HookedWalletEthTxSubprovider(opts) {
   self.signPersonalMessage = function (msgParams, cb) {
     opts.getPrivateKey(msgParams.from, function (err, privateKey) {
       if (err) return cb(err);
-      const serialized = sigUtil.personalSign(privateKey, msgParams);
+      var serialized = sigUtil.personalSign(privateKey, msgParams);
       cb(null, serialized);
     });
   };
@@ -59,7 +61,7 @@ function HookedWalletEthTxSubprovider(opts) {
   self.signTypedMessage = function (msgParams, cb) {
     opts.getPrivateKey(msgParams.from, function (err, privateKey) {
       if (err) return cb(err);
-      const serialized = sigUtil.signTypedData(privateKey, msgParams);
+      var serialized = sigUtil.signTypedData(privateKey, msgParams);
       cb(null, serialized);
     });
   };

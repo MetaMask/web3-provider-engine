@@ -1,5 +1,7 @@
-const getRandomId = require('./random-id.js');
-const extend = require('xtend');
+'use strict';
+
+var getRandomId = require('./random-id.js');
+var extend = require('xtend');
 
 module.exports = createPayload;
 

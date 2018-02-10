@@ -1,3 +1,5 @@
+'use strict';
+
 /*
  * Emulate 'eth_accounts' / 'eth_sendTransaction' using 'eth_sendRawTransaction'
  *
@@ -6,16 +8,16 @@
  * - signTransaction(tx) -- sign a raw transaction object
  */
 
-const waterfall = require('async/waterfall');
-const parallel = require('async/parallel');
-const inherits = require('util').inherits;
-const ethUtil = require('ethereumjs-util');
-const sigUtil = require('eth-sig-util');
-const extend = require('xtend');
-const Semaphore = require('semaphore');
-const Subprovider = require('./subprovider.js');
-const estimateGas = require('../util/estimate-gas.js');
-const hexRegex = /^[0-9A-Fa-f]+$/g;
+var waterfall = require('async/waterfall');
+var parallel = require('async/parallel');
+var inherits = require('util').inherits;
+var ethUtil = require('ethereumjs-util');
+var sigUtil = require('eth-sig-util');
+var extend = require('xtend');
+var Semaphore = require('semaphore');
+var Subprovider = require('./subprovider.js');
+var estimateGas = require('../util/estimate-gas.js');
+var hexRegex = /^[0-9A-Fa-f]+$/g;
 
 module.exports = HookedWalletSubprovider;
 
@@ -47,7 +49,7 @@ module.exports = HookedWalletSubprovider;
 inherits(HookedWalletSubprovider, Subprovider);
 
 function HookedWalletSubprovider(opts) {
-  const self = this;
+  var self = this;
   // control flow
   self.nonceLock = Semaphore(1);
 
@@ -75,7 +77,7 @@ function HookedWalletSubprovider(opts) {
 }
 
 HookedWalletSubprovider.prototype.handleRequest = function (payload, next, end) {
-  const self = this;
+  var self = this;
 
   switch (payload.method) {
 
@@ -96,12 +98,20 @@ HookedWalletSubprovider.prototype.handleRequest = function (payload, next, end) 
 
     case 'eth_sendTransaction':
       var txParams = payload.params[0];
-      waterfall([cb => self.validateTransaction(txParams, cb), cb => self.processTransaction(txParams, cb)], end);
+      waterfall([function (cb) {
+        return self.validateTransaction(txParams, cb);
+      }, function (cb) {
+        return self.processTransaction(txParams, cb);
+      }], end);
       return;
 
     case 'eth_signTransaction':
       var txParams = payload.params[0];
-      waterfall([cb => self.validateTransaction(txParams, cb), cb => self.processSignTransaction(txParams, cb)], end);
+      waterfall([function (cb) {
+        return self.validateTransaction(txParams, cb);
+      }, function (cb) {
+        return self.processSignTransaction(txParams, cb);
+      }], end);
       return;
 
     case 'eth_sign':
@@ -114,12 +124,16 @@ HookedWalletSubprovider.prototype.handleRequest = function (payload, next, end) 
         from: address,
         data: message
       });
-      waterfall([cb => self.validateMessage(msgParams, cb), cb => self.processMessage(msgParams, cb)], end);
+      waterfall([function (cb) {
+        return self.validateMessage(msgParams, cb);
+      }, function (cb) {
+        return self.processMessage(msgParams, cb);
+      }], end);
       return;
 
     case 'personal_sign':
-      const first = payload.params[0];
-      const second = payload.params[1];
+      var first = payload.params[0];
+      var second = payload.params[1];
 
       var message, address;
 
@@ -131,10 +145,10 @@ HookedWalletSubprovider.prototype.handleRequest = function (payload, next, end) 
       // That means when the first param is definitely an address,
       // and the second param is definitely not, but is hex.
       if (resemblesData(second) && resemblesAddress(first)) {
-        let warning = `The eth_personalSign method requires params ordered `;
-        warning += `[message, address]. This was previously handled incorrectly, `;
-        warning += `and has been corrected automatically. `;
-        warning += `Please switch this param order for smooth behavior in the future.`;
+        var warning = 'The eth_personalSign method requires params ordered ';
+        warning += '[message, address]. This was previously handled incorrectly, ';
+        warning += 'and has been corrected automatically. ';
+        warning += 'Please switch this param order for smooth behavior in the future.';
         console.warn(warning);
 
         address = payload.params[0];
@@ -151,7 +165,11 @@ HookedWalletSubprovider.prototype.handleRequest = function (payload, next, end) 
         from: address,
         data: message
       });
-      waterfall([cb => self.validatePersonalMessage(msgParams, cb), cb => self.processPersonalMessage(msgParams, cb)], end);
+      waterfall([function (cb) {
+        return self.validatePersonalMessage(msgParams, cb);
+      }, function (cb) {
+        return self.processPersonalMessage(msgParams, cb);
+      }], end);
       return;
 
     case 'personal_ecRecover':
@@ -175,7 +193,11 @@ HookedWalletSubprovider.prototype.handleRequest = function (payload, next, end) 
         from: address,
         data: message
       });
-      waterfall([cb => self.validateTypedMessage(msgParams, cb), cb => self.processTypedMessage(msgParams, cb)], end);
+      waterfall([function (cb) {
+        return self.validateTypedMessage(msgParams, cb);
+      }, function (cb) {
+        return self.processTypedMessage(msgParams, cb);
+      }], end);
       return;
 
     default:
@@ -190,28 +212,58 @@ HookedWalletSubprovider.prototype.handleRequest = function (payload, next, end) 
 //
 
 HookedWalletSubprovider.prototype.processTransaction = function (txParams, cb) {
-  const self = this;
-  waterfall([cb => self.approveTransaction(txParams, cb), (didApprove, cb) => self.checkApproval('transaction', didApprove, cb), cb => self.finalizeAndSubmitTx(txParams, cb)], cb);
+  var self = this;
+  waterfall([function (cb) {
+    return self.approveTransaction(txParams, cb);
+  }, function (didApprove, cb) {
+    return self.checkApproval('transaction', didApprove, cb);
+  }, function (cb) {
+    return self.finalizeAndSubmitTx(txParams, cb);
+  }], cb);
 };
 
 HookedWalletSubprovider.prototype.processSignTransaction = function (txParams, cb) {
-  const self = this;
-  waterfall([cb => self.approveTransaction(txParams, cb), (didApprove, cb) => self.checkApproval('transaction', didApprove, cb), cb => self.finalizeTx(txParams, cb)], cb);
+  var self = this;
+  waterfall([function (cb) {
+    return self.approveTransaction(txParams, cb);
+  }, function (didApprove, cb) {
+    return self.checkApproval('transaction', didApprove, cb);
+  }, function (cb) {
+    return self.finalizeTx(txParams, cb);
+  }], cb);
 };
 
 HookedWalletSubprovider.prototype.processMessage = function (msgParams, cb) {
-  const self = this;
-  waterfall([cb => self.approveMessage(msgParams, cb), (didApprove, cb) => self.checkApproval('message', didApprove, cb), cb => self.signMessage(msgParams, cb)], cb);
+  var self = this;
+  waterfall([function (cb) {
+    return self.approveMessage(msgParams, cb);
+  }, function (didApprove, cb) {
+    return self.checkApproval('message', didApprove, cb);
+  }, function (cb) {
+    return self.signMessage(msgParams, cb);
+  }], cb);
 };
 
 HookedWalletSubprovider.prototype.processPersonalMessage = function (msgParams, cb) {
-  const self = this;
-  waterfall([cb => self.approvePersonalMessage(msgParams, cb), (didApprove, cb) => self.checkApproval('message', didApprove, cb), cb => self.signPersonalMessage(msgParams, cb)], cb);
+  var self = this;
+  waterfall([function (cb) {
+    return self.approvePersonalMessage(msgParams, cb);
+  }, function (didApprove, cb) {
+    return self.checkApproval('message', didApprove, cb);
+  }, function (cb) {
+    return self.signPersonalMessage(msgParams, cb);
+  }], cb);
 };
 
 HookedWalletSubprovider.prototype.processTypedMessage = function (msgParams, cb) {
-  const self = this;
-  waterfall([cb => self.approveTypedMessage(msgParams, cb), (didApprove, cb) => self.checkApproval('message', didApprove, cb), cb => self.signTypedMessage(msgParams, cb)], cb);
+  var self = this;
+  waterfall([function (cb) {
+    return self.approveTypedMessage(msgParams, cb);
+  }, function (didApprove, cb) {
+    return self.checkApproval('message', didApprove, cb);
+  }, function (cb) {
+    return self.signTypedMessage(msgParams, cb);
+  }], cb);
 };
 
 //
@@ -244,7 +296,7 @@ HookedWalletSubprovider.prototype.signTypedMessage = function (msgParams, cb) {
 };
 
 HookedWalletSubprovider.prototype.recoverPersonalSignature = function (msgParams, cb) {
-  let senderHex;
+  var senderHex = void 0;
   try {
     senderHex = sigUtil.recoverPersonalSignature(msgParams);
   } catch (err) {
@@ -258,50 +310,50 @@ HookedWalletSubprovider.prototype.recoverPersonalSignature = function (msgParams
 //
 
 HookedWalletSubprovider.prototype.validateTransaction = function (txParams, cb) {
-  const self = this;
+  var self = this;
   // shortcut: undefined sender is invalid
-  if (txParams.from === undefined) return cb(new Error(`Undefined address - from address required to sign transaction.`));
+  if (txParams.from === undefined) return cb(new Error('Undefined address - from address required to sign transaction.'));
   self.validateSender(txParams.from, function (err, senderIsValid) {
     if (err) return cb(err);
-    if (!senderIsValid) return cb(new Error(`Unknown address - unable to sign transaction for this address: "${txParams.from}"`));
+    if (!senderIsValid) return cb(new Error('Unknown address - unable to sign transaction for this address: "' + txParams.from + '"'));
     cb();
   });
 };
 
 HookedWalletSubprovider.prototype.validateMessage = function (msgParams, cb) {
-  const self = this;
-  if (msgParams.from === undefined) return cb(new Error(`Undefined address - from address required to sign message.`));
+  var self = this;
+  if (msgParams.from === undefined) return cb(new Error('Undefined address - from address required to sign message.'));
   self.validateSender(msgParams.from, function (err, senderIsValid) {
     if (err) return cb(err);
-    if (!senderIsValid) return cb(new Error(`Unknown address - unable to sign message for this address: "${msgParams.from}"`));
+    if (!senderIsValid) return cb(new Error('Unknown address - unable to sign message for this address: "' + msgParams.from + '"'));
     cb();
   });
 };
 
 HookedWalletSubprovider.prototype.validatePersonalMessage = function (msgParams, cb) {
-  const self = this;
-  if (msgParams.from === undefined) return cb(new Error(`Undefined address - from address required to sign personal message.`));
-  if (msgParams.data === undefined) return cb(new Error(`Undefined message - message required to sign personal message.`));
-  if (!isValidHex(msgParams.data)) return cb(new Error(`HookedWalletSubprovider - validateMessage - message was not encoded as hex.`));
+  var self = this;
+  if (msgParams.from === undefined) return cb(new Error('Undefined address - from address required to sign personal message.'));
+  if (msgParams.data === undefined) return cb(new Error('Undefined message - message required to sign personal message.'));
+  if (!isValidHex(msgParams.data)) return cb(new Error('HookedWalletSubprovider - validateMessage - message was not encoded as hex.'));
   self.validateSender(msgParams.from, function (err, senderIsValid) {
     if (err) return cb(err);
-    if (!senderIsValid) return cb(new Error(`Unknown address - unable to sign message for this address: "${msgParams.from}"`));
+    if (!senderIsValid) return cb(new Error('Unknown address - unable to sign message for this address: "' + msgParams.from + '"'));
     cb();
   });
 };
 
 HookedWalletSubprovider.prototype.validateTypedMessage = function (msgParams, cb) {
-  if (msgParams.from === undefined) return cb(new Error(`Undefined address - from address required to sign typed data.`));
-  if (msgParams.data === undefined) return cb(new Error(`Undefined data - message required to sign typed data.`));
+  if (msgParams.from === undefined) return cb(new Error('Undefined address - from address required to sign typed data.'));
+  if (msgParams.data === undefined) return cb(new Error('Undefined data - message required to sign typed data.'));
   this.validateSender(msgParams.from, function (err, senderIsValid) {
     if (err) return cb(err);
-    if (!senderIsValid) return cb(new Error(`Unknown address - unable to sign message for this address: "${msgParams.from}"`));
+    if (!senderIsValid) return cb(new Error('Unknown address - unable to sign message for this address: "' + msgParams.from + '"'));
     cb();
   });
 };
 
 HookedWalletSubprovider.prototype.validateSender = function (senderAddress, cb) {
-  const self = this;
+  var self = this;
   // shortcut: undefined sender is invalid
   if (!senderAddress) return cb(null, false);
   self.getAccounts(function (err, accounts) {
@@ -316,7 +368,7 @@ HookedWalletSubprovider.prototype.validateSender = function (senderAddress, cb) 
 //
 
 HookedWalletSubprovider.prototype.finalizeAndSubmitTx = function (txParams, cb) {
-  const self = this;
+  var self = this;
   // can only allow one tx to pass through this flow at a time
   // so we can atomically consume a nonce
   self.nonceLock.take(function () {
@@ -329,7 +381,7 @@ HookedWalletSubprovider.prototype.finalizeAndSubmitTx = function (txParams, cb) 
 };
 
 HookedWalletSubprovider.prototype.finalizeTx = function (txParams, cb) {
-  const self = this;
+  var self = this;
   // can only allow one tx to pass through this flow at a time
   // so we can atomically consume a nonce
   self.nonceLock.take(function () {
@@ -342,7 +394,7 @@ HookedWalletSubprovider.prototype.finalizeTx = function (txParams, cb) {
 };
 
 HookedWalletSubprovider.prototype.publishTransaction = function (rawTx, cb) {
-  const self = this;
+  var self = this;
   self.emitPayload({
     method: 'eth_sendRawTransaction',
     params: [rawTx]
@@ -353,7 +405,7 @@ HookedWalletSubprovider.prototype.publishTransaction = function (rawTx, cb) {
 };
 
 HookedWalletSubprovider.prototype.fillInTxExtras = function (txParams, cb) {
-  const self = this;
+  var self = this;
   var address = txParams.from;
   // console.log('fillInTxExtras - address:', address)
 
@@ -407,25 +459,25 @@ function toLowerCase(string) {
 }
 
 function resemblesAddress(string) {
-  const fixed = ethUtil.addHexPrefix(string);
-  const isValid = ethUtil.isValidAddress(fixed);
+  var fixed = ethUtil.addHexPrefix(string);
+  var isValid = ethUtil.isValidAddress(fixed);
   return isValid;
 }
 
 // Returns true if resembles hex data
 // but definitely not a valid address.
 function resemblesData(string) {
-  const fixed = ethUtil.addHexPrefix(string);
-  const isValidAddress = ethUtil.isValidAddress(fixed);
+  var fixed = ethUtil.addHexPrefix(string);
+  var isValidAddress = ethUtil.isValidAddress(fixed);
   return !isValidAddress && isValidHex(string);
 }
 
 function isValidHex(data) {
-  const isString = typeof data === 'string';
+  var isString = typeof data === 'string';
   if (!isString) return false;
-  const isHexPrefixed = data.slice(0, 2) === '0x';
+  var isHexPrefixed = data.slice(0, 2) === '0x';
   if (!isHexPrefixed) return false;
-  const nonPrefixed = data.slice(2);
-  const isValid = nonPrefixed.match(hexRegex);
+  var nonPrefixed = data.slice(2);
+  var isValid = nonPrefixed.match(hexRegex);
   return isValid;
 }

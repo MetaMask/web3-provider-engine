@@ -1,11 +1,13 @@
-const EventEmitter = require('events').EventEmitter;
-const FilterSubprovider = require('./filters.js');
-const from = require('../util/rpc-hex-encoding.js');
-const inherits = require('util').inherits;
-const utils = require('ethereumjs-util');
+'use strict';
+
+var EventEmitter = require('events').EventEmitter;
+var FilterSubprovider = require('./filters.js');
+var from = require('../util/rpc-hex-encoding.js');
+var inherits = require('util').inherits;
+var utils = require('ethereumjs-util');
 
 function SubscriptionSubprovider(opts) {
-  const self = this;
+  var self = this;
 
   opts = opts || {};
 
@@ -25,13 +27,13 @@ Object.assign(SubscriptionSubprovider.prototype, EventEmitter.prototype);
 SubscriptionSubprovider.prototype.constructor = SubscriptionSubprovider;
 
 SubscriptionSubprovider.prototype.eth_subscribe = function (payload, cb) {
-  const self = this;
-  let createSubscriptionFilter = () => {};
-  let subscriptionType = payload.params[0];
+  var self = this;
+  var createSubscriptionFilter = function createSubscriptionFilter() {};
+  var subscriptionType = payload.params[0];
 
   switch (subscriptionType) {
     case 'logs':
-      let options = payload.params[1];
+      var options = payload.params[1];
 
       createSubscriptionFilter = self.newLogFilter.bind(self, options);
       break;
@@ -68,7 +70,7 @@ SubscriptionSubprovider.prototype.eth_subscribe = function (payload, cb) {
 };
 
 SubscriptionSubprovider.prototype._notificationHandler = function (id, subscriptionType, result) {
-  const self = this;
+  var self = this;
   if (subscriptionType === 'newHeads') {
     result = self._notificationResultFromBlock(result);
   }
@@ -106,12 +108,12 @@ SubscriptionSubprovider.prototype._notificationResultFromBlock = function (block
 };
 
 SubscriptionSubprovider.prototype.eth_unsubscribe = function (payload, cb) {
-  const self = this;
-  let subscriptionId = payload.params[0];
+  var self = this;
+  var subscriptionId = payload.params[0];
   if (!self.subscriptions[subscriptionId]) {
-    cb(new Error(`Subscription ID ${subscriptionId} not found.`));
+    cb(new Error('Subscription ID ' + subscriptionId + ' not found.'));
   } else {
-    let subscriptionType = self.subscriptions[subscriptionId];
+    var subscriptionType = self.subscriptions[subscriptionId];
     self.uninstallFilter(subscriptionId, function (err, result) {
       delete self.subscriptions[subscriptionId];
       cb(err, result);

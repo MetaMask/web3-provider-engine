@@ -1,9 +1,11 @@
-const async = require('async');
-const inherits = require('util').inherits;
-const ethUtil = require('ethereumjs-util');
-const Subprovider = require('./subprovider.js');
-const Stoplight = require('../util/stoplight.js');
-const EventEmitter = require('events').EventEmitter;
+'use strict';
+
+var async = require('async');
+var inherits = require('util').inherits;
+var ethUtil = require('ethereumjs-util');
+var Subprovider = require('./subprovider.js');
+var Stoplight = require('../util/stoplight.js');
+var EventEmitter = require('events').EventEmitter;
 
 module.exports = FilterSubprovider;
 
@@ -19,7 +21,7 @@ inherits(FilterSubprovider, Subprovider);
 
 function FilterSubprovider(opts) {
   opts = opts || {};
-  const self = this;
+  var self = this;
   self.filterIndex = 0;
   self.filters = {};
   self.filterDestroyHandlers = {};
@@ -51,7 +53,7 @@ function FilterSubprovider(opts) {
 }
 
 FilterSubprovider.prototype.handleRequest = function (payload, next, end) {
-  const self = this;
+  var self = this;
   switch (payload.method) {
 
     case 'eth_newBlockFilter':
@@ -92,7 +94,7 @@ FilterSubprovider.prototype.handleRequest = function (payload, next, end) {
 };
 
 FilterSubprovider.prototype.newBlockFilter = function (cb) {
-  const self = this;
+  var self = this;
 
   self._getBlockNumber(function (err, blockNumber) {
     if (err) return cb(err);
@@ -103,7 +105,7 @@ FilterSubprovider.prototype.newBlockFilter = function (cb) {
 
     var newBlockHandler = filter.update.bind(filter);
     self.engine.on('block', newBlockHandler);
-    var destroyHandler = function () {
+    var destroyHandler = function destroyHandler() {
       self.engine.removeListener('block', newBlockHandler);
     };
 
@@ -117,14 +119,14 @@ FilterSubprovider.prototype.newBlockFilter = function (cb) {
 };
 
 FilterSubprovider.prototype.newLogFilter = function (opts, cb) {
-  const self = this;
+  var self = this;
 
   self._getBlockNumber(function (err, blockNumber) {
     if (err) return cb(err);
 
     var filter = new LogFilter(opts);
     var newLogHandler = filter.update.bind(filter);
-    var blockHandler = function (block, cb) {
+    var blockHandler = function blockHandler(block, cb) {
       self._logsForBlock(block, function (err, logs) {
         if (err) return cb(err);
         newLogHandler(logs);
@@ -142,11 +144,11 @@ FilterSubprovider.prototype.newLogFilter = function (opts, cb) {
 };
 
 FilterSubprovider.prototype.newPendingTransactionFilter = function (cb) {
-  const self = this;
+  var self = this;
 
   var filter = new PendingTransactionFilter();
   var newTxHandler = filter.update.bind(filter);
-  var blockHandler = function (block, cb) {
+  var blockHandler = function blockHandler(block, cb) {
     self._txHashesForBlock(block, function (err, txs) {
       if (err) return cb(err);
       newTxHandler(txs);
@@ -163,7 +165,7 @@ FilterSubprovider.prototype.newPendingTransactionFilter = function (cb) {
 };
 
 FilterSubprovider.prototype.getFilterChanges = function (filterId, cb) {
-  const self = this;
+  var self = this;
 
   var filter = self.filters[filterId];
   if (!filter) console.warn('FilterSubprovider - no filter with that id:', filterId);
@@ -174,7 +176,7 @@ FilterSubprovider.prototype.getFilterChanges = function (filterId, cb) {
 };
 
 FilterSubprovider.prototype.getFilterLogs = function (filterId, cb) {
-  const self = this;
+  var self = this;
 
   var filter = self.filters[filterId];
   if (!filter) console.warn('FilterSubprovider - no filter with that id:', filterId);
@@ -199,7 +201,7 @@ FilterSubprovider.prototype.getFilterLogs = function (filterId, cb) {
 };
 
 FilterSubprovider.prototype.uninstallFilter = function (filterId, cb) {
-  const self = this;
+  var self = this;
 
   var filter = self.filters[filterId];
   if (!filter) {
@@ -223,7 +225,7 @@ FilterSubprovider.prototype.uninstallFilter = function (filterId, cb) {
 
 // check for pending blocks
 FilterSubprovider.prototype.checkForPendingBlocks = function () {
-  const self = this;
+  var self = this;
   if (self.checkForPendingBlocksActive) return;
   var activePendingTxFilters = !!Object.keys(self.asyncPendingBlockHandlers).length;
   if (activePendingTxFilters) {
@@ -247,7 +249,7 @@ FilterSubprovider.prototype.checkForPendingBlocks = function () {
 };
 
 FilterSubprovider.prototype.onNewPendingBlock = function (block, cb) {
-  const self = this;
+  var self = this;
   // update filters
   var updaters = valuesFor(self.asyncPendingBlockHandlers).map(function (fn) {
     return fn.bind(null, block);
@@ -256,13 +258,13 @@ FilterSubprovider.prototype.onNewPendingBlock = function (block, cb) {
 };
 
 FilterSubprovider.prototype._getBlockNumber = function (cb) {
-  const self = this;
+  var self = this;
   var blockNumber = bufferToNumberHex(self.engine.currentBlock.number);
   cb(null, blockNumber);
 };
 
 FilterSubprovider.prototype._logsForBlock = function (block, cb) {
-  const self = this;
+  var self = this;
   var blockNumber = bufferToNumberHex(block.number);
   self.emitPayload({
     method: 'eth_getLogs',
@@ -278,7 +280,7 @@ FilterSubprovider.prototype._logsForBlock = function (block, cb) {
 };
 
 FilterSubprovider.prototype._txHashesForBlock = function (block, cb) {
-  const self = this;
+  var self = this;
   var txs = block.transactions;
   // short circuit if empty
   if (txs.length === 0) return cb(null, []);
@@ -287,7 +289,9 @@ FilterSubprovider.prototype._txHashesForBlock = function (block, cb) {
     cb(null, txs);
     // txs are obj, need to map to hashes
   } else {
-    var results = txs.map(tx => tx.hash);
+    var results = txs.map(function (tx) {
+      return tx.hash;
+    });
     cb(null, results);
   }
 };
@@ -300,7 +304,7 @@ inherits(BlockFilter, EventEmitter);
 
 function BlockFilter(opts) {
   // console.log('BlockFilter - new')
-  const self = this;
+  var self = this;
   EventEmitter.apply(self);
   self.type = 'block';
   self.engine = opts.engine;
@@ -310,14 +314,14 @@ function BlockFilter(opts) {
 
 BlockFilter.prototype.update = function (block) {
   // console.log('BlockFilter - update')
-  const self = this;
+  var self = this;
   var blockHash = bufferToHex(block.hash);
   self.updates.push(blockHash);
   self.emit('data', block);
 };
 
 BlockFilter.prototype.getChanges = function () {
-  const self = this;
+  var self = this;
   var results = self.updates;
   // console.log('BlockFilter - getChanges:', results.length)
   return results;
@@ -325,7 +329,7 @@ BlockFilter.prototype.getChanges = function () {
 
 BlockFilter.prototype.clearChanges = function () {
   // console.log('BlockFilter - clearChanges')
-  const self = this;
+  var self = this;
   self.updates = [];
 };
 
@@ -337,7 +341,7 @@ inherits(LogFilter, EventEmitter);
 
 function LogFilter(opts) {
   // console.log('LogFilter - new')
-  const self = this;
+  var self = this;
   EventEmitter.apply(self);
   self.type = 'log';
   self.fromBlock = opts.fromBlock || 'latest';
@@ -350,7 +354,7 @@ function LogFilter(opts) {
 
 LogFilter.prototype.validateLog = function (log) {
   // console.log('LogFilter - validateLog:', log)
-  const self = this;
+  var self = this;
 
   // check if block number in bounds:
   // console.log('LogFilter - validateLog - blockNumber', self.fromBlock, self.toBlock)
@@ -389,7 +393,7 @@ LogFilter.prototype.validateLog = function (log) {
 
 LogFilter.prototype.update = function (logs) {
   // console.log('LogFilter - update')
-  const self = this;
+  var self = this;
   // validate filter match
   var validLogs = [];
   logs.forEach(function (log) {
@@ -407,21 +411,21 @@ LogFilter.prototype.update = function (logs) {
 
 LogFilter.prototype.getChanges = function () {
   // console.log('LogFilter - getChanges')
-  const self = this;
+  var self = this;
   var results = self.updates;
   return results;
 };
 
 LogFilter.prototype.getAllResults = function () {
   // console.log('LogFilter - getAllResults')
-  const self = this;
+  var self = this;
   var results = self.allResults;
   return results;
 };
 
 LogFilter.prototype.clearChanges = function () {
   // console.log('LogFilter - clearChanges')
-  const self = this;
+  var self = this;
   self.updates = [];
 };
 
@@ -433,7 +437,7 @@ inherits(PendingTransactionFilter, EventEmitter);
 
 function PendingTransactionFilter() {
   // console.log('PendingTransactionFilter - new')
-  const self = this;
+  var self = this;
   EventEmitter.apply(self);
   self.type = 'pendingTx';
   self.updates = [];
@@ -441,13 +445,13 @@ function PendingTransactionFilter() {
 }
 
 PendingTransactionFilter.prototype.validateUnique = function (tx) {
-  const self = this;
+  var self = this;
   return self.allResults.indexOf(tx) === -1;
 };
 
 PendingTransactionFilter.prototype.update = function (txs) {
   // console.log('PendingTransactionFilter - update')
-  const self = this;
+  var self = this;
   var validTxs = [];
   txs.forEach(function (tx) {
     // validate filter match
@@ -465,21 +469,21 @@ PendingTransactionFilter.prototype.update = function (txs) {
 
 PendingTransactionFilter.prototype.getChanges = function () {
   // console.log('PendingTransactionFilter - getChanges')
-  const self = this;
+  var self = this;
   var results = self.updates;
   return results;
 };
 
 PendingTransactionFilter.prototype.getAllResults = function () {
   // console.log('PendingTransactionFilter - getAllResults')
-  const self = this;
+  var self = this;
   var results = self.allResults;
   return results;
 };
 
 PendingTransactionFilter.prototype.clearChanges = function () {
   // console.log('PendingTransactionFilter - clearChanges')
-  const self = this;
+  var self = this;
   self.updates = [];
 };
 
@@ -506,11 +510,11 @@ function bufferToNumberHex(buffer) {
 }
 
 function stripLeadingZero(hexNum) {
-  let stripped = ethUtil.stripHexPrefix(hexNum);
+  var stripped = ethUtil.stripHexPrefix(hexNum);
   while (stripped[0] === '0') {
     stripped = stripped.substr(1);
   }
-  return `0x${stripped}`;
+  return '0x' + stripped;
 }
 
 function blockTagIsNumber(blockTag) {

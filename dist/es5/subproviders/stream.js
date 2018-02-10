@@ -1,6 +1,8 @@
-const Duplex = require('readable-stream').Duplex;
-const inherits = require('util').inherits;
-const Subprovider = require('./subprovider.js');
+'use strict';
+
+var Duplex = require('readable-stream').Duplex;
+var inherits = require('util').inherits;
+var Subprovider = require('./subprovider.js');
 
 module.exports = StreamSubprovider;
 

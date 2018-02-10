@@ -1,19 +1,21 @@
-const net = require('net');
-const inherits = require('util').inherits;
-const createPayload = require('../util/create-payload.js');
-const Subprovider = require('./subprovider.js');
+'use strict';
+
+var net = require('net');
+var inherits = require('util').inherits;
+var createPayload = require('../util/create-payload.js');
+var Subprovider = require('./subprovider.js');
 
 module.exports = IpcSource;
 
 inherits(IpcSource, Subprovider);
 
 function IpcSource(opts) {
-  const self = this;
+  var self = this;
   self.ipcPath = opts.ipcPath || '/root/.ethereum/geth.ipc';
 }
 
 IpcSource.prototype.handleRequest = function (payload, next, end) {
-  const self = this;
+  var self = this;
   var targetPath = self.ipcPath;
   var method = payload.method;
   var params = payload.params;
@@ -30,15 +32,15 @@ IpcSource.prototype.handleRequest = function (payload, next, end) {
     end('no payload', null);
   };
 
-  var client = net.connect({ path: targetPath }, () => {
+  var client = net.connect({ path: targetPath }, function () {
     client.end(JSON.stringify(payload));
   });
 
-  client.on('connection', d => {
+  client.on('connection', function (d) {
     console.log(d);
   });
 
-  client.on('data', data => {
+  client.on('data', function (data) {
     var response = "";
     response += data.toString();
     var res = JSON.parse(response);
@@ -49,14 +51,14 @@ IpcSource.prototype.handleRequest = function (payload, next, end) {
   //   console.log('Socket Received payload');
   // });
 
-  client.on('error', error => {
+  client.on('error', function (error) {
     console.error(error);
     end(error, null);
   });
 
   process.setMaxListeners(Infinity);
 
-  process.on('SIGINT', () => {
+  process.on('SIGINT', function () {
     console.log("Caught interrupt signal");
 
     client.end();

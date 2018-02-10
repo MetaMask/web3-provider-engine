@@ -1,4 +1,6 @@
-const stringify = require('json-stable-stringify');
+'use strict';
+
+var stringify = require('json-stable-stringify');
 
 module.exports = {
   cacheIdentifierForPayload: cacheIdentifierForPayload,
@@ -9,10 +11,13 @@ module.exports = {
   cacheTypeForPayload: cacheTypeForPayload
 };
 
-function cacheIdentifierForPayload(payload, opts = {}) {
+function cacheIdentifierForPayload(payload) {
+  var opts = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : {};
+
   if (!canCache(payload)) return null;
-  const { includeBlockRef } = opts;
-  const params = includeBlockRef ? payload.params : paramsWithoutBlockTag(payload);
+  var includeBlockRef = opts.includeBlockRef;
+
+  var params = includeBlockRef ? payload.params : paramsWithoutBlockTag(payload);
   return payload.method + ':' + stringify(params);
 }
 

@@ -1,25 +1,29 @@
+'use strict';
+
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+
 /* Sanitization Subprovider
  * For Parity compatibility
  * removes irregular keys
  */
 
-const inherits = require('util').inherits;
-const Subprovider = require('./subprovider.js');
-const extend = require('xtend');
-const ethUtil = require('ethereumjs-util');
+var inherits = require('util').inherits;
+var Subprovider = require('./subprovider.js');
+var extend = require('xtend');
+var ethUtil = require('ethereumjs-util');
 
 module.exports = SanitizerSubprovider;
 
 inherits(SanitizerSubprovider, Subprovider);
 
 function SanitizerSubprovider(opts) {
-  const self = this;
+  var self = this;
 }
 
 SanitizerSubprovider.prototype.handleRequest = function (payload, next, end) {
   var txParams = payload.params[0];
 
-  if (typeof txParams === 'object' && !Array.isArray(txParams)) {
+  if ((typeof txParams === 'undefined' ? 'undefined' : _typeof(txParams)) === 'object' && !Array.isArray(txParams)) {
     var sanitized = cloneTxParams(txParams);
     payload.params[0] = sanitized;
   }

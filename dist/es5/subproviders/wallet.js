@@ -1,7 +1,7 @@
 'use strict';
 
-const inherits = require('util').inherits;
-const HookedWalletEthTxSubprovider = require('./hooked-wallet-ethtx.js');
+var inherits = require('util').inherits;
+var HookedWalletEthTxSubprovider = require('./hooked-wallet-ethtx.js');
 
 module.exports = WalletSubprovider;
 

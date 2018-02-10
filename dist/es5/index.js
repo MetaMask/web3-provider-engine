@@ -1,33 +1,35 @@
-const EventEmitter = require('events').EventEmitter;
-const inherits = require('util').inherits;
-const ethUtil = require('ethereumjs-util');
-const EthBlockTracker = require('eth-block-tracker');
-const map = require('async/map');
-const eachSeries = require('async/eachSeries');
-const Stoplight = require('./util/stoplight.js');
-const cacheUtils = require('./util/rpc-cache-utils.js');
-const createPayload = require('./util/create-payload.js');
+'use strict';
+
+var EventEmitter = require('events').EventEmitter;
+var inherits = require('util').inherits;
+var ethUtil = require('ethereumjs-util');
+var EthBlockTracker = require('eth-block-tracker');
+var map = require('async/map');
+var eachSeries = require('async/eachSeries');
+var Stoplight = require('./util/stoplight.js');
+var cacheUtils = require('./util/rpc-cache-utils.js');
+var createPayload = require('./util/create-payload.js');
 
 module.exports = Web3ProviderEngine;
 
 inherits(Web3ProviderEngine, EventEmitter);
 
 function Web3ProviderEngine(opts) {
-  const self = this;
+  var self = this;
   EventEmitter.call(self);
   self.setMaxListeners(30);
   // parse options
   opts = opts || {};
   // block polling
-  const skipInitLockProvider = { sendAsync: self._handleAsync.bind(self) };
-  const blockTrackerProvider = opts.blockTrackerProvider || skipInitLockProvider;
+  var skipInitLockProvider = { sendAsync: self._handleAsync.bind(self) };
+  var blockTrackerProvider = opts.blockTrackerProvider || skipInitLockProvider;
   self._blockTracker = opts.blockTracker || new EthBlockTracker({
     provider: blockTrackerProvider,
     pollingInterval: opts.pollingInterval || 4000
   });
   // handle new block
-  self._blockTracker.on('block', jsonBlock => {
-    const bufferBlock = toBufferBlock(jsonBlock);
+  self._blockTracker.on('block', function (jsonBlock) {
+    var bufferBlock = toBufferBlock(jsonBlock);
     self._setCurrentBlock(bufferBlock);
   });
 
@@ -39,7 +41,7 @@ function Web3ProviderEngine(opts) {
   // set initialization blocker
   self._ready = new Stoplight();
   // unblock initialization after first block
-  self._blockTracker.once('block', () => {
+  self._blockTracker.once('block', function () {
     self._ready.go();
   });
   // local state
@@ -50,19 +52,19 @@ function Web3ProviderEngine(opts) {
 // public
 
 Web3ProviderEngine.prototype.start = function () {
-  const self = this;
+  var self = this;
   // start block polling
   self._blockTracker.start();
 };
 
 Web3ProviderEngine.prototype.stop = function () {
-  const self = this;
+  var self = this;
   // stop block polling
   self._blockTracker.stop();
 };
 
 Web3ProviderEngine.prototype.addProvider = function (source) {
-  const self = this;
+  var self = this;
   self._providers.push(source);
   source.setEngine(this);
 };
@@ -72,7 +74,7 @@ Web3ProviderEngine.prototype.send = function (payload) {
 };
 
 Web3ProviderEngine.prototype.sendAsync = function (payload, cb) {
-  const self = this;
+  var self = this;
   self._ready.await(function () {
 
     if (Array.isArray(payload)) {
@@ -154,7 +156,7 @@ Web3ProviderEngine.prototype._handleAsync = function (payload, finished) {
 //
 
 Web3ProviderEngine.prototype._setCurrentBlock = function (block) {
-  const self = this;
+  var self = this;
   self.currentBlock = block;
   self.emit('block', block);
 };

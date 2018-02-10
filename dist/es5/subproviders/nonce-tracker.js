@@ -1,8 +1,10 @@
-const inherits = require('util').inherits;
-const Transaction = require('ethereumjs-tx');
-const ethUtil = require('ethereumjs-util');
-const Subprovider = require('./subprovider.js');
-const blockTagForPayload = require('../util/rpc-cache-utils').blockTagForPayload;
+'use strict';
+
+var inherits = require('util').inherits;
+var Transaction = require('ethereumjs-tx');
+var ethUtil = require('ethereumjs-util');
+var Subprovider = require('./subprovider.js');
+var blockTagForPayload = require('../util/rpc-cache-utils').blockTagForPayload;
 
 module.exports = NonceTrackerSubprovider;
 
@@ -15,13 +17,13 @@ module.exports = NonceTrackerSubprovider;
 inherits(NonceTrackerSubprovider, Subprovider);
 
 function NonceTrackerSubprovider(opts) {
-  const self = this;
+  var self = this;
 
   self.nonceCache = {};
 }
 
 NonceTrackerSubprovider.prototype.handleRequest = function (payload, next, end) {
-  const self = this;
+  var self = this;
 
   switch (payload.method) {
 
