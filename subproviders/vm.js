@@ -127,7 +127,7 @@ VmSubprovider.prototype.runVm = function(payload, cb){
   var txParams = payload.params[0]
   // console.log('params:', payload.params)
 
-  const txParams = {
+  const normalizedTxParams = {
     to: txParams.to ? ethUtil.addHexPrefix(txParams.to) : undefined,
     from: txParams.from ? ethUtil.addHexPrefix(txParams.from) : undefined,
     value: txParams.value ? ethUtil.addHexPrefix(txParams.value) : undefined,
@@ -136,8 +136,8 @@ VmSubprovider.prototype.runVm = function(payload, cb){
     gasPrice: txParams.gasPrice ? ethUtil.addHexPrefix(txParams.gasPrice) : undefined,
     nonce: txParams.nonce ? ethUtil.addHexPrefix(txParams.nonce) : undefined,
   }
-  var tx = new FakeTransaction(txParams)
-  tx._from = txParams.from
+  var tx = new FakeTransaction(normalizedTxParams)
+  tx._from = normalizedTxParams.from
 
   vm.runTx({
     tx: tx,
