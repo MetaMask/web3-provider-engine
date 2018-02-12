@@ -137,7 +137,7 @@ VmSubprovider.prototype.runVm = function(payload, cb){
     nonce: txParams.nonce ? ethUtil.addHexPrefix(txParams.nonce) : undefined,
   }
   var tx = new FakeTransaction(normalizedTxParams)
-  tx._from = normalizedTxParams.from
+  tx._from = normalizedTxParams.from || 0x0000000000000000000000000000000000000000
 
   vm.runTx({
     tx: tx,
