@@ -128,6 +128,24 @@ cacheTest('getBlockForNumber for block 1', [{
   params: ['0x1'],
 }], true)
 
+// storage
+
+cacheTest('getStorageAt for same block should cache', [{
+  method: 'eth_getStorageAt',
+  params: ['0x295a70b2de5e3953354a6a8344e616ed314d7251', '0x0', '0x1234'],
+}, {
+  method: 'eth_getStorageAt',
+  params: ['0x295a70b2de5e3953354a6a8344e616ed314d7251', '0x0', '0x1234'],
+}], true)
+
+cacheTest('getStorageAt for different block should not cache', [{
+  method: 'eth_getStorageAt',
+  params: ['0x295a70b2de5e3953354a6a8344e616ed314d7251', '0x0', '0x1234'],
+}, {
+  method: 'eth_getStorageAt',
+  params: ['0x295a70b2de5e3953354a6a8344e616ed314d7251', '0x0', '0x4321'],
+}], false)
+
 
 // test helper for caching
 // 1. Sets up caching and data provider
@@ -182,7 +200,8 @@ function cacheTest(label, payloads, shouldHitCacheOnSecondRequest){
             input: '0x',
           })
         }
-      }
+      },
+      eth_getStorageAt: '0x00000000000000000000000000000000000000000000000000000000deadbeef',
     }))
     // handle dummy block
     var blockProvider = injectMetrics(new TestBlockProvider())
