@@ -155,7 +155,7 @@ test('sign message', function(t){
   var addressHex = '0x1234362ef32bcd26d3dd18ca749378213625ba0b'
 
   var message = 'haay wuurl'
-  var signature = '0x2c865e6843caf741a694522f86281c9ee86294ade3c8cd1889c9f2c9a24e20802b2b6eb79ba49412661bdbf40245d9b01abb393a843734e5be79b38e7dd408ef1c'
+  var signature = '0x68dc980608bceb5f99f691e62c32caccaee05317309015e9454eba1a14c3cd4505d1dd098b8339801239c9bcaac3c4df95569dcf307108b92f68711379be14d81c'
 
   // sign all messages
   var providerA = injectMetrics(new HookedWalletTxProvider({

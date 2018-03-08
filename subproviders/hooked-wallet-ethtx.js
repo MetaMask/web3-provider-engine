@@ -20,7 +20,7 @@ inherits(HookedWalletEthTxSubprovider, HookedWalletProvider)
 
 function HookedWalletEthTxSubprovider(opts) {
   const self = this
-  
+
   HookedWalletEthTxSubprovider.super_.call(self, opts)
 
   self.signTransaction = function(txData, cb) {
@@ -41,7 +41,8 @@ function HookedWalletEthTxSubprovider(opts) {
   self.signMessage = function(msgParams, cb) {
     opts.getPrivateKey(msgParams.from, function(err, privateKey) {
       if (err) return cb(err)
-      var msgHash = ethUtil.sha3(msgParams.data)
+      var dataBuff = ethUtil.toBuffer(msgParams.data)
+      var msgHash = ethUtil.hashPersonalMessage(dataBuff)
       var sig = ethUtil.ecsign(msgHash, privateKey)
       var serialized = ethUtil.bufferToHex(concatSig(sig.v, sig.r, sig.s))
       cb(null, serialized)
