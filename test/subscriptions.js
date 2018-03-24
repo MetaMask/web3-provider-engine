@@ -1,9 +1,9 @@
-const test = require('tape')
-const ProviderEngine = require('../index.js')
-const SubscriptionSubprovider = require('../subproviders/subscriptions.js')
-const TestBlockProvider = require('./util/block.js')
-const createPayload = require('../util/create-payload.js')
-const injectMetrics = require('./util/inject-metrics')
+import test from 'tape'
+import ProviderEngine from '../provider-engine.js'
+import SubscriptionSubprovider from '../subproviders/subscriptions.js'
+import createPayload from '../util/create-payload.js'
+import injectMetrics from './util/inject-metrics'
+import TestBlockProvider from './util/block.js'
 
 subscriptionTest('basic block subscription', {
     method: 'eth_subscribe',

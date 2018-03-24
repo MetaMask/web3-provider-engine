@@ -1,17 +1,13 @@
-const ProviderEngine = require('./index.js')
-const DefaultFixture = require('./subproviders/default-fixture.js')
-const NonceTrackerSubprovider = require('./subproviders/nonce-tracker.js')
-const CacheSubprovider = require('./subproviders/cache.js')
-const FilterSubprovider = require('./subproviders/filters.js')
-const InflightCacheSubprovider = require('./subproviders/inflight-cache')
-const HookedWalletSubprovider = require('./subproviders/hooked-wallet.js')
-const SanitizingSubprovider = require('./subproviders/sanitizer.js')
-const RpcSubprovider = require('./subproviders/rpc.js')
-const FetchSubprovider = require('./subproviders/fetch.js')
-
-
-module.exports = ZeroClientProvider
-
+import ProviderEngine from './provider-engine.js'
+import DefaultFixture from './subproviders/default-fixture.js'
+import NonceTrackerSubprovider from './subproviders/nonce-tracker.js'
+import CacheSubprovider from './subproviders/cache.js'
+import FilterSubprovider from './subproviders/filters.js'
+import InflightCacheSubprovider from './subproviders/inflight-cache'
+import HookedWalletSubprovider from './subproviders/hooked-wallet.js'
+import SanitizingSubprovider from './subproviders/sanitizer.js'
+import RpcSubprovider from './subproviders/rpc.js'
+import FetchSubprovider from './subproviders/fetch.js'
 
 function ZeroClientProvider(opts){
   opts = opts || {}
@@ -77,5 +73,5 @@ function ZeroClientProvider(opts){
   engine.start()
 
   return engine
-
 }
+export default ZeroClientProvider;

@@ -1,12 +1,15 @@
-const inherits = require('util').inherits
-const ethUtil = require('ethereumjs-util')
+import {inherits} from 'util';
+import ethUtil from 'ethereumjs-util';
 const BN = ethUtil.BN
-const clone = require('clone')
-const cacheUtils = require('../util/rpc-cache-utils.js')
-const Stoplight = require('../util/stoplight.js')
-const Subprovider = require('./subprovider.js')
-
-module.exports = BlockCacheProvider
+import clone from 'clone';
+import {
+  cacheIdentifierForPayload,
+  canCache,
+  blockTagForPayload,
+  cacheTypeForPayload
+} from '../util/rpc-cache-utils.js';
+import Stoplight from '../util/stoplight.js';
+import Subprovider from './subprovider.js';
 
 inherits(BlockCacheProvider, Subprovider)
 
@@ -71,7 +74,7 @@ BlockCacheProvider.prototype.handleRequest = function(payload, next, end){
 BlockCacheProvider.prototype._handleRequest = function(payload, next, end){
   const self = this
 
-  var type = cacheUtils.cacheTypeForPayload(payload)
+  var type = cacheTypeForPayload(payload)
   var strategy = this.strategies[type]
 
   // If there's no strategy in place, pass it down the chain.
@@ -84,7 +87,7 @@ BlockCacheProvider.prototype._handleRequest = function(payload, next, end){
     return next()
   }
 
-  var blockTag = cacheUtils.blockTagForPayload(payload)
+  var blockTag = blockTagForPayload(payload)
   if (!blockTag) blockTag = 'latest'
   var requestedBlockNumber
 
@@ -126,7 +129,7 @@ function PermaCacheStrategy() {
 }
 
 PermaCacheStrategy.prototype.hitCheck = function(payload, requestedBlockNumber, hit, miss) {
-  var identifier = cacheUtils.cacheIdentifierForPayload(payload)
+  var identifier = cacheIdentifierForPayload(payload)
   var cached = this.cache[identifier]
 
   if (!cached) return miss()
@@ -145,7 +148,7 @@ PermaCacheStrategy.prototype.hitCheck = function(payload, requestedBlockNumber, 
 }
 
 PermaCacheStrategy.prototype.cacheResult = function(payload, result, requestedBlockNumber, callback) {
-  var identifier = cacheUtils.cacheIdentifierForPayload(payload)
+  var identifier = cacheIdentifierForPayload(payload)
 
   if (result) {
     var clonedValue = clone(result)
@@ -159,7 +162,7 @@ PermaCacheStrategy.prototype.cacheResult = function(payload, result, requestedBl
 }
 
 PermaCacheStrategy.prototype.canCache = function(payload) {
-  return cacheUtils.canCache(payload)
+  return canCache(payload)
 }
 
 //
@@ -203,7 +206,7 @@ function BlockCacheStrategy() {
 }
 
 BlockCacheStrategy.prototype.getBlockCacheForPayload = function(payload, blockNumber) {
-  var blockTag = cacheUtils.blockTagForPayload(payload)
+  var blockTag = blockTagForPayload(payload)
   var blockCache = this.cache[blockNumber]
   // create new cache if necesary
   if (!blockCache) blockCache = this.cache[blockNumber] = {}
@@ -218,7 +221,7 @@ BlockCacheStrategy.prototype.hitCheck = function(payload, requestedBlockNumber, 
     return miss()
   }
 
-  var identifier = cacheUtils.cacheIdentifierForPayload(payload)
+  var identifier = cacheIdentifierForPayload(payload)
   var cached = blockCache[identifier]
 
   if (cached) {
@@ -231,18 +234,18 @@ BlockCacheStrategy.prototype.hitCheck = function(payload, requestedBlockNumber, 
 BlockCacheStrategy.prototype.cacheResult = function(payload, result, requestedBlockNumber, callback) {
   if (result) {
     var blockCache = this.getBlockCacheForPayload(payload, requestedBlockNumber)
-    var identifier = cacheUtils.cacheIdentifierForPayload(payload)
+    var identifier = cacheIdentifierForPayload(payload)
     blockCache[identifier] = result
   }
   callback()
 }
 
 BlockCacheStrategy.prototype.canCache = function(payload) {
-  if (!cacheUtils.canCache(payload)) {
+  if (!canCache(payload)) {
     return false
   }
 
-  var blockTag = cacheUtils.blockTagForPayload(payload)
+  var blockTag = blockTagForPayload(payload)
 
   return (blockTag !== 'pending')
 }
@@ -273,3 +276,5 @@ function containsBlockhash(result) {
   const hasNonZeroHash = hexToBN(result.blockHash).gt(new BN(0))
   return hasNonZeroHash
 }
+
+export default BlockCacheProvider;

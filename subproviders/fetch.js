@@ -1,33 +1,21 @@
-const fetch = global.fetch || require('fetch-ponyfill')().fetch
-const inherits = require('util').inherits
-const retry = require('async/retry')
-const waterfall = require('async/waterfall')
-const asyncify = require('async/asyncify')
-const JsonRpcError = require('json-rpc-error')
-const promiseToCallback = require('promise-to-callback')
-const createPayload = require('../util/create-payload.js')
-const Subprovider = require('./subprovider.js')
+import fetchPonyfill from 'fetch-ponyfill';
+import {inherits} from 'util';
+import {asyncify, retry, waterfall} from 'async';
+import JsonRpcError from 'json-rpc-error';
+import promiseToCallback from 'promise-to-callback';
+import createPayload from '../util/create-payload.js';
+import Subprovider from './subprovider.js';
+const fetch = global.fetch || fetchPonyfill().fetch
 
-const RETRIABLE_ERRORS = [
-  // ignore server overload errors
-  'Gateway timeout',
-  'ETIMEDOUT',
-  // ignore server sent html error pages
-  // or truncated json responses
-  'SyntaxError',
-]
+inherits(FetchSubprovider, Subprovider)
 
-module.exports = RpcSource
-
-inherits(RpcSource, Subprovider)
-
-function RpcSource (opts) {
+function FetchSubprovider (opts) {
   const self = this
   self.rpcUrl = opts.rpcUrl
   self.originHttpHeaderKey = opts.originHttpHeaderKey
 }
 
-RpcSource.prototype.handleRequest = function (payload, next, end) {
+FetchSubprovider.prototype.handleRequest = function (payload, next, end) {
   const self = this
   const originDomain = payload.origin
 
@@ -67,7 +55,7 @@ RpcSource.prototype.handleRequest = function (payload, next, end) {
   })
 }
 
-RpcSource.prototype._submitRequest = function (reqParams, cb) {
+FetchSubprovider.prototype._submitRequest = function (reqParams, cb) {
   const self = this
   const targetUrl = self.rpcUrl
 
@@ -132,3 +120,5 @@ function createTimeoutError () {
   const err = new Error(msg)
   return new JsonRpcError.InternalError(err)
 }
+
+export default FetchSubprovider

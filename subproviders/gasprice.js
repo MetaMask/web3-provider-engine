@@ -7,11 +7,9 @@
  * https://github.com/ethereum/go-ethereum/wiki/Gas-Price-Oracle
  */
 
-const map = require('async/map')
-const inherits = require('util').inherits
-const Subprovider = require('./subprovider.js')
-
-module.exports = GaspriceProvider
+import {map} from 'async';
+import {inherits} from 'util';
+import Subprovider from './subprovider.js';
 
 inherits(GaspriceProvider, Subprovider)
 
@@ -66,6 +64,8 @@ GaspriceProvider.prototype.handleRequest = function(payload, next, end){
       end(null, median)
     }
 
-    map(blockNumbers, getBlock, calcPrice)      
+    map(blockNumbers, getBlock, calcPrice)
   })
 }
+
+export default GaspriceProvider;

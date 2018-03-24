@@ -1,20 +1,17 @@
-const doWhilst = require('async/doWhilst')
-const inherits = require('util').inherits
-const Stoplight = require('../util/stoplight.js')
-const createVm = require('ethereumjs-vm/lib/hooked').fromWeb3Provider
-const Block = require('ethereumjs-block')
-const FakeTransaction = require('ethereumjs-tx/fake.js')
-const ethUtil = require('ethereumjs-util')
-const createPayload = require('../util/create-payload.js')
-const rpcHexEncoding = require('../util/rpc-hex-encoding.js')
-const Subprovider = require('./subprovider.js')
-
-module.exports = VmSubprovider
+import {doWhilst} from 'async';
+import {inherits} from 'util';
+import Stoplight from '../util/stoplight.js';
+import {fromWeb3Provider as createVm} from 'ethereumjs-vm/lib/hooked';
+import Block from 'ethereumjs-block';
+import FakeTransaction from 'ethereumjs-tx/fake.js';
+import ethUtil from 'ethereumjs-util';
+import createPayload from '../util/create-payload.js';
+import {intToQuantityHex} from '../util/rpc-hex-encoding.js';
+import Subprovider from './subprovider.js';
 
 // handles the following RPC methods:
 //   eth_call
 //   eth_estimateGas
-
 
 inherits(VmSubprovider, Subprovider)
 
@@ -76,7 +73,7 @@ VmSubprovider.prototype.estimateGas = function(payload, end) {
         var mid = (hi + lo) / 2
         payload.params[0].gas = mid
         self.runVm(payload, function(err, results) {
-            gasUsed = err ? self._blockGasLimit : ethUtil.bufferToInt(results.gasUsed)
+            let gasUsed = err ? self._blockGasLimit : ethUtil.bufferToInt(results.gasUsed)
             if (err || gasUsed === 0) {
                 lo = mid
             } else {
@@ -98,7 +95,7 @@ VmSubprovider.prototype.estimateGas = function(payload, end) {
               end(err)
           } else {
               hi = Math.floor(hi)
-              var gasEstimateHex = rpcHexEncoding.intToQuantityHex(hi)
+              var gasEstimateHex = intToQuantityHex(hi)
               end(null, gasEstimateHex)
           }
       }
@@ -177,3 +174,5 @@ function blockFromBlockData(blockData){
   block.header.extraData = blockData.extraData
   return block
 }
+
+export default VmSubprovider;

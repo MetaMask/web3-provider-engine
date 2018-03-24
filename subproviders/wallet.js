@@ -1,9 +1,7 @@
 'use strict'
 
-const inherits = require('util').inherits
-const HookedWalletEthTxSubprovider = require('./hooked-wallet-ethtx.js')
-
-module.exports = WalletSubprovider
+import {inherits} from 'util';
+import HookedWalletEthTxSubprovider from './hooked-wallet-ethtx.js';
 
 inherits(WalletSubprovider, HookedWalletEthTxSubprovider)
 
@@ -22,3 +20,5 @@ function WalletSubprovider (wallet, opts) {
 
   WalletSubprovider.super_.call(this, opts)
 }
+
+export default WalletSubprovider;

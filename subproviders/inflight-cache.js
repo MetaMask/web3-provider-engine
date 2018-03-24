@@ -1,6 +1,5 @@
-const cacheIdentifierForPayload = require('../util/rpc-cache-utils.js').cacheIdentifierForPayload
-const Subprovider = require('./subprovider.js')
-
+import {cacheIdentifierForPayload} from '../util/rpc-cache-utils.js';
+import Subprovider from './subprovider.js';
 
 class InflightCacheSubprovider extends Subprovider {
 
@@ -43,5 +42,4 @@ class InflightCacheSubprovider extends Subprovider {
   }
 }
 
-module.exports = InflightCacheSubprovider
-
+export default InflightCacheSubprovider;

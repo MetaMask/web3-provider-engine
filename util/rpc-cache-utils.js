@@ -1,13 +1,4 @@
-const stringify = require('json-stable-stringify')
-
-module.exports = {
-  cacheIdentifierForPayload: cacheIdentifierForPayload,
-  canCache: canCache,
-  blockTagForPayload: blockTagForPayload,
-  paramsWithoutBlockTag: paramsWithoutBlockTag,
-  blockTagParamIndex: blockTagParamIndex,
-  cacheTypeForPayload: cacheTypeForPayload,
-}
+import stringify from 'json-stable-stringify';
 
 function cacheIdentifierForPayload(payload, opts = {}){
   if (!canCache(payload)) return null
@@ -145,4 +136,13 @@ function cacheTypeForPayload(payload) {
     case 'shh_getMessages':
       return 'never'
   }
+}
+
+export {
+  cacheIdentifierForPayload,
+  canCache,
+  blockTagForPayload,
+  paramsWithoutBlockTag,
+  blockTagParamIndex,
+  cacheTypeForPayload,
 }

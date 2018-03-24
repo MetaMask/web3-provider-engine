@@ -1,11 +1,11 @@
-const test = require('tape')
-const ProviderEngine = require('../../index.js')
-const createPayload = require('../../util/create-payload.js')
-const FixtureProvider = require('../../subproviders/fixture.js')
-const SanitizerSubprovider = require('../../subproviders/sanitizer')
-const MockSubprovider = require('../util/mock-subprovider')
-const TestBlockProvider = require('../util/block.js')
-const extend = require('xtend')
+import test from 'tape'
+import ProviderEngine from '../../provider-engine.js'
+import createPayload from '../../util/create-payload.js'
+import FixtureProvider from '../../subproviders/fixture.js'
+import SanitizerSubprovider from '../../subproviders/sanitizer'
+import MockSubprovider from '../util/mock-subprovider'
+import TestBlockProvider from '../util/block.js'
+import extend from 'xtend'
 
 test('Sanitizer removes unknown keys', function(t) {
   t.plan(8)
