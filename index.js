@@ -53,7 +53,7 @@ function Web3ProviderEngine(opts) {
 Web3ProviderEngine.prototype.start = function(){
   const self = this
   // start block polling
-  self._blockTracker.start()
+  return self._blockTracker.start()
 }
 
 Web3ProviderEngine.prototype.stop = function(){

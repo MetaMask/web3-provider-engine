@@ -15,6 +15,7 @@ module.exports = ZeroClientProvider
 
 function ZeroClientProvider(opts){
   opts = opts || {}
+  if ( !('startBlockTracker' in opts) ) opts.startBlockTracker = true
 
   const engine = new ProviderEngine(opts.engineParams)
 
@@ -74,7 +75,7 @@ function ZeroClientProvider(opts){
   engine.addProvider(dataSubprovider)
 
   // start polling
-  engine.start()
+  if (opts.startBlockTracker) engine.start()
 
   return engine
 
