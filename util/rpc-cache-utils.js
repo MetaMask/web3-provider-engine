@@ -49,11 +49,13 @@ function paramsWithoutBlockTag(payload){
 
 function blockTagParamIndex(payload){
   switch(payload.method) {
+    // blockTag is third param
+    case 'eth_getStorageAt':
+      return 2
     // blockTag is second param
     case 'eth_getBalance':
     case 'eth_getCode':
     case 'eth_getTransactionCount':
-    case 'eth_getStorageAt':
     case 'eth_call':
     case 'eth_estimateGas':
       return 1
