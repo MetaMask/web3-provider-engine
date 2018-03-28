@@ -98,7 +98,7 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
       var txParams = payload.params[0]
       waterfall([
         (cb) => self.validateTransaction(txParams, cb),
-        (cb) => self.processTransaction(txParams, cb),
+        (cb) => self.processTransaction(txParams, payload, cb),
       ], end)
       return
 
@@ -204,7 +204,7 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
 // "process" high level flow
 //
 
-HookedWalletSubprovider.prototype.processTransaction = function(txParams, cb) {
+HookedWalletSubprovider.prototype.processTransaction = function(txParams, payload, cb) {
   const self = this
   waterfall([
     (cb) => self.approveTransaction(txParams, cb),
