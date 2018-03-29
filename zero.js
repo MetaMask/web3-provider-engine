@@ -7,7 +7,7 @@ const InflightCacheSubprovider = require('./subproviders/inflight-cache')
 const HookedWalletSubprovider = require('./subproviders/hooked-wallet.js')
 const SanitizingSubprovider = require('./subproviders/sanitizer.js')
 const RpcSubprovider = require('./subproviders/rpc.js')
-const FetchSubprovider = require('./subproviders/fetch.js')
+const WebsocketSubprovider = require('./subproviders/websocket.js')
 
 
 module.exports = ZeroClientProvider
@@ -67,9 +67,9 @@ function ZeroClientProvider(opts){
   engine.addProvider(idmgmtSubprovider)
 
   // data source
-  const dataSubprovider = opts.dataSubprovider || new FetchSubprovider({
-    rpcUrl: opts.rpcUrl || 'https://mainnet.infura.io/',
-    originHttpHeaderKey: opts.originHttpHeaderKey,
+  const dataSubprovider = opts.dataSubprovider || new WebsocketSubprovider({
+    rpcUrl: opts.rpcUrl || 'wss://mainnet.infura.io/_ws',
+    debug: opts.debug,
   })
   engine.addProvider(dataSubprovider)
 
