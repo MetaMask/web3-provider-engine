@@ -63,6 +63,15 @@ function ZeroClientProvider(opts){
     signPersonalMessage: opts.signPersonalMessage,
     signTypedMessage: opts.signTypedMessage,
     personalRecoverSigner: opts.personalRecoverSigner,
+    // direct rpc overrides
+    eth_coinbase: opts.eth_coinbase,
+    eth_accounts: opts.eth_accounts,
+    eth_sendTransaction: opts.eth_sendTransaction,
+    eth_signTransaction: opts.eth_signTransaction,
+    eth_sign: opts.eth_sign,
+    personal_sign: opts.personal_sign,
+    personal_ecRecover: opts.personal_ecRecover,
+    eth_signTypedData: opts.eth_signTypedData,
   })
   engine.addProvider(idmgmtSubprovider)
 
