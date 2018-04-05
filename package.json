@@ -14,6 +14,7 @@
   "license": "ISC",
   "dependencies": {
     "async": "^2.5.0",
+    "backoff": "^2.5.0",
     "clone": "^2.0.0",
     "eth-block-tracker": "^2.2.2",
     "eth-sig-util": "^1.4.2",
@@ -37,7 +38,6 @@
   "devDependencies": {
     "babel-preset-es2015": "^6.24.1",
     "babel-preset-stage-0": "^6.24.1",
-    "backoff": "^2.5.0",
     "browserify": "^14.0.0"
   },
   "browser": {
