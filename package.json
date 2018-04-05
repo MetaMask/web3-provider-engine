@@ -14,9 +14,10 @@
   "license": "ISC",
   "dependencies": {
     "async": "^2.5.0",
+    "backoff": "^2.5.0",
     "clone": "^2.0.0",
+    "eth-block-tracker": "github:zippiehq/eth-block-tracker",
     "eth-sig-util": "^1.4.2",
-    "eth-block-tracker": "^2.2.2",
     "ethereumjs-block": "^1.2.2",
     "ethereumjs-tx": "^1.2.0",
     "ethereumjs-util": "^5.1.1",
@@ -30,6 +31,7 @@
     "semaphore": "^1.0.3",
     "solc": "^0.4.2",
     "tape": "^4.4.0",
+    "ws": "^5.1.0",
     "xhr": "^2.2.0",
     "xtend": "^4.0.1"
   },
@@ -39,6 +41,7 @@
     "browserify": "^14.0.0"
   },
   "browser": {
-    "request": false
+    "request": false,
+    "ws": "./util/ws.js"
   }
 }

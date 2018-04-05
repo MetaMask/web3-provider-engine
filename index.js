@@ -20,7 +20,7 @@ function Web3ProviderEngine(opts) {
   // parse options
   opts = opts || {}
   // block polling
-  const skipInitLockProvider = { sendAsync: self._handleAsync.bind(self) }
+  const skipInitLockProvider = { sendAsync: self._handleAsync.bind(self), on: self.on.bind(self)}
   const blockTrackerProvider = opts.blockTrackerProvider || skipInitLockProvider
   self._blockTracker = opts.blockTracker || new EthBlockTracker({
     provider: blockTrackerProvider,

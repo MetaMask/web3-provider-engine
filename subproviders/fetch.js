@@ -33,6 +33,7 @@ RpcSource.prototype.handleRequest = function (payload, next, end) {
 
   // overwrite id to not conflict with other concurrent users
   const newPayload = createPayload(payload)
+  newPayload.jsonrpc = '2.0'
   // remove extra parameter from request
   delete newPayload.origin
 
