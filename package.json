@@ -9,8 +9,8 @@
     "prepublish": "npm run build && npm run bundle",
     "build": "babel zero.js index.js -d dist/es5 && babel subproviders -d dist/es5/subproviders && babel util -d dist/es5/util",
     "bundle": "mkdir -p ./dist && npm run bundle-engine && npm run bundle-zero",
-    "bundle-zero": "browserify -s ZeroClientProvider -e zero.js > dist/ZeroClientProvider.js",
-    "bundle-engine": "browserify -s ProviderEngine -e index.js > dist/ProviderEngine.js"
+    "bundle-zero": "browserify -s ZeroClientProvider -e zero.js -t [ babelify --presets [ es2015 ] ] > dist/ZeroClientProvider.js",
+    "bundle-engine": "browserify -s ProviderEngine -e index.js -t [ babelify --presets [ es2015 ] ] > dist/ProviderEngine.js"
   },
   "author": "",
   "license": "ISC",
