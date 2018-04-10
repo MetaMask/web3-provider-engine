@@ -91,6 +91,7 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
   switch(payload.method) {
 
     case 'eth_coinbase':
+      // process normally
       self.getAccounts(function(err, accounts){
         if (err) return end(err)
         let result = accounts[0] || null
@@ -99,6 +100,7 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
       return
 
     case 'eth_accounts':
+      // process normally
       self.getAccounts(function(err, accounts){
         if (err) return end(err)
         end(null, accounts)
@@ -122,6 +124,7 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
       return
 
     case 'eth_sign':
+      // process normally
       address = payload.params[0]
       message = payload.params[1]
       // non-standard "extraParams" to be appended to our "msgParams" obj
@@ -138,6 +141,7 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
       return
 
     case 'personal_sign':
+      // process normally
       const first = payload.params[0]
       const second = payload.params[1]
 
@@ -189,6 +193,7 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
       return
 
     case 'eth_signTypedData':
+      // process normally
       message = payload.params[0]
       address = payload.params[1]
       extraParams = payload.params[2] || {}

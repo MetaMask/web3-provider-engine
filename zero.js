@@ -16,7 +16,7 @@ module.exports = ZeroClientProvider
 function ZeroClientProvider(opts){
   opts = opts || {}
 
-  const engine = new ProviderEngine()
+  const engine = new ProviderEngine(opts.engineParams)
 
   // static
   const staticSubprovider = new DefaultFixture(opts.static)
@@ -67,11 +67,11 @@ function ZeroClientProvider(opts){
   engine.addProvider(idmgmtSubprovider)
 
   // data source
-  const fetchSubprovider = new FetchSubprovider({
+  const dataSubprovider = opts.dataSubprovider || new FetchSubprovider({
     rpcUrl: opts.rpcUrl || 'https://mainnet.infura.io/',
     originHttpHeaderKey: opts.originHttpHeaderKey,
   })
-  engine.addProvider(fetchSubprovider)
+  engine.addProvider(dataSubprovider)
 
   // start polling
   engine.start()

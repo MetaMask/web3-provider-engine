@@ -7,6 +7,7 @@ const eachSeries = require('async/eachSeries')
 const Stoplight = require('./util/stoplight.js')
 const cacheUtils = require('./util/rpc-cache-utils.js')
 const createPayload = require('./util/create-payload.js')
+const noop = function(){}
 
 module.exports = Web3ProviderEngine
 
@@ -20,9 +21,10 @@ function Web3ProviderEngine(opts) {
   // parse options
   opts = opts || {}
   // block polling
-  const skipInitBlockProvider = { sendAsync: self._handleAsync.bind(self) }
-  self._blockTracker = new EthBlockTracker({
-    provider: skipInitBlockProvider,
+  const skipInitLockProvider = { sendAsync: self._handleAsync.bind(self) }
+  const blockTrackerProvider = opts.blockTrackerProvider || skipInitLockProvider
+  self._blockTracker = opts.blockTracker || new EthBlockTracker({
+    provider: blockTrackerProvider,
     pollingInterval: opts.pollingInterval || 4000,
   })
   // handle new block
@@ -49,10 +51,10 @@ function Web3ProviderEngine(opts) {
 
 // public
 
-Web3ProviderEngine.prototype.start = function(){
+Web3ProviderEngine.prototype.start = function(cb = noop){
   const self = this
   // start block polling
-  self._blockTracker.start()
+  self._blockTracker.start().then(cb).catch(cb)
 }
 
 Web3ProviderEngine.prototype.stop = function(){
