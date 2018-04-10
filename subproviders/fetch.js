@@ -1,4 +1,4 @@
-const fetch = global.fetch || require('fetch-ponyfill')().fetch
+const fetch = require('cross-fetch')
 const inherits = require('util').inherits
 const retry = require('async/retry')
 const waterfall = require('async/waterfall')
