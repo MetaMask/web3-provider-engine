@@ -47,8 +47,10 @@ SubscriptionSubprovider.prototype.eth_subscribe = function(payload, cb) {
       return
   }
 
-  createSubscriptionFilter(function(err, id) {
+  createSubscriptionFilter(function(err, hexId) {
     if (err) return cb(err)
+
+    const id = Number.parseInt(hexId, 16)
     self.subscriptions[id] = subscriptionType
 
     self.filters[id].on('data', function(results) {
@@ -56,33 +58,34 @@ SubscriptionSubprovider.prototype.eth_subscribe = function(payload, cb) {
         results = [results]
       }
 
-      var notificationHandler = self._notificationHandler.bind(self, id, subscriptionType)
+      var notificationHandler = self._notificationHandler.bind(self, hexId, subscriptionType)
       results.forEach(notificationHandler)
       self.filters[id].clearChanges()
     })
     if (subscriptionType === 'newPendingTransactions') {
       self.checkForPendingBlocks()
     }
-    cb(null, id)
+    cb(null, hexId)
   })
 }
 
 SubscriptionSubprovider.prototype.eth_unsubscribe = function(payload, cb) {
   const self = this
-  let subscriptionId = payload.params[0]
-  if (!self.subscriptions[subscriptionId]) {
-    cb(new Error(`Subscription ID ${subscriptionId} not found.`))
+  let hexId = payload.params[0]
+  const id = Number.parseInt(hexId, 16)
+  if (!self.subscriptions[id]) {
+    cb(new Error(`Subscription ID ${hexId} not found.`))
   } else {
-    let subscriptionType = self.subscriptions[subscriptionId]
-    self.uninstallFilter(subscriptionId, function (err, result) {
-      delete self.subscriptions[subscriptionId]
+    let subscriptionType = self.subscriptions[id]
+    self.uninstallFilter(hexId, function (err, result) {
+      delete self.subscriptions[id]
       cb(err, result)
     })
   }
 }
 
 
-SubscriptionSubprovider.prototype._notificationHandler = function (id, subscriptionType, result) {
+SubscriptionSubprovider.prototype._notificationHandler = function (hexId, subscriptionType, result) {
   const self = this
   if (subscriptionType === 'newHeads') {
     result = self._notificationResultFromBlock(result)
@@ -94,7 +97,7 @@ SubscriptionSubprovider.prototype._notificationHandler = function (id, subscript
     jsonrpc: "2.0",
     method: "eth_subscription",
     params: {
-      subscription: id,
+      subscription: hexId,
       result: result,
     },
   })
