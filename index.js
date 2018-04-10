@@ -7,6 +7,7 @@ const eachSeries = require('async/eachSeries')
 const Stoplight = require('./util/stoplight.js')
 const cacheUtils = require('./util/rpc-cache-utils.js')
 const createPayload = require('./util/create-payload.js')
+const noop = function(){}
 
 module.exports = Web3ProviderEngine
 
@@ -50,10 +51,10 @@ function Web3ProviderEngine(opts) {
 
 // public
 
-Web3ProviderEngine.prototype.start = function(cb){
+Web3ProviderEngine.prototype.start = function(cb = noop){
   const self = this
   // start block polling
-  self._blockTracker.start().catch(err=>cb(err))
+  self._blockTracker.start().then(cb).catch(cb)
 }
 
 Web3ProviderEngine.prototype.stop = function(){
