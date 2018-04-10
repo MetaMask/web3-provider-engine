@@ -52,8 +52,7 @@ function HookedWalletSubprovider(opts){
   self.nonceLock = Semaphore(1)
 
   // data lookup
-  if (!opts.getAccounts) throw new Error('ProviderEngine - HookedWalletSubprovider - did not provide "getAccounts" fn in constructor options')
-  self.getAccounts = opts.getAccounts
+  if (opts.getAccounts) self.getAccounts = opts.getAccounts
   // high level override
   if (opts.processTransaction) self.processTransaction = opts.processTransaction
   if (opts.processMessage) self.processMessage = opts.processMessage
@@ -207,6 +206,15 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
 
   }
 }
+
+//
+// data lookup
+//
+
+HookedWalletSubprovider.prototype.getAccounts = function(cb) {
+  cb(null, [])
+}
+
 
 //
 // "process" high level flow

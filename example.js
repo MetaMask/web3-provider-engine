@@ -4,7 +4,6 @@ const ZeroClientProvider = require('./zero.js')
 
 // create engine
 const providerEngine = ZeroClientProvider({
-  getAccounts: function(){},
   // supports http and websockets
   // but defaults to infura's mainnet rest api
   // rpcUrl: 'https://mainnet.infura.io',
