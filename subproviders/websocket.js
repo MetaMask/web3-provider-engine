@@ -1,12 +1,17 @@
 const Backoff = require('backoff')
+const EventEmitter = require('events')
 const inherits = require('util').inherits
 const WebSocket = global.WebSocket || require('ws')
 const Subprovider = require('./subprovider')
 const createPayload = require('../util/create-payload')
 
-class WebsocketProvider extends Subprovider {
+class WebsocketSubprovider
+ extends Subprovider {
   constructor({ rpcUrl, debug }) {
     super()
+
+    // inherit from EventEmitter
+    EventEmitter.call(this)
 
     Object.defineProperties(this, {
       _backoff: {
@@ -58,7 +63,7 @@ class WebsocketProvider extends Subprovider {
       return;
     }
 
-    this._pendingRequests.set(payload.id, Array.from(arguments))
+    this._pendingRequests.set(payload.id, [payload, end])
 
     const newPayload = createPayload(payload)
     delete newPayload.origin
@@ -94,13 +99,25 @@ class WebsocketProvider extends Subprovider {
 
     this._log('Received message ID:', data.id)
 
+    // check if server-sent notification
+    if (data.id === undefined) {
+      return self.emit('data', null, data)
+    }
+
+    // ignore if missing
     if (!this._pendingRequests.has(data.id)) {
       return
     }
 
-    const [payload, next, end] = this._pendingRequests.get(data.id)
+    // retrieve payload + arguments
+    const [payload, end] = this._pendingRequests.get(data.id)
     this._pendingRequests.delete(data.id)
-    end(data.error && data.error.message, data.result)
+
+    // forward response
+    if (data.error) {
+      return end(new Error(data.error.message))
+    }
+    end(null, data.result)
   }
 
   _handleSocketOpen() {
@@ -127,4 +144,7 @@ class WebsocketProvider extends Subprovider {
   }
 }
 
-module.exports = WebsocketProvider
+// multiple inheritance
+Object.assign(WebsocketSubprovider.prototype, EventEmitter.prototype)
+
+module.exports = WebsocketSubprovider
