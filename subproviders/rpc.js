@@ -1,4 +1,4 @@
-const xhr = (process.browser || global.XMLHttpRequest) ? require('xhr') : require('request')
+const xhr = process.browser ? require('xhr') : require('request')
 const inherits = require('util').inherits
 const createPayload = require('../util/create-payload.js')
 const Subprovider = require('./subprovider.js')
