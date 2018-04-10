@@ -26,6 +26,7 @@ function FilterSubprovider(opts) {
   self.asyncBlockHandlers = {}
   self.asyncPendingBlockHandlers = {}
   self._ready = new Stoplight()
+  self._ready.setMaxListeners(opts.maxFilters || 25)
   self._ready.go()
   self.pendingBlockTimeout = opts.pendingBlockTimeout || 4000
   self.checkForPendingBlocksActive = false
