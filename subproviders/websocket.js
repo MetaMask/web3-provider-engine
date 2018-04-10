@@ -60,7 +60,7 @@ class WebsocketSubprovider
     if (!this._socket || this._socket.readyState !== WebSocket.OPEN) {
       this._unhandledRequests.push(Array.from(arguments))
       this._log('Socket not open. Request queued.')
-      return;
+      return
     }
 
     this._pendingRequests.set(payload.id, [payload, end])
@@ -69,11 +69,11 @@ class WebsocketSubprovider
     delete newPayload.origin
 
     this._socket.send(JSON.stringify(newPayload))
-    this._log('Request sent:', newPayload.method)
+    this._log(`Sent: ${newPayload.method} #${newPayload.id}`)
   }
 
   _handleSocketClose({ reason, code }) {
-    this._log(`Socket closed, code ${code} (${reason || 'no reason'})`);
+    this._log(`Socket closed, code ${code} (${reason || 'no reason'})`)
     // If the socket has been open for longer than 5 seconds, reset the backoff
     if (this._connectTime && Date.now() - this._connectTime > 5000) {
       this._backoff.reset()
@@ -88,41 +88,41 @@ class WebsocketSubprovider
   }
 
   _handleSocketMessage(message) {
-    let data;
+    let payload
 
     try {
-      data = JSON.parse(message.data)
+      payload = JSON.parse(message.data)
     } catch (e) {
-      this._log('Received a message that is not valid JSON:', message)
-      return;
+      this._log('Received a message that is not valid JSON:', payload)
+      return
     }
 
-    this._log('Received message ID:', data.id)
-
     // check if server-sent notification
-    if (data.id === undefined) {
-      return this.emit('data', null, data)
+    if (payload.id === undefined) {
+      return this.emit('data', null, payload)
     }
 
     // ignore if missing
-    if (!this._pendingRequests.has(data.id)) {
+    if (!this._pendingRequests.has(payload.id)) {
       return
     }
 
     // retrieve payload + arguments
-    const [payload, end] = this._pendingRequests.get(data.id)
-    this._pendingRequests.delete(data.id)
+    const [originalReq, end] = this._pendingRequests.get(payload.id)
+    this._pendingRequests.delete(payload.id)
+
+    this._log(`Received: ${originalReq.method} #${payload.id}`)
 
     // forward response
-    if (data.error) {
-      return end(new Error(data.error.message))
+    if (payload.error) {
+      return end(new Error(payload.error.message))
     }
-    end(null, data.result)
+    end(null, payload.result)
   }
 
   _handleSocketOpen() {
     this._log('Socket open.')
-    this._connectTime = Date.now();
+    this._connectTime = Date.now()
 
     // Any pending requests need to be resent because our session was lost
     // and will not get responses for them in our new session.
