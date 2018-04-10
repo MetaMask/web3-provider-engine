@@ -7,7 +7,7 @@ const providerEngine = ZeroClientProvider({
   // supports http and websockets
   // but defaults to infura's mainnet rest api
   // rpcUrl: 'https://mainnet.infura.io',
-  // rpcUrl: 'wss://mainnet.infura.io/_ws',
+  rpcUrl: 'wss://mainnet.infura.io/ws',
 })
 
 // use the provider to instantiate Ethjs, Web3, etc
