@@ -89,6 +89,18 @@ Categorically, we don’t want / can’t have the following types of RPC calls g
 
 ### Change Log
 
+##### 14.0.0
+
+- default dataProvider for zero is Infura mainnet REST api
+- websocket support
+- subscriptions support
+- removed `dist` from git (but published in npm module)
+- es5 builds in `dist/es5`
+- zero + ProviderEngine bundles are es5
+- web3 subprovider renamed to provider subprovider
+- removed need to supply getAccounts hook
+- fixed `hooked-wallet-ethtx` message signing
+
 ##### 13.0.0
 
 - txs included in blocks via [`eth-block-tracker`](https://github.com/kumavis/eth-block-tracker)@2.0.0
