@@ -4,7 +4,6 @@
 
 Web3 ProviderEngine is a tool for composing your own [web3 providers](https://github.com/ethereum/wiki/wiki/JavaScript-API#web3).
 
-Status: WIP - expect breaking changes and strange behaviour
 
 ### Composable
 
