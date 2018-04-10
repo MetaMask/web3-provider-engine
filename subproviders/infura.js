@@ -1,11 +1,11 @@
 const createInfuraProvider = require('eth-json-rpc-infura/src/createProvider')
-const ProviderSubprovider = require('./web3.js')
-
-module.exports = InfuraSubprovider
+const ProviderSubprovider = require('./provider.js')
 
 class InfuraSubprovider extends ProviderSubprovider {
-  constructor(opts) {
+  constructor(opts = {}) {
     const provider = createInfuraProvider(opts)
     super(provider)
   }
 }
+
+module.exports = InfuraSubprovider
