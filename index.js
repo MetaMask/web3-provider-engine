@@ -22,13 +22,13 @@ function Web3ProviderEngine(opts) {
   opts = opts || {}
 
   // block polling
-  const skipInitLockProvider = { sendAsync: self._handleAsync.bind(self) }
-  const blockTrackerProvider = opts.blockTrackerProvider || skipInitLockProvider
+  const directProvider = { sendAsync: self._handleAsync.bind(self) }
+  const blockTrackerProvider = opts.blockTrackerProvider || directProvider
   self._blockTracker = opts.blockTracker || new EthBlockTracker({
     provider: blockTrackerProvider,
     pollingInterval: opts.pollingInterval || 4000,
   })
-  
+
   // handle new block
   self._blockTracker.on('block', (jsonBlock) => {
     const bufferBlock = toBufferBlock(jsonBlock)

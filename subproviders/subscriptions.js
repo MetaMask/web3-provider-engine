@@ -67,6 +67,21 @@ SubscriptionSubprovider.prototype.eth_subscribe = function(payload, cb) {
   })
 }
 
+SubscriptionSubprovider.prototype.eth_unsubscribe = function(payload, cb) {
+  const self = this
+  let subscriptionId = payload.params[0]
+  if (!self.subscriptions[subscriptionId]) {
+    cb(new Error(`Subscription ID ${subscriptionId} not found.`))
+  } else {
+    let subscriptionType = self.subscriptions[subscriptionId]
+    self.uninstallFilter(subscriptionId, function (err, result) {
+      delete self.subscriptions[subscriptionId]
+      cb(err, result)
+    })
+  }
+}
+
+
 SubscriptionSubprovider.prototype._notificationHandler = function (id, subscriptionType, result) {
   const self = this
   if (subscriptionType === 'newHeads') {
@@ -102,20 +117,6 @@ SubscriptionSubprovider.prototype._notificationResultFromBlock = function(block)
     nonce: block.nonce ? utils.bufferToHex(block.nonce): null,
     timestamp: from.intToQuantityHex(utils.bufferToInt(block.timestamp)),
     extraData: utils.bufferToHex(block.extraData)
-  }
-}
-
-SubscriptionSubprovider.prototype.eth_unsubscribe = function(payload, cb) {
-  const self = this
-  let subscriptionId = payload.params[0]
-  if (!self.subscriptions[subscriptionId]) {
-    cb(new Error(`Subscription ID ${subscriptionId} not found.`))
-  } else {
-    let subscriptionType = self.subscriptions[subscriptionId]
-    self.uninstallFilter(subscriptionId, function (err, result) {
-      delete self.subscriptions[subscriptionId]
-      cb(err, result)
-    })
   }
 }
 

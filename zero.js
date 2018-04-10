@@ -15,6 +15,8 @@ module.exports = ZeroClientProvider
 
 
 function ZeroClientProvider(opts = {}){
+  const connectionType = getConnectionType(opts)
+
   const engine = new ProviderEngine(opts.engineParams)
 
   // static
@@ -32,9 +34,20 @@ function ZeroClientProvider(opts = {}){
   const cacheSubprovider = new CacheSubprovider()
   engine.addProvider(cacheSubprovider)
 
-  // filters
-  const filterSubprovider = new FilterSubprovider()
-  engine.addProvider(filterSubprovider)
+  // filters + subscriptions
+  // for websockets, only polyfill filters
+  if (connectionType === 'ws') {
+    const filterSubprovider = new FilterSubprovider()
+    engine.addProvider(filterSubprovider)
+  // otherwise, polyfill both subscriptions and filters
+  } else {
+    const filterAndSubsSubprovider = new SubscriptionSubprovider()
+    // forward subscription events through provider
+    filterAndSubsSubprovider.on('data', (err, notification) => {
+      engine.emit('data', err, notification)
+    })
+    engine.addProvider(filterAndSubsSubprovider)
+  }
 
   // inflight cache
   const inflightCache = new InflightCacheSubprovider()
@@ -66,7 +79,13 @@ function ZeroClientProvider(opts = {}){
   engine.addProvider(idmgmtSubprovider)
 
   // data source
-  const dataSubprovider = opts.dataSubprovider || createDataSubprovider(opts)
+  const dataSubprovider = opts.dataSubprovider || createDataSubprovider(connectionType, opts)
+  // for websockets, forward subscription events through provider
+  if (connectionType === 'ws') {
+    dataSubprovider.on('data', (err, notification) => {
+      engine.emit('data', err, notification)
+    })
+  }
   engine.addProvider(dataSubprovider)
 
   // start polling
@@ -76,10 +95,9 @@ function ZeroClientProvider(opts = {}){
 
 }
 
-function createDataSubprovider(opts) {
+function createDataSubprovider(connectionType, opts) {
   const { rpcUrl, debug } = opts
 
-  const connectionType = getConnectionType({ rpcUrl })
   // default to infura
   if (!connectionType) {
     return new InfuraSubprovider()
