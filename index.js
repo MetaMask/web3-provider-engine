@@ -50,10 +50,10 @@ function Web3ProviderEngine(opts) {
 
 // public
 
-Web3ProviderEngine.prototype.start = function(){
+Web3ProviderEngine.prototype.start = function(cb){
   const self = this
   // start block polling
-  self._blockTracker.start()
+  self._blockTracker.start().catch(err=>cb(err))
 }
 
 Web3ProviderEngine.prototype.stop = function(){
