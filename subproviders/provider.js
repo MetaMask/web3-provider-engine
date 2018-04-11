@@ -8,6 +8,7 @@ module.exports = ProviderSubprovider
 inherits(ProviderSubprovider, Subprovider)
 
 function ProviderSubprovider(provider){
+  if (!provider) throw new Error('ProviderSubprovider - no provider specified')
   this.provider = provider
 }
 
