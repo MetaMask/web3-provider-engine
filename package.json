@@ -19,7 +19,7 @@
     "backoff": "^2.5.0",
     "clone": "^2.0.0",
     "cross-fetch": "^2.1.0",
-    "eth-block-tracker": "^2.2.2",
+    "eth-block-tracker": "^2.3.0",
     "eth-json-rpc-infura": "^3.1.0",
     "eth-sig-util": "^1.4.2",
     "ethereumjs-block": "^1.2.2",
