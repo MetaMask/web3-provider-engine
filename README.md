@@ -73,7 +73,13 @@ engine.on('error', function(err){
 
 // start polling for blocks
 engine.start()
+```
 
+When importing in webpack:
+```js
+import * as Web3ProviderEngine  from 'web3-provider-engine';
+import * as RpcSource  from 'web3-provider-engine/subproviders/rpc';
+import * as HookedWalletSubprovider from 'web3-provider-engine/subproviders/hooked-wallet';
 ```
 
 ### Built For Zero-Clients
@@ -98,8 +104,10 @@ Categorically, we don’t want / can’t have the following types of RPC calls g
 - es5 builds in `dist/es5`
 - zero + ProviderEngine bundles are es5
 - web3 subprovider renamed to provider subprovider
+- error if provider subprovider is missing a proper provider
 - removed need to supply getAccounts hook
 - fixed `hooked-wallet-ethtx` message signing
+- fixed `hooked-wallet` default txParams
 
 ##### 13.0.0
 
