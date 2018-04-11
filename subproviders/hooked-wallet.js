@@ -521,7 +521,7 @@ HookedWalletSubprovider.prototype.fillInTxExtras = function(txParams, cb){
     if (result.nonce) res.nonce = result.nonce.result
     if (result.gas) res.gas = result.gas
 
-    cb(null, extend(res, txParams))
+    cb(null, extend(txParams, res))
   })
 }
 
