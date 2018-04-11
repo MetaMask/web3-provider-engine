@@ -93,6 +93,7 @@ Categorically, we don’t want / can’t have the following types of RPC calls g
 - default dataProvider for zero is Infura mainnet REST api
 - websocket support
 - subscriptions support
+- remove solc subprovider
 - removed `dist` from git (but published in npm module)
 - es5 builds in `dist/es5`
 - zero + ProviderEngine bundles are es5
