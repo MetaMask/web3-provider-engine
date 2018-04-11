@@ -343,8 +343,8 @@ function LogFilter(opts) {
   const self = this
   EventEmitter.apply(self)
   self.type = 'log'
-  self.fromBlock = opts.fromBlock || 'latest'
-  self.toBlock = opts.toBlock || 'latest'
+  self.fromBlock = (opts.fromBlock !== undefined) ? opts.fromBlock : 'latest'
+  self.toBlock = (opts.toBlock !== undefined) ? opts.toBlock : 'latest'
   self.address = opts.address ? normalizeHex(opts.address) : opts.address
   self.topics = opts.topics || []
   self.updates = []
