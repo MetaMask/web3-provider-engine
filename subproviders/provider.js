@@ -9,6 +9,7 @@ inherits(ProviderSubprovider, Subprovider)
 
 function ProviderSubprovider(provider){
   if (!provider) throw new Error('ProviderSubprovider - no provider specified')
+  if (!provider.sendAsync) throw new Error('ProviderSubprovider - specified provider does not have a sendAsync method')
   this.provider = provider
 }
 
