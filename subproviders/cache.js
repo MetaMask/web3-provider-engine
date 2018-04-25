@@ -202,12 +202,15 @@ function BlockCacheStrategy() {
   this.cache = {}
 }
 
-BlockCacheStrategy.prototype.getBlockCacheForPayload = function(payload, blockNumber) {
-  var blockTag = cacheUtils.blockTagForPayload(payload)
-  var blockCache = this.cache[blockNumber]
+BlockCacheStrategy.prototype.getBlockCacheForPayload = function(payload, blockNumberHex) {
+  const blockNumber = Number.parseInt(blockNumberHex, 16)
+  let blockCache = this.cache[blockNumber]
   // create new cache if necesary
-  if (!blockCache) blockCache = this.cache[blockNumber] = {}
-
+  if (!blockCache) {
+    const newCache = {}
+    this.cache[blockNumber] = newCache
+    blockCache = newCache
+  }
   return blockCache
 }
 
@@ -250,8 +253,9 @@ BlockCacheStrategy.prototype.canCache = function(payload) {
 // naively removes older block caches
 BlockCacheStrategy.prototype.cacheRollOff = function(previousBlock){
   const self = this
-  var previousHex = ethUtil.bufferToHex(previousBlock.number)
-  delete self.cache[previousHex]
+  const previousHex = ethUtil.bufferToHex(previousBlock.number)
+  const blockNumber = Number.parseInt(previousHex, 16)
+  delete self.cache[blockNumber]
 }
 
 
