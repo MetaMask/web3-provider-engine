@@ -38,6 +38,7 @@ GaspriceProvider.prototype.handleRequest = function(payload, next, end){
     function getBlock(item, end) {
       self.emitPayload({ method: 'eth_getBlockByNumber', params: [ item, true ] }, function(err, res) {
         if (err) return end(err)
+        if (!res.result) return end(new Error(`GaspriceProvider - No block for "${item}"`))
         end(null, res.result.transactions)
       })
     }
@@ -66,6 +67,6 @@ GaspriceProvider.prototype.handleRequest = function(payload, next, end){
       end(null, median)
     }
 
-    map(blockNumbers, getBlock, calcPrice)      
+    map(blockNumbers, getBlock, calcPrice)
   })
 }
