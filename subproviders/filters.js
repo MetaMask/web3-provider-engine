@@ -362,7 +362,7 @@ LogFilter.prototype.validateLog = function(log){
 
   // address is correct:
   // console.log('LogFilter - validateLog - address', self.address)
-  if (self.address && self.address !== log.address) return false
+  if (self.address && self.address.toLowerCase() !== log.address.toLowerCase()) return false
 
   // topics match:
   // topics are position-dependant
@@ -380,8 +380,8 @@ LogFilter.prototype.validateLog = function(log){
     if (!logTopic) return false
     // check each possible matching topic
     var subtopicsToMatch = Array.isArray(topicPattern) ? topicPattern : [topicPattern]
-    var topicDoesMatch = subtopicsToMatch.filter(function(subTopic){
-      return logTopic === subTopic
+    var topicDoesMatch = subtopicsToMatch.filter(function(subTopic) {
+      return logTopic.toLowerCase() === subTopic.toLowerCase()
     }).length > 0
     return topicDoesMatch
   }, true)
