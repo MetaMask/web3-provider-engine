@@ -30,7 +30,7 @@
     "json-stable-stringify": "^1.0.1",
     "promise-to-callback": "^1.0.0",
     "readable-stream": "^2.2.9",
-    "request": "^2.67.0",
+    "request": "^2.85.0",
     "semaphore": "^1.0.3",
     "tape": "^4.4.0",
     "ws": "^5.1.1",
