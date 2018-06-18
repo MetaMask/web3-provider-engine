@@ -1,6 +1,6 @@
-# Web3 ProviderEngine fork for Embark
+# Web3 ProviderEngine
 
-[Embark](https://github.com/embark-framework/embark) fork of [Web3 Provider Engine](https://github.com/MetaMask/provider-engine)
+[![Greenkeeper badge](https://badges.greenkeeper.io/MetaMask/provider-engine.svg)](https://greenkeeper.io/)
 
 Web3 ProviderEngine is a tool for composing your own [web3 providers](https://github.com/ethereum/wiki/wiki/JavaScript-API#web3).
 
