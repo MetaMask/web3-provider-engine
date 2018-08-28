@@ -173,6 +173,7 @@ function toBufferBlock (jsonBlock) {
     hash:             ethUtil.toBuffer(jsonBlock.hash),
     parentHash:       ethUtil.toBuffer(jsonBlock.parentHash),
     nonce:            ethUtil.toBuffer(jsonBlock.nonce),
+    mixHash:          ethUtil.toBuffer(jsonBlock.mixHash),
     sha3Uncles:       ethUtil.toBuffer(jsonBlock.sha3Uncles),
     logsBloom:        ethUtil.toBuffer(jsonBlock.logsBloom),
     transactionsRoot: ethUtil.toBuffer(jsonBlock.transactionsRoot),
