@@ -345,7 +345,8 @@ function LogFilter(opts) {
   self.type = 'log'
   self.fromBlock = (opts.fromBlock !== undefined) ? opts.fromBlock : 'latest'
   self.toBlock = (opts.toBlock !== undefined) ? opts.toBlock : 'latest'
-  self.address = opts.address ? normalizeHex(opts.address) : opts.address
+  expectedAddress = opts.address && (Array.isArray(opts.address) ? opts.address : [opts.address]);
+  self.address = expectedAddress && expectedAddress.map(function(a) { return normalizeHex(a) });
   self.topics = opts.topics || []
   self.updates = []
   self.allResults = []
@@ -362,7 +363,8 @@ LogFilter.prototype.validateLog = function(log){
 
   // address is correct:
   // console.log('LogFilter - validateLog - address', self.address)
-  if (self.address && self.address.toLowerCase() !== log.address.toLowerCase()) return false
+  if (self.address && !(self.address.map(
+    function(a) { return a.toLowerCase() }).includes(log.address.toLowerCase()))) return false
 
   // topics match:
   // topics are position-dependant
