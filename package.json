@@ -29,7 +29,7 @@
     "json-rpc-error": "^2.0.0",
     "json-stable-stringify": "^1.0.1",
     "promise-to-callback": "^1.0.0",
-    "readable-stream": "^2.2.9",
+    "readable-stream": "^3.0.0",
     "request": "^2.85.0",
     "semaphore": "^1.0.3",
     "xhr": "^2.2.0",
