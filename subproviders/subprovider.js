@@ -11,12 +11,11 @@ function SubProvider() {
 
 SubProvider.prototype.setEngine = function(engine) {
   const self = this
-  if (self._ranSetEngine) return
+  if (self.engine) return
   self.engine = engine
   engine.on('block', function(block) {
     self.currentBlock = block
   })
-  self._ranSetEngine = true
 }
 
 SubProvider.prototype.handleRequest = function(payload, next, end) {
