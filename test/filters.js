@@ -88,6 +88,41 @@ filterTest('log filter - mixed case', {
   }
 )
 
+filterTest('log filter - address array', {
+    method: 'eth_newFilter',
+    params: [{
+      address: [
+        '0x00000000000000000000000000000000000000000000000000000000aAbBcCdD',
+        '0x00000000000000000000000000000000000000000000000000000000a1b2c3d4'],
+      topics: ['0x00000000000000000000000000000000000000000000000000DeadBeefCafe01']
+    }],
+  },
+  function afterInstall(t, testMeta, response, cb){
+    testMeta.tx = testMeta.blockProvider.addTx({
+      address:  '0x00000000000000000000000000000000000000000000000000000000AABBCCDD',
+      topics: ['0x00000000000000000000000000000000000000000000000000DEADBEEFCAFE01']
+    })
+    testMeta.badTx = testMeta.blockProvider.addTx({
+      address: '0x00000000000000000000000000000000000000000000000000000000aAbBcCdD',
+      topics: ['0x00000000000000000000000000000000000000000000000000DeadBeefCafe02']
+    })
+    var block = testMeta.block = testMeta.blockProvider.nextBlock()
+    cb()
+  },
+  function filterChangesOne(t, testMeta, response, cb){
+    var results = response.result
+    var matchedTx = response.result[0]
+    t.equal(results.length, 1, 'correct number of results')
+    t.equal(matchedTx, testMeta.tx, 'correct result')
+    cb()
+  },
+  function filterChangesTwo(t, testMeta, response, cb){
+    var results = response.result
+    t.equal(results.length, 0, 'correct number of results')
+    cb()
+  }
+)
+
 filterTest('log filter - and logic', {
     method: 'eth_newFilter',
     params: [{
