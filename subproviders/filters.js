@@ -195,7 +195,7 @@ FilterSubprovider.prototype.getFilterLogs = function(hexFilterId, cb) {
       cb(null, res.result)
     })
   } else {
-    var results = filter.getAllResults()
+    var results = []
     cb(null, results)
   }
 }
