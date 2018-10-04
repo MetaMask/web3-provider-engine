@@ -95,6 +95,7 @@ function createBlock(blockParams, prevBlock, txs) {
     hash:              randomHash(),
     parentHash:        prevBlock ? prevBlock.hash : randomHash(),
     nonce:             randomHash(),
+    mixHash:           randomHash(),
     sha3Uncles:        randomHash(),
     logsBloom:         randomHash(),
     transactionsRoot:  randomHash(),
