@@ -129,7 +129,9 @@ class WebsocketSubprovider
 
     // Any pending requests need to be resent because our session was lost
     // and will not get responses for them in our new session.
-    this._pendingRequests.forEach(value => this._unhandledRequests.push(value))
+    this._pendingRequests.forEach(([payload, end]) => {
+      this._unhandledRequests.push([payload, null, end])
+    })
     this._pendingRequests.clear()
 
     const unhandledRequests = this._unhandledRequests.splice(0, this._unhandledRequests.length)
