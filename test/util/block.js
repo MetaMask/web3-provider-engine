@@ -119,7 +119,7 @@ function incrementHex(hexString){
 }
 
 function randomHash(){
-  return ethUtil.intToHex(Math.floor(Math.random()*Number.MAX_SAFE_INTEGER))
+  return ethUtil.bufferToHex(ethUtil.toBuffer(Math.floor(Math.random()*Number.MAX_SAFE_INTEGER)))
 }
 
 function stripLeadingZeroes (hexString) {
