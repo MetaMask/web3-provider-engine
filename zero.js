@@ -118,7 +118,7 @@ function createDataSubprovider(connectionType, opts) {
 function getConnectionType({ rpcUrl }) {
   if (!rpcUrl) return undefined
 
-  const protocol = rpcUrl.split(':')[0]
+  const protocol = rpcUrl.split(':')[0].toLowerCase()
   switch (protocol) {
     case 'http':
     case 'https':
