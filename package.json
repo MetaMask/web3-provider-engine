@@ -24,7 +24,7 @@
     "eth-sig-util": "^1.4.2",
     "ethereumjs-block": "^1.2.2",
     "ethereumjs-tx": "^1.2.0",
-    "ethereumjs-util": "^5.1.5",
+    "ethereumjs-util": "^6.0.0",
     "ethereumjs-vm": "^2.3.4",
     "json-rpc-error": "^2.0.0",
     "json-stable-stringify": "^1.0.1",
