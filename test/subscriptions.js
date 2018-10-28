@@ -20,6 +20,31 @@ subscriptionTest('basic block subscription', {
   }
 )
 
+subscriptionTest('basic block subscription - difficulty bug', {
+    method: 'eth_subscribe',
+    params: ['newHeads']
+  },
+  function afterInstall(t, testMeta, response, cb){
+    testMeta.blockProvider.nextBlock({
+      difficulty: "0x1"
+    })
+    cb()
+  },
+  function subscriptionChangesOne(t, testMeta, response, cb) {
+    let returnedDifficulty = response.params.result.difficulty
+    t.equal(returnedDifficulty, '0x1', 'correct result')
+    testMeta.blockProvider.nextBlock({
+      difficulty: "0xffffffffffffffffffffffffffffffff"
+    })
+    cb()
+  },
+  function subscriptionChangesTwo(t, testMeta, response, cb) {
+    let returnedDifficulty = response.params.result.difficulty
+    t.equal(returnedDifficulty, '0x0', 'correct result')
+    cb()
+  }
+)
+
 subscriptionTest('log subscription - basic', {
     method: 'eth_subscribe',
     params: ['logs', {
