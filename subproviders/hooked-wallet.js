@@ -2,7 +2,7 @@
  * Emulate 'eth_accounts' / 'eth_sendTransaction' using 'eth_sendRawTransaction'
  *
  * The two callbacks a user needs to implement are:
- * - getAccounts() -- array of addresses supported
+ * - getAccounts(payload) -- array of addresses supported
  * - signTransaction(tx) -- sign a raw transaction object
  */
 
@@ -88,14 +88,13 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
   let message, address
 
   switch(payload.method) {
-
     case 'eth_coinbase':
       // process normally
       self.getAccounts(function(err, accounts){
         if (err) return end(err)
         let result = accounts[0] || null
         end(null, result)
-      })
+      }, payload)
       return
 
     case 'eth_accounts':
@@ -103,13 +102,13 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
       self.getAccounts(function(err, accounts){
         if (err) return end(err)
         end(null, accounts)
-      })
+      }, payload)
       return
 
     case 'eth_sendTransaction':
       txParams = payload.params[0]
       waterfall([
-        (cb) => self.validateTransaction(txParams, cb),
+        (cb) => self.validateTransaction(txParams, payload, cb),
         (cb) => self.processTransaction(txParams, cb),
       ], end)
       return
@@ -117,7 +116,7 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
     case 'eth_signTransaction':
       txParams = payload.params[0]
       waterfall([
-        (cb) => self.validateTransaction(txParams, cb),
+        (cb) => self.validateTransaction(txParams, payload, cb),
         (cb) => self.processSignTransaction(txParams, cb),
       ], end)
       return
@@ -134,7 +133,7 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
         data: message,
       })
       waterfall([
-        (cb) => self.validateMessage(msgParams, cb),
+        (cb) => self.validateMessage(msgParams, payload, cb),
         (cb) => self.processMessage(msgParams, cb),
       ], end)
       return
@@ -173,7 +172,7 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
         data: message,
       })
       waterfall([
-        (cb) => self.validatePersonalMessage(msgParams, cb),
+        (cb) => self.validatePersonalMessage(msgParams, payload, cb),
         (cb) => self.processPersonalMessage(msgParams, cb),
       ], end)
       return
@@ -201,7 +200,7 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
         data: message,
       })
       waterfall([
-        (cb) => self.validateTypedMessage(msgParams, cb),
+        (cb) => self.validateTypedMessage(msgParams, payload, cb),
         (cb) => self.processTypedMessage(msgParams, cb),
       ], end)
       return
@@ -227,7 +226,7 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
         if (err) return end(err)
         const account = accounts[0] || null
         end(null, account)
-      })
+      }, payload)
       return
 
     default:
@@ -388,54 +387,54 @@ HookedWalletSubprovider.prototype.recoverPersonalSignature = function(msgParams,
 // validation
 //
 
-HookedWalletSubprovider.prototype.validateTransaction = function(txParams, cb){
+HookedWalletSubprovider.prototype.validateTransaction = function(txParams, payload, cb){
   const self = this
   // shortcut: undefined sender is invalid
   if (txParams.from === undefined) return cb(new Error(`Undefined address - from address required to sign transaction.`))
-  self.validateSender(txParams.from, function(err, senderIsValid){
+  self.validateSender(txParams.from, payload, function(err, senderIsValid){
     if (err) return cb(err)
     if (!senderIsValid) return cb(new Error(`Unknown address - unable to sign transaction for this address: "${txParams.from}"`))
     cb()
   })
 }
 
-HookedWalletSubprovider.prototype.validateMessage = function(msgParams, cb){
+HookedWalletSubprovider.prototype.validateMessage = function(msgParams, payload, cb){
   const self = this
   if (msgParams.from === undefined) return cb(new Error(`Undefined address - from address required to sign message.`))
-  self.validateSender(msgParams.from, function(err, senderIsValid){
+  self.validateSender(msgParams.from, payload, function(err, senderIsValid){
     if (err) return cb(err)
     if (!senderIsValid) return cb(new Error(`Unknown address - unable to sign message for this address: "${msgParams.from}"`))
     cb()
   })
 }
 
-HookedWalletSubprovider.prototype.validatePersonalMessage = function(msgParams, cb){
+HookedWalletSubprovider.prototype.validatePersonalMessage = function(msgParams, payload, cb){
   const self = this
   if (msgParams.from === undefined) return cb(new Error(`Undefined address - from address required to sign personal message.`))
   if (msgParams.data === undefined) return cb(new Error(`Undefined message - message required to sign personal message.`))
   if (!isValidHex(msgParams.data)) return cb(new Error(`HookedWalletSubprovider - validateMessage - message was not encoded as hex.`))
-  self.validateSender(msgParams.from, function(err, senderIsValid){
+  self.validateSender(msgParams.from, payload, function(err, senderIsValid){
     if (err) return cb(err)
     if (!senderIsValid) return cb(new Error(`Unknown address - unable to sign message for this address: "${msgParams.from}"`))
     cb()
   })
 }
 
-HookedWalletSubprovider.prototype.validateTypedMessage = function(msgParams, cb){
+HookedWalletSubprovider.prototype.validateTypedMessage = function(msgParams, payload, cb){
   if (msgParams.from === undefined) return cb(new Error(`Undefined address - from address required to sign typed data.`))
   if (msgParams.data === undefined) return cb(new Error(`Undefined data - message required to sign typed data.`))
-  this.validateSender(msgParams.from, function(err, senderIsValid){
+  this.validateSender(msgParams.from, payload, function(err, senderIsValid){
     if (err) return cb(err)
     if (!senderIsValid) return cb(new Error(`Unknown address - unable to sign message for this address: "${msgParams.from}"`))
     cb()
   })
 }
 
-HookedWalletSubprovider.prototype.validateSender = function(senderAddress, cb){
+HookedWalletSubprovider.prototype.validateSender = function(senderAddress, payload, cb){
   const self = this
   // shortcut: undefined sender is invalid
   if (!senderAddress) return cb(null, false)
-  self.getAccounts(function(err, accounts){
+  self.getAccounts(payload, function(err, accounts){
     if (err) return cb(err)
     const senderIsValid = (accounts.map(toLowerCase).indexOf(senderAddress.toLowerCase()) !== -1)
     cb(null, senderIsValid)
