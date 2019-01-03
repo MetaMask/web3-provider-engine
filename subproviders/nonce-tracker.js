@@ -8,9 +8,10 @@ module.exports = NonceTrackerSubprovider
 
 // handles the following RPC methods:
 //   eth_getTransactionCount (pending only)
+//
 // observes the following RPC methods:
 //   eth_sendRawTransaction
-
+//   evm_revert (to clear the nonce cache)
 
 inherits(NonceTrackerSubprovider, Subprovider)
 
