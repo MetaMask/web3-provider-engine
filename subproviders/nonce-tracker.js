@@ -75,6 +75,12 @@ NonceTrackerSubprovider.prototype.handleRequest = function(payload, next, end){
       })
       return
 
+   // Clear cache on a testrpc revert
+   case 'evm_revert':
+      self.nonceCache = {}
+      next()
+      return
+
     default:
       next()
       return
