@@ -30,7 +30,7 @@ class InflightCacheSubprovider extends Subprovider {
       next((err, result, cb) => {
         // complete inflight for cacheId
         delete this.inflightRequests[cacheId]
-        activeRequestHandlers.forEach((handler) => handler(err, result))
+        activeRequestHandlers.forEach((handler) => handler(err, Object.assign({}, result)))
         cb(err, result)
       })
 
@@ -44,4 +44,3 @@ class InflightCacheSubprovider extends Subprovider {
 }
 
 module.exports = InflightCacheSubprovider
-
