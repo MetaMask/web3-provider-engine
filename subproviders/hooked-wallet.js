@@ -75,6 +75,9 @@ function HookedWalletSubprovider(opts){
   if (opts.recoverPersonalSignature) self.recoverPersonalSignature = opts.recoverPersonalSignature
   // publish to network
   if (opts.publishTransaction) self.publishTransaction = opts.publishTransaction
+  // gas options
+  self.estimateGas = opts.estimateGas || self.estimateGas
+  self.gasPrice = opts.gasPrice || self.gasPrice
 }
 
 HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
@@ -490,6 +493,16 @@ HookedWalletSubprovider.prototype.publishTransaction = function(rawTx, cb) {
   })
 }
 
+HookedWalletSubprovider.prototype.estimateGas = function(txParams, cb) {
+  const self = this
+  estimateGas(self.engine, txParams, cb)
+}
+
+HookedWalletSubprovider.prototype.gasPrice = function(cb) {
+  const self = this
+  self.emitPayload({ method: 'eth_gasPrice', params: [] }, cb)
+}
+
 HookedWalletSubprovider.prototype.fillInTxExtras = function(txParams, cb){
   const self = this
   const address = txParams.from
@@ -499,7 +512,7 @@ HookedWalletSubprovider.prototype.fillInTxExtras = function(txParams, cb){
 
   if (txParams.gasPrice === undefined) {
     // console.log("need to get gasprice")
-    reqs.gasPrice = self.emitPayload.bind(self, { method: 'eth_gasPrice', params: [] })
+    reqs.gasPrice = self.gasPrice.bind(self)
   }
 
   if (txParams.nonce === undefined) {
@@ -509,7 +522,7 @@ HookedWalletSubprovider.prototype.fillInTxExtras = function(txParams, cb){
 
   if (txParams.gas === undefined) {
     // console.log("need to get gas")
-    reqs.gas = estimateGas.bind(null, self.engine, cloneTxParams(txParams))
+    reqs.gas = self.estimateGas.bind(self, cloneTxParams(txParams))
   }
 
   parallel(reqs, function(err, result) {
