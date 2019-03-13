@@ -75,6 +75,9 @@ function HookedWalletSubprovider(opts){
   if (opts.recoverPersonalSignature) self.recoverPersonalSignature = opts.recoverPersonalSignature
   // publish to network
   if (opts.publishTransaction) self.publishTransaction = opts.publishTransaction
+  // gas options
+  self.estimateGas = opts.estimateGas || self.estimateGas
+  self.getGasPrice = opts.getGasPrice || self.getGasPrice
 }
 
 HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
@@ -140,56 +143,58 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
       return
 
     case 'personal_sign':
-      // process normally
-      const first = payload.params[0]
-      const second = payload.params[1]
+      return (function(){
+        // process normally
+        const first = payload.params[0]
+        const second = payload.params[1]
 
-      // We initially incorrectly ordered these parameters.
-      // To gracefully respect users who adopted this API early,
-      // we are currently gracefully recovering from the wrong param order
-      // when it is clearly identifiable.
-      //
-      // That means when the first param is definitely an address,
-      // and the second param is definitely not, but is hex.
-      if (resemblesData(second) && resemblesAddress(first)) {
-        let warning = `The eth_personalSign method requires params ordered `
-        warning += `[message, address]. This was previously handled incorrectly, `
-        warning += `and has been corrected automatically. `
-        warning += `Please switch this param order for smooth behavior in the future.`
-        console.warn(warning)
+        // We initially incorrectly ordered these parameters.
+        // To gracefully respect users who adopted this API early,
+        // we are currently gracefully recovering from the wrong param order
+        // when it is clearly identifiable.
+        //
+        // That means when the first param is definitely an address,
+        // and the second param is definitely not, but is hex.
+        if (resemblesData(second) && resemblesAddress(first)) {
+          let warning = `The eth_personalSign method requires params ordered `
+          warning += `[message, address]. This was previously handled incorrectly, `
+          warning += `and has been corrected automatically. `
+          warning += `Please switch this param order for smooth behavior in the future.`
+          console.warn(warning)
 
-        address = payload.params[0]
-        message = payload.params[1]
-      } else {
-        message = payload.params[0]
-        address = payload.params[1]
-      }
+          address = payload.params[0]
+          message = payload.params[1]
+        } else {
+          message = payload.params[0]
+          address = payload.params[1]
+        }
 
-      // non-standard "extraParams" to be appended to our "msgParams" obj
-      // good place for metadata
-      extraParams = payload.params[2] || {}
-      msgParams = extend(extraParams, {
-        from: address,
-        data: message,
-      })
-      waterfall([
-        (cb) => self.validatePersonalMessage(msgParams, cb),
-        (cb) => self.processPersonalMessage(msgParams, cb),
-      ], end)
-      return
+        // non-standard "extraParams" to be appended to our "msgParams" obj
+        // good place for metadata
+        extraParams = payload.params[2] || {}
+        msgParams = extend(extraParams, {
+          from: address,
+          data: message,
+        })
+        waterfall([
+          (cb) => self.validatePersonalMessage(msgParams, cb),
+          (cb) => self.processPersonalMessage(msgParams, cb),
+        ], end)
+      })()
 
     case 'personal_ecRecover':
-      message = payload.params[0]
-      let signature = payload.params[1]
-      // non-standard "extraParams" to be appended to our "msgParams" obj
-      // good place for metadata
-      extraParams = payload.params[2] || {}
-      msgParams = extend(extraParams, {
-        sig: signature,
-        data: message,
-      })
-      self.recoverPersonalSignature(msgParams, end)
-      return
+      return (function(){    
+        message = payload.params[0]
+        let signature = payload.params[1]
+        // non-standard "extraParams" to be appended to our "msgParams" obj
+        // good place for metadata
+        extraParams = payload.params[2] || {}
+        msgParams = extend(extraParams, {
+          sig: signature,
+          data: message,
+        })
+        self.recoverPersonalSignature(msgParams, end)
+      })()
 
     case 'eth_signTypedData':
       // process normally
@@ -218,9 +223,10 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
       return
 
     case 'parity_checkRequest':
-      const requestId = payload.params[0]
-      self.parityCheckRequest(requestId, end)
-      return
+      return (function(){
+        const requestId = payload.params[0]
+        self.parityCheckRequest(requestId, end)
+      })()
 
     case 'parity_defaultAccount':
       self.getAccounts(function(err, accounts){
@@ -490,38 +496,50 @@ HookedWalletSubprovider.prototype.publishTransaction = function(rawTx, cb) {
   })
 }
 
+HookedWalletSubprovider.prototype.estimateGas = function(txParams, cb) {
+  const self = this
+  estimateGas(self.engine, txParams, cb)
+}
+
+HookedWalletSubprovider.prototype.getGasPrice = function(cb) {
+  const self = this
+  self.emitPayload({ method: 'eth_gasPrice', params: [] }, function (err, res) {
+    if (err) return cb(err)
+    cb(null, res.result)
+  })
+}
+
 HookedWalletSubprovider.prototype.fillInTxExtras = function(txParams, cb){
   const self = this
   const address = txParams.from
   // console.log('fillInTxExtras - address:', address)
 
-  const reqs = {}
+  const tasks = {}
 
   if (txParams.gasPrice === undefined) {
     // console.log("need to get gasprice")
-    reqs.gasPrice = self.emitPayload.bind(self, { method: 'eth_gasPrice', params: [] })
+    tasks.gasPrice = self.getGasPrice.bind(self)
   }
 
   if (txParams.nonce === undefined) {
     // console.log("need to get nonce")
-    reqs.nonce = self.emitPayload.bind(self, { method: 'eth_getTransactionCount', params: [address, 'pending'] })
+    tasks.nonce = self.emitPayload.bind(self, { method: 'eth_getTransactionCount', params: [address, 'pending'] })
   }
 
   if (txParams.gas === undefined) {
     // console.log("need to get gas")
-    reqs.gas = estimateGas.bind(null, self.engine, cloneTxParams(txParams))
+    tasks.gas = self.estimateGas.bind(self, cloneTxParams(txParams))
   }
 
-  parallel(reqs, function(err, result) {
+  parallel(tasks, function(err, taskResults) {
     if (err) return cb(err)
-    // console.log('fillInTxExtras - result:', result)
 
-    const res = {}
-    if (result.gasPrice) res.gasPrice = result.gasPrice.result
-    if (result.nonce) res.nonce = result.nonce.result
-    if (result.gas) res.gas = result.gas
+    const result = {}
+    if (taskResults.gasPrice) result.gasPrice = taskResults.gasPrice
+    if (taskResults.nonce) result.nonce = taskResults.nonce.result
+    if (taskResults.gas) result.gas = taskResults.gas
 
-    cb(null, extend(txParams, res))
+    cb(null, extend(txParams, result))
   })
 }
 

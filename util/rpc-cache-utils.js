@@ -107,7 +107,6 @@ function cacheTypeForPayload(payload) {
     case 'eth_estimateGas':
     case 'eth_getFilterLogs':
     case 'eth_getLogs':
-    case 'net_peerCount':
       return 'block'
 
     // never cache

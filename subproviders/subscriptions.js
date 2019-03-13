@@ -31,9 +31,10 @@ SubscriptionSubprovider.prototype.eth_subscribe = function(payload, cb) {
 
   switch (subscriptionType) {
     case 'logs':
-      let options = payload.params[1]
-
-      createSubscriptionFilter = self.newLogFilter.bind(self, options)
+      ;(function(){
+        let options = payload.params[1]
+        createSubscriptionFilter = self.newLogFilter.bind(self, options)
+      })()
       break
     case 'newPendingTransactions':
       createSubscriptionFilter = self.newPendingTransactionFilter.bind(self)
@@ -113,12 +114,13 @@ SubscriptionSubprovider.prototype._notificationResultFromBlock = function(block)
     transactionsRoot: utils.bufferToHex(block.transactionsRoot),
     receiptsRoot: utils.bufferToHex(block.receiptsRoot),
     logsBloom: utils.bufferToHex(block.logsBloom),
-    difficulty: from.intToQuantityHex(utils.bufferToInt(block.difficulty)),
-    number: from.intToQuantityHex(utils.bufferToInt(block.number)),
-    gasLimit: from.intToQuantityHex(utils.bufferToInt(block.gasLimit)),
-    gasUsed: from.intToQuantityHex(utils.bufferToInt(block.gasUsed)),
+    difficulty: from.bufferToQuantityHex(block.difficulty),
+    number: from.bufferToQuantityHex(block.number),
+    gasLimit: from.bufferToQuantityHex(block.gasLimit),
+    gasUsed: from.bufferToQuantityHex(block.gasUsed),
     nonce: block.nonce ? utils.bufferToHex(block.nonce): null,
-    timestamp: from.intToQuantityHex(utils.bufferToInt(block.timestamp)),
+    mixHash: utils.bufferToHex(block.mixHash),
+    timestamp: from.bufferToQuantityHex(block.timestamp),
     extraData: utils.bufferToHex(block.extraData)
   }
 }

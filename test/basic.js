@@ -43,3 +43,30 @@ test('fallthrough test', function(t){
   })
 
 })
+
+test('add provider at index', function(t){
+  var providerA = new PassthroughProvider()
+  var providerB = new PassthroughProvider()
+  var providerC = new PassthroughProvider()
+  var engine = new ProviderEngine()
+  engine.addProvider(providerA)
+  engine.addProvider(providerB)
+  engine.addProvider(providerC, 1)
+
+  t.deepEqual(engine._providers, [providerA, providerC, providerB])
+  t.end()
+})
+
+test('remove provider', function(t){
+  var providerA = new PassthroughProvider()
+  var providerB = new PassthroughProvider()
+  var providerC = new PassthroughProvider()
+  var engine = new ProviderEngine()
+  engine.addProvider(providerA)
+  engine.addProvider(providerB)
+  engine.addProvider(providerC)
+  engine.removeProvider(providerB)
+
+  t.deepEqual(engine._providers, [providerA, providerC])
+  t.end()
+})

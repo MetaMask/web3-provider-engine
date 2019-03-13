@@ -71,8 +71,8 @@ function concatSig(v, r, s) {
   r = ethUtil.fromSigned(r)
   s = ethUtil.fromSigned(s)
   v = ethUtil.bufferToInt(v)
-  r = ethUtil.toUnsigned(r).toString('hex')
-  s = ethUtil.toUnsigned(s).toString('hex')
+  r = ethUtil.toUnsigned(r).toString('hex').padStart(64, 0)
+  s = ethUtil.toUnsigned(s).toString('hex').padStart(64, 0)
   v = ethUtil.stripHexPrefix(ethUtil.intToHex(v))
   return ethUtil.addHexPrefix(r.concat(s, v).toString("hex"))
 }

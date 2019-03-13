@@ -101,22 +101,23 @@ function handlePayload(proto, network, payload, next, end){
       return
 
     case 'eth_listTransactions':
-      const props = [
-        'address',
-        'startblock',
-        'endblock',
-        'sort',
-        'page',
-        'offset'
-      ]
+      return (function(){
+        const props = [
+          'address',
+          'startblock',
+          'endblock',
+          'sort',
+          'page',
+          'offset'
+        ]
 
-      const params = {}
-      for (let i = 0, l = Math.min(payload.params.length, props.length); i < l; i++) {
-        params[props[i]] = payload.params[i]
-      }
+        const params = {}
+        for (let i = 0, l = Math.min(payload.params.length, props.length); i < l; i++) {
+          params[props[i]] = payload.params[i]
+        }
 
-      etherscanXHR(true, proto, network, 'account', 'txlist', params, end)
-      return
+        etherscanXHR(true, proto, network, 'account', 'txlist', params, end)
+      })()
 
     case 'eth_call':
       etherscanXHR(true, proto, network, 'proxy', 'eth_call', payload.params[0], end)
@@ -132,24 +133,25 @@ function handlePayload(proto, network, payload, next, end){
 
     // note !! this does not support topic filtering yet, it will return all block logs
     case 'eth_getLogs':
-      var payloadObject = payload.params[0],
-          txProcessed = 0,
-          logs = [];
+      return (function(){
+        var payloadObject = payload.params[0],
+            txProcessed = 0,
+            logs = [];
 
-      etherscanXHR(true, proto, network, 'proxy', 'eth_getBlockByNumber', {
-        tag: payloadObject.toBlock,
-        boolean: payload.params[1] }, function(err, blockResult) {
-          if(err) return end(err);
+        etherscanXHR(true, proto, network, 'proxy', 'eth_getBlockByNumber', {
+          tag: payloadObject.toBlock,
+          boolean: payload.params[1] }, function(err, blockResult) {
+            if(err) return end(err);
 
-          for(var transaction in blockResult.transactions){
-            etherscanXHR(true, proto, network, 'proxy', 'eth_getTransactionReceipt', { txhash: transaction.hash }, function(err, receiptResult) {
-              if(!err) logs.concat(receiptResult.logs);
-              txProcessed += 1;
-              if(txProcessed === blockResult.transactions.length) end(null, logs)
-            })
-          }
-        })
-      return
+            for(var transaction in blockResult.transactions){
+              etherscanXHR(true, proto, network, 'proxy', 'eth_getTransactionReceipt', { txhash: transaction.hash }, function(err, receiptResult) {
+                if(!err) logs.concat(receiptResult.logs);
+                txProcessed += 1;
+                if(txProcessed === blockResult.transactions.length) end(null, logs)
+              })
+            }
+          })
+      })()
 
     case 'eth_getTransactionCount':
       etherscanXHR(true, proto, network, 'proxy', 'eth_getTransactionCount', {

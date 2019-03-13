@@ -29,7 +29,7 @@ IpcSource.prototype.handleRequest = function(payload, next, end){
   if(newPayload == null){
     console.log('no payload');
     end('no payload', null);
-  };
+  }
 
   var client = net.connect({path: targetPath}, () => {
     client.end(JSON.stringify(payload));

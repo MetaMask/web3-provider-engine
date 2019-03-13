@@ -76,7 +76,7 @@ VmSubprovider.prototype.estimateGas = function(payload, end) {
         var mid = (hi + lo) / 2
         payload.params[0].gas = mid
         self.runVm(payload, function(err, results) {
-            gasUsed = err ? self._blockGasLimit : ethUtil.bufferToInt(results.gasUsed)
+            var gasUsed = err ? self._blockGasLimit : ethUtil.bufferToInt(results.gasUsed)
             if (err || gasUsed === 0) {
                 lo = mid
             } else {

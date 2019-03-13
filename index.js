@@ -48,28 +48,52 @@ function Web3ProviderEngine(opts) {
 
 Web3ProviderEngine.prototype.start = function(cb = noop){
   const self = this
-  // start block polling after first event hook
+  // unblock requests after first block
   self._blockTracker.once('latest', () => {
     self._ready.go()
   });
+  // emit block-tracker events on engine
   self._blockTracker.on('sync', self.emit.bind(self, 'sync'))
   self._blockTracker.on('latest', (newBlock) => {
-    self.emit('rawBlock', newBlock); // support for legacy events
+    // support for legacy events
+    self.emit('rawBlock', newBlock);
     self.emit('latest', newBlock);
   });
   self._blockTracker.on('error', self.emit.bind(self, 'error'));
+  // signal start
+  self._running = true
+  self.emit('start')
 }
 
 Web3ProviderEngine.prototype.stop = function(){
   const self = this
   // stop block polling by removing event listeners
   self._blockTracker.removeAllListeners();
+  // signal stop
+  self._running = false
+  self.emit('stop')
 }
 
-Web3ProviderEngine.prototype.addProvider = function(source){
+Web3ProviderEngine.prototype.isRunning = function(){
   const self = this
-  self._providers.push(source)
+  return self._running
+}
+
+Web3ProviderEngine.prototype.addProvider = function(source, index){
+  const self = this
+  if (typeof index === 'number') {
+    self._providers.splice(index, 0, source)
+  } else {
+    self._providers.push(source)
+  }
   source.setEngine(this)
+}
+
+Web3ProviderEngine.prototype.removeProvider = function(source){
+  const self = this
+  const index = self._providers.indexOf(source)
+  if (index < 0) throw new Error('Provider not found.')
+  self._providers.splice(index, 1)
 }
 
 Web3ProviderEngine.prototype.send = function(payload){
@@ -174,6 +198,7 @@ function toBufferBlock (jsonBlock) {
     hash:             ethUtil.toBuffer(jsonBlock.hash),
     parentHash:       ethUtil.toBuffer(jsonBlock.parentHash),
     nonce:            ethUtil.toBuffer(jsonBlock.nonce),
+    mixHash:          ethUtil.toBuffer(jsonBlock.mixHash),
     sha3Uncles:       ethUtil.toBuffer(jsonBlock.sha3Uncles),
     logsBloom:        ethUtil.toBuffer(jsonBlock.logsBloom),
     transactionsRoot: ethUtil.toBuffer(jsonBlock.transactionsRoot),

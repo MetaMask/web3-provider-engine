@@ -30,6 +30,7 @@ RpcSource.prototype.handleRequest = function(payload, next, end){
     },
     body: JSON.stringify(newPayload),
     rejectUnauthorized: false,
+    timeout: 20000,
   }, function(err, res, body) {
     if (err) return end(new JsonRpcError.InternalError(err))
 
@@ -38,10 +39,12 @@ RpcSource.prototype.handleRequest = function(payload, next, end){
       case 405:
         return end(new JsonRpcError.MethodNotFound())
       case 504: // Gateway timeout
-        let msg = `Gateway timeout. The request took too long to process. `
-        msg += `This can happen when querying logs over too wide a block range.`
-        const err = new Error(msg)
-        return end(new JsonRpcError.InternalError(err))
+        return (function(){
+          let msg = `Gateway timeout. The request took too long to process. `
+          msg += `This can happen when querying logs over too wide a block range.`
+          const err = new Error(msg)
+          return end(new JsonRpcError.InternalError(err))
+        })()
       default:
         if (res.statusCode != 200) {
           return end(new JsonRpcError.InternalError(res.body))

@@ -88,6 +88,41 @@ filterTest('log filter - mixed case', {
   }
 )
 
+filterTest('log filter - address array', {
+    method: 'eth_newFilter',
+    params: [{
+      address: [
+        '0x00000000000000000000000000000000000000000000000000000000aAbBcCdD',
+        '0x00000000000000000000000000000000000000000000000000000000a1b2c3d4'],
+      topics: ['0x00000000000000000000000000000000000000000000000000DeadBeefCafe01']
+    }],
+  },
+  function afterInstall(t, testMeta, response, cb){
+    testMeta.tx = testMeta.blockProvider.addTx({
+      address:  '0x00000000000000000000000000000000000000000000000000000000AABBCCDD',
+      topics: ['0x00000000000000000000000000000000000000000000000000DEADBEEFCAFE01']
+    })
+    testMeta.badTx = testMeta.blockProvider.addTx({
+      address: '0x00000000000000000000000000000000000000000000000000000000aAbBcCdD',
+      topics: ['0x00000000000000000000000000000000000000000000000000DeadBeefCafe02']
+    })
+    var block = testMeta.block = testMeta.blockProvider.nextBlock()
+    cb()
+  },
+  function filterChangesOne(t, testMeta, response, cb){
+    var results = response.result
+    var matchedTx = response.result[0]
+    t.equal(results.length, 1, 'correct number of results')
+    t.equal(matchedTx, testMeta.tx, 'correct result')
+    cb()
+  },
+  function filterChangesTwo(t, testMeta, response, cb){
+    var results = response.result
+    t.equal(results.length, 0, 'correct number of results')
+    cb()
+  }
+)
+
 filterTest('log filter - and logic', {
     method: 'eth_newFilter',
     params: [{
@@ -220,6 +255,25 @@ filterTest('log filter - wildcard logic', {
   }
 )
 
+filterTest('eth_getFilterLogs called with non log filter id should return []', { method: 'eth_newBlockFilter' },
+  function afterInstall(t, testMeta, response, cb){
+    var block = testMeta.block = testMeta.blockProvider.nextBlock()
+    testMeta.engine.once('block', function(){
+      testMeta.engine.sendAsync(createPayload({ method: 'eth_getFilterLogs', params: [testMeta.filterId] }), function(err, response){
+        t.ifError(err, 'did not error')
+        t.ok(response, 'has response')
+        t.ok(response.result, 'has response.result')
+
+        t.equal(testMeta.filterProvider.getWitnessed('eth_getFilterLogs').length, 1, 'filterProvider did see "eth_getFilterLogs')
+        t.equal(testMeta.filterProvider.getHandled('eth_getFilterLogs').length, 1, 'filterProvider did handle "eth_getFilterLogs')
+
+
+        t.equal(response.result.length, 0, 'eth_getFilterLogs returned an empty result for a non log filter')
+        cb()
+      })
+    })
+  })
+
 // util
 
 function filterTest(label, filterPayload, afterInstall, filterChangesOne, filterChangesTwo){
@@ -264,12 +318,17 @@ function filterTest(label, filterPayload, afterInstall, filterChangesOne, filter
 
         afterInstall(t, testMeta, response, function(err){
           t.ifError(err, 'did not error')
-          engine.once('block', continueTest)
+          if (filterChangesOne) {
+            engine.once('block', continueTest)
+          } else {
+            engine.stop()
+            t.end()
+          }
         })
       })
     }
 
-    function continueTest(filterId){
+    function continueTest(){
       var filterId = testMeta.filterId
       // after filter check one
       engine.sendAsync(createPayload({ method: 'eth_getFilterChanges', params: [filterId] }), function(err, response){
@@ -282,20 +341,24 @@ function filterTest(label, filterPayload, afterInstall, filterChangesOne, filter
         filterChangesOne(t, testMeta, response, function(err){
           t.ifError(err, 'did not error')
 
-          // after filter check two
-          engine.sendAsync(createPayload({ method: 'eth_getFilterChanges', params: [filterId] }), function(err, response){
-            t.ifError(err, 'did not error')
-            t.ok(response, 'has response')
-
-            t.equal(filterProvider.getWitnessed('eth_getFilterChanges').length, 2, 'filterProvider did see "eth_getFilterChanges"')
-            t.equal(filterProvider.getHandled('eth_getFilterChanges').length, 2, 'filterProvider did handle "eth_getFilterChanges"')
-
-            filterChangesTwo(t, testMeta, response, function(err){
+          if (filterChangesTwo){
+            engine.sendAsync(createPayload({ method: 'eth_getFilterChanges', params: [filterId] }), function(err, response){
               t.ifError(err, 'did not error')
-              engine.stop()
-              t.end()
+              t.ok(response, 'has response')
+
+              t.equal(filterProvider.getWitnessed('eth_getFilterChanges').length, 2, 'filterProvider did see "eth_getFilterChanges"')
+              t.equal(filterProvider.getHandled('eth_getFilterChanges').length, 2, 'filterProvider did handle "eth_getFilterChanges"')
+
+              filterChangesTwo(t, testMeta, response, function(err){
+                t.ifError(err, 'did not error')
+                engine.stop()
+                t.end()
+              })
             })
-          })
+          } else {
+            engine.stop()
+            t.end()
+          }
         })
       })
     }

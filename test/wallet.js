@@ -14,8 +14,8 @@ const injectMetrics = require('./util/inject-metrics')
 test('tx sig', function(t){
   t.plan(12)
 
-  var privateKey = new Buffer('cccd8f4d88de61f92f3747e4a9604a0395e6ad5138add4bec4a2ddf231ee24f9', 'hex')
-  var address = new Buffer('1234362ef32bcd26d3dd18ca749378213625ba0b', 'hex')
+  var privateKey = Buffer.from('cccd8f4d88de61f92f3747e4a9604a0395e6ad5138add4bec4a2ddf231ee24f9', 'hex')
+  var address = Buffer.from('1234362ef32bcd26d3dd18ca749378213625ba0b', 'hex')
   var addressHex = '0x'+address.toString('hex')
 
   // sign all tx's
@@ -151,7 +151,7 @@ test('no such account', function(t){
 test('sign message', function(t){
   t.plan(3)
 
-  var privateKey = new Buffer('cccd8f4d88de61f92f3747e4a9604a0395e6ad5138add4bec4a2ddf231ee24f9', 'hex')
+  var privateKey = Buffer.from('cccd8f4d88de61f92f3747e4a9604a0395e6ad5138add4bec4a2ddf231ee24f9', 'hex')
   var addressHex = '0x1234362ef32bcd26d3dd18ca749378213625ba0b'
 
   var message = 'haay wuurl'
@@ -206,7 +206,7 @@ signatureTest({
   message: '0x68656c6c6f20776f726c64',
   signature: '0xce909e8ea6851bc36c007a0072d0524b07a3ff8d4e623aca4c71ca8e57250c4d0a3fc38fa8fbaaa81ead4b9f6bd03356b6f8bf18bccad167d78891636e1d69561b',
   addressHex: '0xbe93f9bacbcffc8ee6663f2647917ed7a20a57bb',
-  privateKey: new Buffer('6969696969696969696969696969696969696969696969696969696969696969', 'hex'),
+  privateKey: Buffer.from('6969696969696969696969696969696969696969696969696969696969696969', 'hex'),
 })
 
 signatureTest({
@@ -216,7 +216,7 @@ signatureTest({
   message: '0x0cc175b9c0f1b6a831c399e26977266192eb5ffee6ae2fec3ad71c777531578f',
   signature: '0x9ff8350cc7354b80740a3580d0e0fd4f1f02062040bc06b893d70906f8728bb5163837fd376bf77ce03b55e9bd092b32af60e86abce48f7b8d3539988ee5a9be1c',
   addressHex: '0xbe93f9bacbcffc8ee6663f2647917ed7a20a57bb',
-  privateKey: new Buffer('6969696969696969696969696969696969696969696969696969696969696969', 'hex'),
+  privateKey: Buffer.from('6969696969696969696969696969696969696969696969696969696969696969', 'hex'),
 })
 
 signatureTest({
@@ -228,7 +228,7 @@ signatureTest({
   message: '0x0cc175b9c0f1b6a831c399e26977266192eb5ffee6ae2fec3ad71c777531578f',
   signature: '0xa2870db1d0c26ef93c7b72d2a0830fa6b841e0593f7186bc6c7cc317af8cf3a42fda03bd589a49949aa05db83300cdb553116274518dbe9d90c65d0213f4af491b',
   addressHex: '0xe0da1edcea030875cd0f199d96eb70f6ab78faf2',
-  privateKey: new Buffer('4545454545454545454545454545454545454545454545454545454545454545', 'hex'),
+  privateKey: Buffer.from('4545454545454545454545454545454545454545454545454545454545454545', 'hex'),
 })
 
 recoverTest({
@@ -262,7 +262,7 @@ signatureTest({
   ],
   signature: '0xb2c9c7bdaee2cc73f318647c3f6e24792fca86a9f2736d9e7537e64c503545392313ebbbcb623c828fd8f99fd1fb48f8f4da8cb1d1a924e28b21de018c826e181c',
   addressHex: '0xbe93f9bacbcffc8ee6663f2647917ed7a20a57bb',
-  privateKey: new Buffer('6969696969696969696969696969696969696969696969696969696969696969', 'hex'),
+  privateKey: Buffer.from('6969696969696969696969696969696969696969696969696969696969696969', 'hex'),
 })
 
 test('sender validation, with mixed-case', function(t){
@@ -341,7 +341,7 @@ function signatureTest({ testLabel, method, privateKey, addressHex, message, sig
   // Personal sign is supposed to have params
   // ordered in this direction, not the other.
   if (payload.method === 'personal_sign') {
-    var payload = {
+    payload = {
       method: method,
       params: [message, addressHex],
     }
@@ -363,7 +363,7 @@ function recoverTest({ testLabel, method, addressHex, message, signature }) {
       cb(null, [addressHex])
     },
     getPrivateKey: function(address, cb){
-      cb(null, privateKey)
+      cb(new Error('this should not be called'))
     },
   }))
 
