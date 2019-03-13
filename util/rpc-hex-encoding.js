@@ -2,18 +2,26 @@ const ethUtil = require('ethereumjs-util')
 const assert = require('./assert.js')
 
 module.exports = {
+  bufferToQuantityHex: bufferToQuantityHex,
   intToQuantityHex: intToQuantityHex,
   quantityHexToInt: quantityHexToInt,
 }
 
 /*
  * As per https://github.com/ethereum/wiki/wiki/JSON-RPC#hex-value-encoding
- * Quanities should be represented by the most compact hex representation possible
+ * Quantities should be represented by the most compact hex representation possible
  * This means that no leading zeroes are allowed. There helpers make it easy
  * to convert to and from integers and their compact hex representation
  */
 
-function intToQuantityHex(n){
+function bufferToQuantityHex(buffer) {
+    buffer = ethUtil.toBuffer(buffer);
+    var hex = buffer.toString('hex');
+    var trimmed = ethUtil.unpad(hex);
+    return ethUtil.addHexPrefix(trimmed);
+}
+
+function intToQuantityHex(n) {
     assert(typeof n === 'number' && n === Math.floor(n), 'intToQuantityHex arg must be an integer')
     var nHex = ethUtil.toBuffer(n).toString('hex')
     if (nHex[0] === '0') {
