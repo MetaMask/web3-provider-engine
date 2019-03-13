@@ -142,7 +142,7 @@ class WebsocketSubprovider
 
   _openSocket() {
     this._log('Opening socket...')
-    this._socket = new WebSocket(this._url, null, {origin: this._origin})
+    this._socket = new WebSocket(this._url, [], {origin: this._origin})
     this._socket.addEventListener('close', this._handleSocketClose)
     this._socket.addEventListener('message', this._handleSocketMessage)
     this._socket.addEventListener('open', this._handleSocketOpen)
