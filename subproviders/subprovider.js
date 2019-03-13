@@ -11,6 +11,7 @@ function SubProvider() {
 
 SubProvider.prototype.setEngine = function(engine) {
   const self = this
+  if (self.engine) return
   self.engine = engine
   engine.on('block', function(block) {
     self.currentBlock = block
