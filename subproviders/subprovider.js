@@ -11,9 +11,18 @@ function SubProvider() {
 
 SubProvider.prototype.setEngine = function(engine) {
   const self = this
+  if (self.engine) return
   self.engine = engine
   engine.on('block', function(block) {
     self.currentBlock = block
+  })
+
+  engine.on('start', function () {
+    self.start()
+  })
+
+  engine.on('stop', function () {
+    self.stop()
   })
 }
 
@@ -25,3 +34,9 @@ SubProvider.prototype.emitPayload = function(payload, cb){
   const self = this
   self.engine.sendAsync(createPayload(payload), cb)
 }
+
+// dummies for overriding
+
+SubProvider.prototype.stop = function () {}
+
+SubProvider.prototype.start = function () {}

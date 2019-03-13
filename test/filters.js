@@ -328,7 +328,7 @@ function filterTest(label, filterPayload, afterInstall, filterChangesOne, filter
       })
     }
 
-    function continueTest(filterId){
+    function continueTest(){
       var filterId = testMeta.filterId
       // after filter check one
       engine.sendAsync(createPayload({ method: 'eth_getFilterChanges', params: [filterId] }), function(err, response){

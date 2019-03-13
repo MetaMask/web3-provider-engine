@@ -21,7 +21,7 @@ StreamSubprovider.prototype.handleRequest = function(payload, next, end){
   if (Array.isArray(payload)) {
     // short circuit for empty batch requests
     if (payload.length === 0){
-      return callback(null, [])
+      return end(null, [])
     }
     id = generateBatchId(payload)
   }

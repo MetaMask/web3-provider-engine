@@ -8,9 +8,10 @@ module.exports = NonceTrackerSubprovider
 
 // handles the following RPC methods:
 //   eth_getTransactionCount (pending only)
+//
 // observes the following RPC methods:
 //   eth_sendRawTransaction
-
+//   evm_revert (to clear the nonce cache)
 
 inherits(NonceTrackerSubprovider, Subprovider)
 
@@ -57,8 +58,8 @@ NonceTrackerSubprovider.prototype.handleRequest = function(payload, next, end){
         // parse raw tx
         var rawTx = payload.params[0]
         var stripped = ethUtil.stripHexPrefix(rawTx)
-        var rawData = new Buffer(ethUtil.stripHexPrefix(rawTx), 'hex')
-        var tx = new Transaction(new Buffer(ethUtil.stripHexPrefix(rawTx), 'hex'))
+        var rawData = Buffer.from(ethUtil.stripHexPrefix(rawTx), 'hex')
+        var tx = new Transaction(Buffer.from(ethUtil.stripHexPrefix(rawTx), 'hex'))
         // extract address
         var address = '0x'+tx.getSenderAddress().toString('hex').toLowerCase()
         // extract nonce and increment
@@ -73,6 +74,12 @@ NonceTrackerSubprovider.prototype.handleRequest = function(payload, next, end){
         self.nonceCache[address] = hexNonce
         cb()
       })
+      return
+
+   // Clear cache on a testrpc revert
+   case 'evm_revert':
+      self.nonceCache = {}
+      next()
       return
 
     default:

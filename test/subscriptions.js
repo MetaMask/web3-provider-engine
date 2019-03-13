@@ -146,6 +146,26 @@ subscriptionTest('log subscription - wildcard logic', {
   }
 )
 
+subscriptionTest('block subscription - parsing large difficulty', {
+    method: 'eth_subscribe',
+    params: ['newHeads']
+  },
+  function afterInstall(t, testMeta, response, cb) {
+    testMeta.blockProvider.nextBlock({
+      gasLimit: '0x01',
+      difficulty: '0xfffffffffffffffffffffffffffffffe'
+    })
+    cb()
+  },
+  function subscriptionChangesOne(t, testMeta, response, cb) {
+    var returnedDifficulty = response.params.result.difficulty
+    var returnedGasLimit = response.params.result.gasLimit
+    t.equal(returnedDifficulty, '0xfffffffffffffffffffffffffffffffe', 'correct result')
+    t.equal(returnedGasLimit, '0x1', 'correct result')
+    cb()
+  }
+)
+
 function subscriptionTest(label, subscriptionPayload, afterInstall, subscriptionChangesOne, subscriptionChangesTwo) {
   let testMeta = {}
   let t = test('subscriptions - '+label, function(t) {
