@@ -13,7 +13,7 @@ function WalletSubprovider (wallet, opts) {
   }
 
   opts.getPrivateKey = function (address, cb) {
-    if (address !== wallet.getAddressString()) {
+    if (address.toLowerCase() !== wallet.getAddressString()) {
       return cb('Account not found')
     }
 
