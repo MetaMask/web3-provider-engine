@@ -195,7 +195,7 @@ FilterSubprovider.prototype.getFilterLogs = function(hexFilterId, cb) {
       cb(null, res.result)
     })
   } else {
-    var results = filter.getAllResults()
+    var results = []
     cb(null, results)
   }
 }
@@ -345,7 +345,8 @@ function LogFilter(opts) {
   self.type = 'log'
   self.fromBlock = (opts.fromBlock !== undefined) ? opts.fromBlock : 'latest'
   self.toBlock = (opts.toBlock !== undefined) ? opts.toBlock : 'latest'
-  self.address = opts.address ? normalizeHex(opts.address) : opts.address
+  var expectedAddress = opts.address && (Array.isArray(opts.address) ? opts.address : [opts.address]);
+  self.address = expectedAddress && expectedAddress.map(normalizeHex);
   self.topics = opts.topics || []
   self.updates = []
   self.allResults = []
@@ -362,7 +363,8 @@ LogFilter.prototype.validateLog = function(log){
 
   // address is correct:
   // console.log('LogFilter - validateLog - address', self.address)
-  if (self.address && self.address !== log.address) return false
+  if (self.address && !(self.address.map((a) => a.toLowerCase()).includes(
+    log.address.toLowerCase()))) return false
 
   // topics match:
   // topics are position-dependant
@@ -380,8 +382,8 @@ LogFilter.prototype.validateLog = function(log){
     if (!logTopic) return false
     // check each possible matching topic
     var subtopicsToMatch = Array.isArray(topicPattern) ? topicPattern : [topicPattern]
-    var topicDoesMatch = subtopicsToMatch.filter(function(subTopic){
-      return logTopic === subTopic
+    var topicDoesMatch = subtopicsToMatch.filter(function(subTopic) {
+      return logTopic.toLowerCase() === subTopic.toLowerCase()
     }).length > 0
     return topicDoesMatch
   }, true)

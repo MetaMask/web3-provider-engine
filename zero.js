@@ -90,7 +90,9 @@ function ZeroClientProvider(opts = {}){
   engine.addProvider(dataSubprovider)
 
   // start polling
-  engine.start()
+  if (!opts.stopped) {
+    engine.start()
+  }
 
   return engine
 
@@ -116,7 +118,7 @@ function createDataSubprovider(connectionType, opts) {
 function getConnectionType({ rpcUrl }) {
   if (!rpcUrl) return undefined
 
-  const protocol = rpcUrl.split(':')[0]
+  const protocol = rpcUrl.split(':')[0].toLowerCase()
   switch (protocol) {
     case 'http':
     case 'https':

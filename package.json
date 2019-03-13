@@ -1,6 +1,6 @@
 {
   "name": "web3-provider-engine",
-  "version": "14.0.5",
+  "version": "14.1.0",
   "description": "",
   "repository": "https://github.com/MetaMask/provider-engine",
   "main": "index.js",
@@ -31,11 +31,10 @@
     "json-stable-stringify": "^1.0.1",
     "promise-to-callback": "^1.0.0",
     "readable-stream": "^2.2.9",
-    "request": "^2.67.0",
+    "request": "^2.85.0",
     "semaphore": "^1.0.3",
-    "tape": "^4.4.0",
-    "ws": "^5.1.1",
     "xhr": "^2.2.0",
+    "ws": "^5.1.1",
     "xtend": "^4.0.1"
   },
   "devDependencies": {
@@ -44,6 +43,7 @@
     "babel-preset-stage-0": "^6.24.1",
     "browserify": "^16.1.1",
     "eslint": "^4.19.1",
+    "tape": "^4.4.0",
     "ethjs": "^0.3.6"
   },
   "browser": {
