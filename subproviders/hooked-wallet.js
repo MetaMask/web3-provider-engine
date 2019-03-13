@@ -75,6 +75,9 @@ function HookedWalletSubprovider(opts){
   if (opts.recoverPersonalSignature) self.recoverPersonalSignature = opts.recoverPersonalSignature
   // publish to network
   if (opts.publishTransaction) self.publishTransaction = opts.publishTransaction
+  // gas options
+  self.estimateGas = opts.estimateGas || self.estimateGas
+  self.getGasPrice = opts.getGasPrice || self.getGasPrice
 }
 
 HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
@@ -493,38 +496,50 @@ HookedWalletSubprovider.prototype.publishTransaction = function(rawTx, cb) {
   })
 }
 
+HookedWalletSubprovider.prototype.estimateGas = function(txParams, cb) {
+  const self = this
+  estimateGas(self.engine, txParams, cb)
+}
+
+HookedWalletSubprovider.prototype.getGasPrice = function(cb) {
+  const self = this
+  self.emitPayload({ method: 'eth_gasPrice', params: [] }, function (err, res) {
+    if (err) return cb(err)
+    cb(null, res.result)
+  })
+}
+
 HookedWalletSubprovider.prototype.fillInTxExtras = function(txParams, cb){
   const self = this
   const address = txParams.from
   // console.log('fillInTxExtras - address:', address)
 
-  const reqs = {}
+  const tasks = {}
 
   if (txParams.gasPrice === undefined) {
     // console.log("need to get gasprice")
-    reqs.gasPrice = self.emitPayload.bind(self, { method: 'eth_gasPrice', params: [] })
+    tasks.gasPrice = self.getGasPrice.bind(self)
   }
 
   if (txParams.nonce === undefined) {
     // console.log("need to get nonce")
-    reqs.nonce = self.emitPayload.bind(self, { method: 'eth_getTransactionCount', params: [address, 'pending'] })
+    tasks.nonce = self.emitPayload.bind(self, { method: 'eth_getTransactionCount', params: [address, 'pending'] })
   }
 
   if (txParams.gas === undefined) {
     // console.log("need to get gas")
-    reqs.gas = estimateGas.bind(null, self.engine, cloneTxParams(txParams))
+    tasks.gas = self.estimateGas.bind(self, cloneTxParams(txParams))
   }
 
-  parallel(reqs, function(err, result) {
+  parallel(tasks, function(err, taskResults) {
     if (err) return cb(err)
-    // console.log('fillInTxExtras - result:', result)
 
-    const res = {}
-    if (result.gasPrice) res.gasPrice = result.gasPrice.result
-    if (result.nonce) res.nonce = result.nonce.result
-    if (result.gas) res.gas = result.gas
+    const result = {}
+    if (taskResults.gasPrice) result.gasPrice = taskResults.gasPrice
+    if (taskResults.nonce) result.nonce = taskResults.nonce.result
+    if (taskResults.gas) result.gas = taskResults.gas
 
-    cb(null, extend(txParams, res))
+    cb(null, extend(txParams, result))
   })
 }
 
