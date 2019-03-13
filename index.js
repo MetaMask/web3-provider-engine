@@ -74,10 +74,21 @@ Web3ProviderEngine.prototype.isRunning = function(){
   return self._running
 }
 
-Web3ProviderEngine.prototype.addProvider = function(source){
+Web3ProviderEngine.prototype.addProvider = function(source, index){
   const self = this
-  self._providers.push(source)
+  if (typeof index === 'number') {
+    self._providers.splice(index, 0, source)
+  } else {
+    self._providers.push(source)
+  }
   source.setEngine(this)
+}
+
+Web3ProviderEngine.prototype.removeProvider = function(source){
+  const self = this
+  const index = self._providers.indexOf(source)
+  if (index < 0) throw new Error('Provider not found.')
+  self._providers.splice(index, 1)
 }
 
 Web3ProviderEngine.prototype.send = function(payload){
@@ -182,6 +193,7 @@ function toBufferBlock (jsonBlock) {
     hash:             ethUtil.toBuffer(jsonBlock.hash),
     parentHash:       ethUtil.toBuffer(jsonBlock.parentHash),
     nonce:            ethUtil.toBuffer(jsonBlock.nonce),
+    mixHash:          ethUtil.toBuffer(jsonBlock.mixHash),
     sha3Uncles:       ethUtil.toBuffer(jsonBlock.sha3Uncles),
     logsBloom:        ethUtil.toBuffer(jsonBlock.logsBloom),
     transactionsRoot: ethUtil.toBuffer(jsonBlock.transactionsRoot),

@@ -118,6 +118,7 @@ SubscriptionSubprovider.prototype._notificationResultFromBlock = function(block)
     gasLimit: from.intToQuantityHex(utils.bufferToInt(block.gasLimit)),
     gasUsed: from.intToQuantityHex(utils.bufferToInt(block.gasUsed)),
     nonce: block.nonce ? utils.bufferToHex(block.nonce): null,
+    mixHash: utils.bufferToHex(block.mixHash),
     timestamp: from.intToQuantityHex(utils.bufferToInt(block.timestamp)),
     extraData: utils.bufferToHex(block.extraData)
   }

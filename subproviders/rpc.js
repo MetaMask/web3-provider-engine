@@ -30,6 +30,7 @@ RpcSource.prototype.handleRequest = function(payload, next, end){
     },
     body: JSON.stringify(newPayload),
     rejectUnauthorized: false,
+    timeout: 20000,
   }, function(err, res, body) {
     if (err) return end(new JsonRpcError.InternalError(err))
 

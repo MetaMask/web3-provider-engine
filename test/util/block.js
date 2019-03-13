@@ -95,6 +95,7 @@ function createBlock(blockParams, prevBlock, txs) {
     hash:              randomHash(),
     parentHash:        prevBlock ? prevBlock.hash : randomHash(),
     nonce:             randomHash(),
+    mixHash:           randomHash(),
     sha3Uncles:        randomHash(),
     logsBloom:         randomHash(),
     transactionsRoot:  randomHash(),
@@ -118,7 +119,7 @@ function incrementHex(hexString){
 }
 
 function randomHash(){
-  return ethUtil.intToHex(Math.floor(Math.random()*Number.MAX_SAFE_INTEGER))
+  return ethUtil.bufferToHex(ethUtil.toBuffer(Math.floor(Math.random()*Number.MAX_SAFE_INTEGER)))
 }
 
 function stripLeadingZeroes (hexString) {

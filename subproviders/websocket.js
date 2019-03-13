@@ -7,7 +7,7 @@ const createPayload = require('../util/create-payload')
 
 class WebsocketSubprovider
  extends Subprovider {
-  constructor({ rpcUrl, debug }) {
+  constructor({ rpcUrl, debug, origin }) {
     super()
 
     // inherit from EventEmitter
@@ -28,6 +28,9 @@ class WebsocketSubprovider
         value: debug
           ? (...args) => console.info.apply(console, ['[WSProvider]', ...args])
           : () => { }
+      },
+      _origin: {
+        value: origin
       },
       _pendingRequests: {
         value: new Map()
@@ -126,7 +129,9 @@ class WebsocketSubprovider
 
     // Any pending requests need to be resent because our session was lost
     // and will not get responses for them in our new session.
-    this._pendingRequests.forEach(value => this._unhandledRequests.push(value))
+    this._pendingRequests.forEach(([payload, end]) => {
+      this._unhandledRequests.push([payload, null, end])
+    })
     this._pendingRequests.clear()
 
     const unhandledRequests = this._unhandledRequests.splice(0, this._unhandledRequests.length)
@@ -137,7 +142,7 @@ class WebsocketSubprovider
 
   _openSocket() {
     this._log('Opening socket...')
-    this._socket = new WebSocket(this._url)
+    this._socket = new WebSocket(this._url, null, {origin: this._origin})
     this._socket.addEventListener('close', this._handleSocketClose)
     this._socket.addEventListener('message', this._handleSocketMessage)
     this._socket.addEventListener('open', this._handleSocketOpen)
