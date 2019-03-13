@@ -8,9 +8,10 @@ module.exports = NonceTrackerSubprovider
 
 // handles the following RPC methods:
 //   eth_getTransactionCount (pending only)
+//
 // observes the following RPC methods:
 //   eth_sendRawTransaction
-
+//   evm_revert (to clear the nonce cache)
 
 inherits(NonceTrackerSubprovider, Subprovider)
 
@@ -73,6 +74,12 @@ NonceTrackerSubprovider.prototype.handleRequest = function(payload, next, end){
         self.nonceCache[address] = hexNonce
         cb()
       })
+      return
+
+   // Clear cache on a testrpc revert
+   case 'evm_revert':
+      self.nonceCache = {}
+      next()
       return
 
     default:
