@@ -37,6 +37,6 @@ function quantityHexToInt(prefixedQuantityHex) {
     if (!isEven) {
         quantityHex = '0' + quantityHex
     }
-    var buf = new Buffer(quantityHex, 'hex')
+    var buf = Buffer.from(quantityHex, 'hex')
     return ethUtil.bufferToInt(buf)
 }
