@@ -140,56 +140,58 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
       return
 
     case 'personal_sign':
-      // process normally
-      const first = payload.params[0]
-      const second = payload.params[1]
+      return (function(){
+        // process normally
+        const first = payload.params[0]
+        const second = payload.params[1]
 
-      // We initially incorrectly ordered these parameters.
-      // To gracefully respect users who adopted this API early,
-      // we are currently gracefully recovering from the wrong param order
-      // when it is clearly identifiable.
-      //
-      // That means when the first param is definitely an address,
-      // and the second param is definitely not, but is hex.
-      if (resemblesData(second) && resemblesAddress(first)) {
-        let warning = `The eth_personalSign method requires params ordered `
-        warning += `[message, address]. This was previously handled incorrectly, `
-        warning += `and has been corrected automatically. `
-        warning += `Please switch this param order for smooth behavior in the future.`
-        console.warn(warning)
+        // We initially incorrectly ordered these parameters.
+        // To gracefully respect users who adopted this API early,
+        // we are currently gracefully recovering from the wrong param order
+        // when it is clearly identifiable.
+        //
+        // That means when the first param is definitely an address,
+        // and the second param is definitely not, but is hex.
+        if (resemblesData(second) && resemblesAddress(first)) {
+          let warning = `The eth_personalSign method requires params ordered `
+          warning += `[message, address]. This was previously handled incorrectly, `
+          warning += `and has been corrected automatically. `
+          warning += `Please switch this param order for smooth behavior in the future.`
+          console.warn(warning)
 
-        address = payload.params[0]
-        message = payload.params[1]
-      } else {
-        message = payload.params[0]
-        address = payload.params[1]
-      }
+          address = payload.params[0]
+          message = payload.params[1]
+        } else {
+          message = payload.params[0]
+          address = payload.params[1]
+        }
 
-      // non-standard "extraParams" to be appended to our "msgParams" obj
-      // good place for metadata
-      extraParams = payload.params[2] || {}
-      msgParams = extend(extraParams, {
-        from: address,
-        data: message,
-      })
-      waterfall([
-        (cb) => self.validatePersonalMessage(msgParams, cb),
-        (cb) => self.processPersonalMessage(msgParams, cb),
-      ], end)
-      return
+        // non-standard "extraParams" to be appended to our "msgParams" obj
+        // good place for metadata
+        extraParams = payload.params[2] || {}
+        msgParams = extend(extraParams, {
+          from: address,
+          data: message,
+        })
+        waterfall([
+          (cb) => self.validatePersonalMessage(msgParams, cb),
+          (cb) => self.processPersonalMessage(msgParams, cb),
+        ], end)
+      })()
 
     case 'personal_ecRecover':
-      message = payload.params[0]
-      let signature = payload.params[1]
-      // non-standard "extraParams" to be appended to our "msgParams" obj
-      // good place for metadata
-      extraParams = payload.params[2] || {}
-      msgParams = extend(extraParams, {
-        sig: signature,
-        data: message,
-      })
-      self.recoverPersonalSignature(msgParams, end)
-      return
+      return (function(){    
+        message = payload.params[0]
+        let signature = payload.params[1]
+        // non-standard "extraParams" to be appended to our "msgParams" obj
+        // good place for metadata
+        extraParams = payload.params[2] || {}
+        msgParams = extend(extraParams, {
+          sig: signature,
+          data: message,
+        })
+        self.recoverPersonalSignature(msgParams, end)
+      })()
 
     case 'eth_signTypedData':
       // process normally
@@ -218,9 +220,10 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
       return
 
     case 'parity_checkRequest':
-      const requestId = payload.params[0]
-      self.parityCheckRequest(requestId, end)
-      return
+      return (function(){
+        const requestId = payload.params[0]
+        self.parityCheckRequest(requestId, end)
+      })()
 
     case 'parity_defaultAccount':
       self.getAccounts(function(err, accounts){

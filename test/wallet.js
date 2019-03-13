@@ -341,7 +341,7 @@ function signatureTest({ testLabel, method, privateKey, addressHex, message, sig
   // Personal sign is supposed to have params
   // ordered in this direction, not the other.
   if (payload.method === 'personal_sign') {
-    var payload = {
+    payload = {
       method: method,
       params: [message, addressHex],
     }
@@ -363,7 +363,7 @@ function recoverTest({ testLabel, method, addressHex, message, signature }) {
       cb(null, [addressHex])
     },
     getPrivateKey: function(address, cb){
-      cb(null, privateKey)
+      cb(new Error('this should not be called'))
     },
   }))
 
