@@ -6,7 +6,7 @@ const createPayload = require('../util/create-payload.js')
 const injectMetrics = require('./util/inject-metrics')
 
 
-filterTest('basic block filter', { method: 'eth_newBlockFilter' },
+filterTest('block filter - basic', { method: 'eth_newBlockFilter' },
   function afterInstall(t, testMeta, response, cb){
     var block = testMeta.block = testMeta.blockProvider.nextBlock()
     cb()
@@ -33,19 +33,20 @@ filterTest('log filter - basic', {
   },
   function afterInstall(t, testMeta, response, cb){
     testMeta.tx = testMeta.blockProvider.addTx({
-      topics: ['0x00000000000000000000000000000000000000000000000000deadbeefcafe01']
+      hash: '0x0000000000000000000000000000000000000000000000000000000000000001',
+      _logTopics: ['0x00000000000000000000000000000000000000000000000000deadbeefcafe01']
     })
     testMeta.badTx = testMeta.blockProvider.addTx({
-      topics: ['0x00000000000000000000000000000000000000000000000000deadbeefcafe02']
+      _logTopics: ['0x00000000000000000000000000000000000000000000000000deadbeefcafe02']
     })
     var block = testMeta.block = testMeta.blockProvider.nextBlock()
     cb()
   },
   function filterChangesOne(t, testMeta, response, cb){
     var results = response.result
-    var matchedTx = response.result[0]
+    var matchedLog = response.result[0]
     t.equal(results.length, 1, 'correct number of results')
-    t.equal(matchedTx, testMeta.tx, 'correct result')
+    t.equal(matchedLog.transactionHash, testMeta.tx.hash, 'result log matches tx hash')
     cb()
   },
   function filterChangesTwo(t, testMeta, response, cb){
@@ -64,21 +65,22 @@ filterTest('log filter - mixed case', {
   },
   function afterInstall(t, testMeta, response, cb){
     testMeta.tx = testMeta.blockProvider.addTx({
-      address:  '0x00000000000000000000000000000000000000000000000000000000AABBCCDD',
-      topics: ['0x00000000000000000000000000000000000000000000000000DEADBEEFCAFE01']
+      hash: '0x0000000000000000000000000000000000000000000000000000000000000001',
+      _logAddress:  '0x00000000000000000000000000000000000000000000000000000000AABBCCDD',
+      _logTopics: ['0x00000000000000000000000000000000000000000000000000DEADBEEFCAFE01']
     })
     testMeta.badTx = testMeta.blockProvider.addTx({
-      address: '0x00000000000000000000000000000000000000000000000000000000aAbBcCdD',
-      topics: ['0x00000000000000000000000000000000000000000000000000DeadBeefCafe02']
+      _logAddress: '0x00000000000000000000000000000000000000000000000000000000aAbBcCdD',
+      _logTopics: ['0x00000000000000000000000000000000000000000000000000DeadBeefCafe02']
     })
     var block = testMeta.block = testMeta.blockProvider.nextBlock()
     cb()
   },
   function filterChangesOne(t, testMeta, response, cb){
     var results = response.result
-    var matchedTx = response.result[0]
+    var matchedLog = response.result[0]
     t.equal(results.length, 1, 'correct number of results')
-    t.equal(matchedTx, testMeta.tx, 'correct result')
+    t.equal(matchedLog.transactionHash, testMeta.tx.hash, 'result log matches tx hash')
     cb()
   },
   function filterChangesTwo(t, testMeta, response, cb){
@@ -99,21 +101,22 @@ filterTest('log filter - address array', {
   },
   function afterInstall(t, testMeta, response, cb){
     testMeta.tx = testMeta.blockProvider.addTx({
-      address:  '0x00000000000000000000000000000000000000000000000000000000AABBCCDD',
-      topics: ['0x00000000000000000000000000000000000000000000000000DEADBEEFCAFE01']
+      hash: '0x0000000000000000000000000000000000000000000000000000000000000001',
+      _logAddress: '0x00000000000000000000000000000000000000000000000000000000AABBCCDD',
+      _logTopics: ['0x00000000000000000000000000000000000000000000000000DEADBEEFCAFE01']
     })
     testMeta.badTx = testMeta.blockProvider.addTx({
-      address: '0x00000000000000000000000000000000000000000000000000000000aAbBcCdD',
-      topics: ['0x00000000000000000000000000000000000000000000000000DeadBeefCafe02']
+      _logAddress: '0x00000000000000000000000000000000000000000000000000000000aAbBcCdD',
+      _logTopics: ['0x00000000000000000000000000000000000000000000000000DeadBeefCafe02']
     })
     var block = testMeta.block = testMeta.blockProvider.nextBlock()
     cb()
   },
   function filterChangesOne(t, testMeta, response, cb){
     var results = response.result
-    var matchedTx = response.result[0]
+    var matchedLog = response.result[0]
     t.equal(results.length, 1, 'correct number of results')
-    t.equal(matchedTx, testMeta.tx, 'correct result')
+    t.equal(matchedLog.transactionHash, testMeta.tx.hash, 'result log matches tx hash')
     cb()
   },
   function filterChangesTwo(t, testMeta, response, cb){
@@ -134,13 +137,14 @@ filterTest('log filter - and logic', {
   },
   function afterInstall(t, testMeta, response, cb){
     testMeta.tx = testMeta.blockProvider.addTx({
-      topics: [
+      hash: '0x0000000000000000000000000000000000000000000000000000000000000001',
+      _logTopics: [
         '0x00000000000000000000000000000000000000000000000000deadbeefcafe01',
         '0x00000000000000000000000000000000000000000000000000deadbeefcafe02',
       ],
     })
     testMeta.badTx = testMeta.blockProvider.addTx({
-      topics: [
+      _logTopics: [
         '0x00000000000000000000000000000000000000000000000000deadbeefcafe02',
         '0x00000000000000000000000000000000000000000000000000deadbeefcafe01',
       ],
@@ -150,9 +154,9 @@ filterTest('log filter - and logic', {
   },
   function filterChangesOne(t, testMeta, response, cb){
     var results = response.result
-    var matchedTx = response.result[0]
+    var matchedLog = response.result[0]
     t.equal(results.length, 1, 'correct number of results')
-    t.equal(matchedTx, testMeta.tx, 'correct result')
+    t.equal(matchedLog.transactionHash, testMeta.tx.hash, 'result log matches tx hash')
     cb()
   },
   function filterChangesTwo(t, testMeta, response, cb){
@@ -175,17 +179,19 @@ filterTest('log filter - or logic', {
   },
   function afterInstall(t, testMeta, response, cb){
     testMeta.tx1 = testMeta.blockProvider.addTx({
-      topics: [
+      hash: '0x0000000000000000000000000000000000000000000000000000000000000001',
+      _logTopics: [
         '0x00000000000000000000000000000000000000000000000000deadbeefcafe01',
       ],
     })
     testMeta.tx2 = testMeta.blockProvider.addTx({
-      topics: [
+      hash: '0x0000000000000000000000000000000000000000000000000000000000000002',
+      _logTopics: [
         '0x00000000000000000000000000000000000000000000000000deadbeefcafe02',
       ],
     })
     testMeta.badTx = testMeta.blockProvider.addTx({
-      topics: [
+      _logTopics: [
         '0x00000000000000000000000000000000000000000000000000deadbeefcafe03',
       ],
     })
@@ -194,11 +200,11 @@ filterTest('log filter - or logic', {
   },
   function filterChangesOne(t, testMeta, response, cb){
     var results = response.result
-    var matchedTx1 = response.result[0]
-    var matchedTx2 = response.result[1]
+    var matchedLog1 = response.result[0]
+    var matchedLog2 = response.result[1]
     t.equal(results.length, 2, 'correct number of results')
-    t.equal(matchedTx1, testMeta.tx1, 'correct result')
-    t.equal(matchedTx2, testMeta.tx2, 'correct result')
+    t.equal(matchedLog1.transactionHash, testMeta.tx1.hash, 'result log matches tx hash')
+    t.equal(matchedLog2.transactionHash, testMeta.tx2.hash, 'result log matches tx hash')
     cb()
   },
   function filterChangesTwo(t, testMeta, response, cb){
@@ -219,19 +225,21 @@ filterTest('log filter - wildcard logic', {
   },
   function afterInstall(t, testMeta, response, cb){
     testMeta.tx1 = testMeta.blockProvider.addTx({
-      topics: [
+      hash: '0x0000000000000000000000000000000000000000000000000000000000000001',
+      _logTopics: [
         '0x00000000000000000000000000000000000000000000000000deadbeefcafe01',
         '0x00000000000000000000000000000000000000000000000000deadbeefcafe02',
       ],
     })
     testMeta.tx2 = testMeta.blockProvider.addTx({
-      topics: [
+      hash: '0x0000000000000000000000000000000000000000000000000000000000000002',
+      _logTopics: [
         '0x00000000000000000000000000000000000000000000000000deadbeefcafe02',
         '0x00000000000000000000000000000000000000000000000000deadbeefcafe02',
       ],
     })
     testMeta.badTx = testMeta.blockProvider.addTx({
-      topics: [
+      _logTopics: [
         '0x00000000000000000000000000000000000000000000000000deadbeefcafe01',
         '0x00000000000000000000000000000000000000000000000000deadbeefcafe01',
       ],
@@ -241,11 +249,11 @@ filterTest('log filter - wildcard logic', {
   },
   function filterChangesOne(t, testMeta, response, cb){
     var results = response.result
-    var matchedTx1 = response.result[0]
-    var matchedTx2 = response.result[1]
+    var matchedLog1 = response.result[0]
+    var matchedLog2 = response.result[1]
     t.equal(results.length, 2, 'correct number of results')
-    t.equal(matchedTx1, testMeta.tx1, 'correct result')
-    t.equal(matchedTx2, testMeta.tx2, 'correct result')
+    t.equal(matchedLog1.transactionHash, testMeta.tx1.hash, 'result log matches tx hash')
+    t.equal(matchedLog2.transactionHash, testMeta.tx2.hash, 'result log matches tx hash')
     cb()
   },
   function filterChangesTwo(t, testMeta, response, cb){

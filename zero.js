@@ -2,7 +2,7 @@ const ProviderEngine = require('./index.js')
 const DefaultFixture = require('./subproviders/default-fixture.js')
 const NonceTrackerSubprovider = require('./subproviders/nonce-tracker.js')
 const CacheSubprovider = require('./subproviders/cache.js')
-const FilterSubprovider = require('./subproviders/filters.js')
+const FilterSubprovider = require('./subproviders/filters')
 const SubscriptionSubprovider = require('./subproviders/subscriptions')
 const InflightCacheSubprovider = require('./subproviders/inflight-cache')
 const HookedWalletSubprovider = require('./subproviders/hooked-wallet.js')
@@ -36,18 +36,10 @@ function ZeroClientProvider(opts = {}){
   engine.addProvider(cacheSubprovider)
 
   // filters + subscriptions
-  // for websockets, only polyfill filters
-  if (connectionType === 'ws') {
-    const filterSubprovider = new FilterSubprovider()
-    engine.addProvider(filterSubprovider)
-  // otherwise, polyfill both subscriptions and filters
-  } else {
-    const filterAndSubsSubprovider = new SubscriptionSubprovider()
-    // forward subscription events through provider
-    filterAndSubsSubprovider.on('data', (err, notification) => {
-      engine.emit('data', err, notification)
-    })
-    engine.addProvider(filterAndSubsSubprovider)
+  // only polyfill if not websockets
+  if (connectionType !== 'ws') {
+    engine.addProvider(new SubscriptionSubprovider())
+    engine.addProvider(new FilterSubprovider())
   }
 
   // inflight cache
@@ -81,12 +73,6 @@ function ZeroClientProvider(opts = {}){
 
   // data source
   const dataSubprovider = opts.dataSubprovider || createDataSubprovider(connectionType, opts)
-  // for websockets, forward subscription events through provider
-  if (connectionType === 'ws') {
-    dataSubprovider.on('data', (err, notification) => {
-      engine.emit('data', err, notification)
-    })
-  }
   engine.addProvider(dataSubprovider)
 
   // start polling

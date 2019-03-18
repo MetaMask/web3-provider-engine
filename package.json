@@ -21,6 +21,7 @@
     "clone": "^2.0.0",
     "cross-fetch": "^2.1.0",
     "eth-block-tracker": "^4.2.0",
+    "eth-json-rpc-filters": "^4.0.0",
     "eth-json-rpc-infura": "^3.1.0",
     "eth-json-rpc-middleware": "^4.1.1",
     "eth-sig-util": "^1.4.2",

@@ -29,16 +29,18 @@ subscriptionTest('log subscription - basic', {}, {
   },
   function afterInstall(t, testMeta, response, cb){
     testMeta.tx = testMeta.blockProvider.addTx({
-      topics: ['0x00000000000000000000000000000000000000000000000000deadbeefcafe01']
+      hash: '0x0000000000000000000000000000000000000000000000000000000000000001',
+      _logTopics: ['0x00000000000000000000000000000000000000000000000000deadbeefcafe01']
     })
     testMeta.badTx = testMeta.blockProvider.addTx({
-      topics: ['0x00000000000000000000000000000000000000000000000000deadbeefcafe02']
+      _logTopics: ['0x00000000000000000000000000000000000000000000000000deadbeefcafe02']
     })
     cb()
   },
   function subscriptionChanges(t, testMeta, response, cb){
-    var matchedTx = response.params.result
-    t.equal(matchedTx, testMeta.tx, 'correct result')
+    var matchedLog = response.params.result
+    t.ok(matchedLog.transactionHash, 'result has tx hash')
+    t.deepEqual(matchedLog.transactionHash, testMeta.tx.hash, 'result tx hash matches')
     cb()
   }
 )
@@ -54,13 +56,14 @@ subscriptionTest('log subscription - and logic', {}, {
   },
   function afterInstall(t, testMeta, response, cb){
     testMeta.tx = testMeta.blockProvider.addTx({
-      topics: [
+      hash: '0x0000000000000000000000000000000000000000000000000000000000000001',
+      _logTopics: [
         '0x00000000000000000000000000000000000000000000000000deadbeefcafe01',
         '0x00000000000000000000000000000000000000000000000000deadbeefcafe02',
       ],
     })
     testMeta.badTx = testMeta.blockProvider.addTx({
-      topics: [
+      _logTopics: [
         '0x00000000000000000000000000000000000000000000000000deadbeefcafe02',
         '0x00000000000000000000000000000000000000000000000000deadbeefcafe01',
       ],
@@ -68,8 +71,9 @@ subscriptionTest('log subscription - and logic', {}, {
     cb()
   },
   function subscriptionChangesOne(t, testMeta, response, cb){
-    var matchedTx = response.params.result
-    t.equal(matchedTx, testMeta.tx, 'correct result')
+    var matchedLog = response.params.result
+    t.ok(matchedLog.transactionHash, 'result has tx hash')
+    t.deepEqual(matchedLog.transactionHash, testMeta.tx.hash, 'result tx hash matches')
     cb()
   }
 )
@@ -87,26 +91,30 @@ subscriptionTest('log subscription - or logic', {}, {
   },
   function afterInstall(t, testMeta, response, cb){
     testMeta.tx1 = testMeta.blockProvider.addTx({
-      topics: [
+      hash: '0x0000000000000000000000000000000000000000000000000000000000000001',
+      _logTopics: [
         '0x00000000000000000000000000000000000000000000000000deadbeefcafe01',
       ],
     })
     cb()
   },
   function subscriptionChangesOne(t, testMeta, response, cb){
-    var matchedTx1 = response.params.result
-    t.equal(matchedTx1, testMeta.tx1, 'correct result')
+    var matchedLog = response.params.result
+    t.ok(matchedLog.transactionHash, 'result has tx hash')
+    t.deepEqual(matchedLog.transactionHash, testMeta.tx1.hash, 'result log matches tx hash')
 
     testMeta.tx2 = testMeta.blockProvider.addTx({
-      topics: [
+      hash: '0x0000000000000000000000000000000000000000000000000000000000000002',
+      _logTopics: [
         '0x00000000000000000000000000000000000000000000000000deadbeefcafe02',
       ],
     })
     cb()
   },
   function subscriptionChangesTwo(t, testMeta, response, cb){
-    var matchedTx2 = response.params.result
-    t.equal(matchedTx2, testMeta.tx2, 'correct result')
+    var matchedLog = response.params.result
+    t.ok(matchedLog.transactionHash, 'result has tx hash')
+    t.deepEqual(matchedLog.transactionHash, testMeta.tx2.hash, 'result log matches tx hash')
     cb()
   }
 )
@@ -122,7 +130,7 @@ subscriptionTest('log subscription - wildcard logic', {}, {
   },
   function afterInstall(t, testMeta, response, cb){
     testMeta.tx1 = testMeta.blockProvider.addTx({
-      topics: [
+      _logTopics: [
         '0x00000000000000000000000000000000000000000000000000deadbeefcafe01',
         '0x00000000000000000000000000000000000000000000000000deadbeefcafe02',
       ],
@@ -130,10 +138,10 @@ subscriptionTest('log subscription - wildcard logic', {}, {
     cb()
   },
   function subscriptionChangesOne(t, testMeta, response, cb){
-    var matchedTx1 = response.params.result
-    t.equal(matchedTx1, testMeta.tx1, 'correct result')
+    var matchedLog = response.params.result
+    t.equal(matchedLog.transactionHash, testMeta.tx1.hash, 'result log matches tx hash')
     testMeta.tx2 = testMeta.blockProvider.addTx({
-      topics: [
+      _logTopics: [
         '0x00000000000000000000000000000000000000000000000000deadbeefcafe02',
         '0x00000000000000000000000000000000000000000000000000deadbeefcafe02',
       ],
@@ -141,8 +149,8 @@ subscriptionTest('log subscription - wildcard logic', {}, {
     cb()
   },
   function subscriptionChangesTwo(t, testMeta, response, cb){
-    var matchedTx2 = response.params.result
-    t.equal(matchedTx2, testMeta.tx2, 'correct result')
+    var matchedLog = response.params.result
+    t.equal(matchedLog.transactionHash, testMeta.tx2.hash, 'result log matches tx hash')
     cb()
   }
 )
@@ -162,7 +170,7 @@ subscriptionTest('block subscription - parsing large difficulty', { triggerNextB
     var returnedDifficulty = response.params.result.difficulty
     var returnedGasLimit = response.params.result.gasLimit
     t.equal(returnedDifficulty, '0xfffffffffffffffffffffffffffffffe', 'correct result')
-    t.equal(returnedGasLimit, '0x1', 'correct result')
+    t.equal(returnedGasLimit, '0x01', 'correct result')
     cb()
   }
 )
@@ -239,7 +247,7 @@ function subscriptionTest(label, opts, subscriptionPayload, afterInstall, subscr
       asyncSeries([
         // wait for subscription trigger
         (next) => {
-          subscriptionSubprovider.once('data', (err, _notification) => {
+          engine.once('data', (err, _notification) => {
             if (err) return next(err)
             notification = _notification
             // validate notification

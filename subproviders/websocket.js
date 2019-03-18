@@ -102,7 +102,7 @@ class WebsocketSubprovider
 
     // check if server-sent notification
     if (payload.id === undefined) {
-      return this.emit('data', null, payload)
+      return this.engine.emit('data', null, payload)
     }
 
     // ignore if missing

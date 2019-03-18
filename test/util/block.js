@@ -1,3 +1,4 @@
+const crypto = require('crypto')
 const extend = require('xtend')
 const ethUtil = require('ethereumjs-util')
 const FixtureProvider = require('../../subproviders/fixture.js')
@@ -24,8 +25,20 @@ class TestBlockProvider extends FixtureProvider {
       },
       eth_getLogs: (payload,  next, end) => {
         const transactions = this._currentBlock.transactions
+        const logs = transactions.map((tx) => {
+          return {
+            address: tx._logAddress,
+            blockNumber: tx.blockNumber,
+            blockHash: tx.blockHash,
+            data: tx._logData,
+            logIndex: tx.transactionIndex,
+            topics: tx._logTopics,
+            transactionIndex: tx.transactionIndex,
+            transactionHash: tx.hash,
+          }
+        })
         // return result asynchronously
-        setTimeout(() => end(null, transactions))
+        setTimeout(() => end(null, logs))
       },
     })
     this._blockChain = {}
@@ -38,15 +51,15 @@ class TestBlockProvider extends FixtureProvider {
     if (blockRef === 'latest') {
       return self._currentBlock
     } else {
+      const blockNumber = parseInt(blockRef, 16)
       // if present, return block at reference
-      let block = self._blockChain[blockRef]
+      let block = self._blockChain[blockNumber]
       if (block) return block
       // check if we should create the new block
-      const blockNum = Number(blockRef)
-      if (blockNum > Number(self._currentBlock.number)) return
+      if (blockNumber > Number(self._currentBlock.number)) return
       // create, store, and return the new block
       block = createBlock({ number: blockRef })
-      self._blockChain[blockRef] = block
+      self._blockChain[blockNumber] = block
       return block
     }
   }
@@ -54,28 +67,31 @@ class TestBlockProvider extends FixtureProvider {
   nextBlock (blockParams) {
     const self = this
     const newBlock = createBlock(blockParams, self._currentBlock, self._pendingTxs)
+    const blockNumber = parseInt(newBlock.number, 16)
     self._pendingTxs = []
     self._currentBlock = newBlock
-    self._blockChain[newBlock.number] = newBlock
-    return self._currentBlock
+    self._blockChain[blockNumber] = newBlock
+    return newBlock
   }
 
   addTx (txParams) {
     const self = this
     var newTx = extend({
-      // defaults
-      address: randomHash(),
-      topics: [
+      hash: randomHash(),
+      data: randomHash(),
+      transactionHash: randomHash(),
+      // set later
+      blockNumber: null,
+      blockHash: null,
+      transactionIndex: null,
+      // hack for setting log data
+      _logAddress: randomAddress(),
+      _logData: randomHash(),
+      _logTopics: [
         randomHash(),
         randomHash(),
         randomHash()
       ],
-      data: randomHash(),
-      blockNumber: '0xdeadbeef',
-      logIndex: '0xdeadbeef',
-      blockHash: '0x7c337eac9e3ec7bc99a1d911d326389558c9086afca7480a19698a16e40b2e0a',
-      transactionHash: '0xd81da851bd3f4094d52cb86929e2ea3732a60ba7c184b853795fc5710a68b5fa',
-      transactionIndex: '0x0'
       // provided
     }, txParams)
     self._pendingTxs.push(newTx)
@@ -93,7 +109,7 @@ function createBlock(blockParams, prevBlock, txs) {
   txs = txs || []
   var defaultNumber = prevBlock ? incrementHex(prevBlock.number) : '0x1'
   var defaultGasLimit = ethUtil.intToHex(4712388)
-  return extend({
+  const result = extend({
     // defaults
     number:            defaultNumber,
     hash:              randomHash(),
@@ -116,6 +132,12 @@ function createBlock(blockParams, prevBlock, txs) {
     transactions:      txs,
     // provided
   }, blockParams)
+  txs.forEach((tx, index) => {
+    tx.blockHash = result.hash
+    tx.blockNumber = result.number
+    tx.transactionIndex = ethUtil.intToHex(index)
+  })
+  return result
 }
 
 function incrementHex(hexString){
@@ -123,7 +145,11 @@ function incrementHex(hexString){
 }
 
 function randomHash(){
-  return ethUtil.bufferToHex(ethUtil.toBuffer(Math.floor(Math.random()*Number.MAX_SAFE_INTEGER)))
+  return ethUtil.bufferToHex(crypto.randomBytes(32))
+}
+
+function randomAddress(){
+  return ethUtil.bufferToHex(crypto.randomBytes(20))
 }
 
 function stripLeadingZeroes (hexString) {
