@@ -1,9 +1,11 @@
 const test = require('tape')
 const asyncParallel = require('async/parallel')
+const asyncSeries = require('async/series')
+const createGanacheProvider = require('ganache-core').provider
 const ProviderEngine = require('../index.js')
 const FixtureProvider = require('../subproviders/fixture.js')
 const InflightCacheProvider = require('../subproviders/inflight-cache.js')
-const TestBlockProvider = require('./util/block.js')
+const ProviderSubprovider = require('../subproviders/provider.js')
 const createPayload = require('../util/create-payload.js')
 const injectMetrics = require('./util/inject-metrics')
 
@@ -17,12 +19,21 @@ inflightTest('getBlock for latest', {
   params: ['latest', false],
 }, true)
 
-inflightTest('getBlock for latest then 0', [{
+inflightTest('getBlock for latest (1) then 0', [{
   method: 'eth_getBlockByNumber',
   params: ['latest', false],
 }, {
   method: 'eth_getBlockByNumber',
   params: ['0x0', false],
+}], false)
+
+// inflight-cache does not resolve tags like "latest", so we dont know that latest === 0x1 in this case
+inflightTest('getBlock for latest (1) then 1', [{
+  method: 'eth_getBlockByNumber',
+  params: ['latest', false],
+}, {
+  method: 'eth_getBlockByNumber',
+  params: ['0x1', false],
 }], false)
 
 function inflightTest(label, payloads, shouldHitCacheOnSecondRequest){
@@ -40,31 +51,41 @@ function inflightTest(label, payloads, shouldHitCacheOnSecondRequest){
       eth_getBalance: '0xdeadbeef',
     }))
     // handle dummy block
-    var blockProvider = injectMetrics(new TestBlockProvider())
+    const ganacheProvider = createGanacheProvider()
+    var blockProvider = injectMetrics(new ProviderSubprovider(ganacheProvider))
 
     var engine = new ProviderEngine()
     engine.addProvider(cacheProvider)
     engine.addProvider(dataProvider)
     engine.addProvider(blockProvider)
 
-    // run polling until first block
-    engine.start()
-    engine.once('block', () => {
-      // stop polling
-      engine.stop()
-      // clear subprovider metrics
-      cacheProvider.clearMetrics()
-      dataProvider.clearMetrics()
-      blockProvider.clearMetrics()
+    asyncSeries([
+      // increment one block from #0 to #1
+      (next) => ganacheProvider.sendAsync({ id: 1, method: 'evm_mine', params: [] }, next),
+      // run polling until first block
+      (next) => {
+        engine.start()
+        engine.once('block', () => next())
+      },
+      // perform test
+      (next) => {
+        // stop polling
+        engine.stop()
+        // clear subprovider metrics
+        cacheProvider.clearMetrics()
+        dataProvider.clearMetrics()
+        blockProvider.clearMetrics()
 
-      // determine which provider will handle the request
-      const isBlockTest = (payloads[0].method === 'eth_getBlockByNumber')
-      const handlingProvider = isBlockTest ? blockProvider : dataProvider
+        // determine which provider will handle the request
+        const isBlockTest = (payloads[0].method === 'eth_getBlockByNumber')
+        const handlingProvider = isBlockTest ? blockProvider : dataProvider
 
-      // begin cache test
-      cacheCheck(t, engine, cacheProvider, handlingProvider, payloads, function(err, response) {
-        t.end()
-      })
+        // begin cache test
+        cacheCheck(t, engine, cacheProvider, handlingProvider, payloads, next)
+      },
+    ], (err) => {
+      t.ifErr(err)
+      t.end()
     })
 
     function cacheCheck(t, engine, cacheProvider, handlingProvider, payloads, cb) {

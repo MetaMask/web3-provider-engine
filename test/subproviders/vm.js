@@ -31,6 +31,7 @@ test('binary search eth_estimateGas implementation', function(t) {
         var engine = new ProviderEngine()
         var vmSubprovider = new VmSubprovider()
         var numIterations = 0
+
         // Stub runVm so that it behaves as if it needs gasNeeded to run and increments numIterations
         vmSubprovider.runVm = function(payload, cb) {
             numIterations++
@@ -45,6 +46,7 @@ test('binary search eth_estimateGas implementation', function(t) {
         engine.addProvider(vmSubprovider)
         engine.addProvider(new TestBlockProvider());
         engine.start()
+        
         engine.sendAsync(createPayload({
           method: 'eth_estimateGas',
           params: [{}, 'latest'],

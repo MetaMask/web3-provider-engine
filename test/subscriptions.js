@@ -1,11 +1,12 @@
 const test = require('tape')
+const asyncSeries = require('async/series')
 const ProviderEngine = require('../index.js')
 const SubscriptionSubprovider = require('../subproviders/subscriptions.js')
 const TestBlockProvider = require('./util/block.js')
 const createPayload = require('../util/create-payload.js')
 const injectMetrics = require('./util/inject-metrics')
 
-subscriptionTest('basic block subscription', {
+subscriptionTest('basic block subscription', {}, {
     method: 'eth_subscribe',
     params: ['newHeads']
   },
@@ -20,7 +21,7 @@ subscriptionTest('basic block subscription', {
   }
 )
 
-subscriptionTest('log subscription - basic', {
+subscriptionTest('log subscription - basic', {}, {
     method: 'eth_subscribe',
     params: ['logs', {
       topics: ['0x00000000000000000000000000000000000000000000000000deadbeefcafe01']
@@ -42,7 +43,7 @@ subscriptionTest('log subscription - basic', {
   }
 )
 
-subscriptionTest('log subscription - and logic', {
+subscriptionTest('log subscription - and logic', {}, {
     method: 'eth_subscribe',
     params: ['logs', {
       topics: [
@@ -73,7 +74,7 @@ subscriptionTest('log subscription - and logic', {
   }
 )
 
-subscriptionTest('log subscription - or logic', {
+subscriptionTest('log subscription - or logic', {}, {
     method: 'eth_subscribe',
     params: ['logs', {
       topics: [
@@ -110,7 +111,7 @@ subscriptionTest('log subscription - or logic', {
   }
 )
 
-subscriptionTest('log subscription - wildcard logic', {
+subscriptionTest('log subscription - wildcard logic', {}, {
     method: 'eth_subscribe',
     params: ['logs', {
       topics: [
@@ -146,12 +147,12 @@ subscriptionTest('log subscription - wildcard logic', {
   }
 )
 
-subscriptionTest('block subscription - parsing large difficulty', {
+subscriptionTest('block subscription - parsing large difficulty', { triggerNextBlock: false }, {
     method: 'eth_subscribe',
     params: ['newHeads']
   },
   function afterInstall(t, testMeta, response, cb) {
-    testMeta.blockProvider.nextBlock({
+    const newBlock = testMeta.blockProvider.nextBlock({
       gasLimit: '0x01',
       difficulty: '0xfffffffffffffffffffffffffffffffe'
     })
@@ -166,7 +167,8 @@ subscriptionTest('block subscription - parsing large difficulty', {
   }
 )
 
-function subscriptionTest(label, subscriptionPayload, afterInstall, subscriptionChangesOne, subscriptionChangesTwo) {
+function subscriptionTest(label, opts, subscriptionPayload, afterInstall, subscriptionChangesOne, subscriptionChangesTwo) {
+  const shouldTriggerNextBlock = opts.triggerNextBlock === undefined ? true : opts.triggerNextBlock
   let testMeta = {}
   let t = test('subscriptions - '+label, function(t) {
     // subscribe
@@ -180,78 +182,83 @@ function subscriptionTest(label, subscriptionPayload, afterInstall, subscription
     let blockProvider = testMeta.blockProvider = injectMetrics(new TestBlockProvider())
 
     let engine = testMeta.engine = new ProviderEngine({
-      pollingInterval: 20,
+      pollingInterval: 200,
       pollingShouldUnref: false,
     })
     engine.addProvider(subscriptionSubprovider)
     engine.addProvider(blockProvider)
-    engine.once('block', startTest)
 
-    setTimeout(() => {
-      engine.start()
-    }, 1)
-
-    function startTest(){
-      // register subscription
-      engine.sendAsync(createPayload(subscriptionPayload), function(err, response){
-        t.ifError(err, 'did not error')
-        t.ok(response, 'has response')
-
-        let method = subscriptionPayload.method
-
-        t.equal(subscriptionSubprovider.getWitnessed(method).length, 1, 'subscriptionSubprovider did see "'+method+'"')
-        t.equal(subscriptionSubprovider.getHandled(method).length, 1, 'subscriptionSubprovider did handle "'+method+'"')
-
-        let subscriptionId = testMeta.subscriptionId = response.result
-
-        // manipulates next block to trigger a notification
-        afterInstall(t, testMeta, response, function(err){
-          t.ifError(err, 'did not error')
-          subscriptionSubprovider.once('data', continueTest)
-          // create next block so that notification is sent
-          testMeta.block = testMeta.blockProvider.nextBlock()
+    let response, notification
+    
+    asyncSeries([
+      // wait for first block
+      (next) => {
+        engine.start()
+        engine.once('rawBlock', (block) => {
+          testMeta.block = block
+          next()
         })
-      })
-    }
+      },
+      // install subscription
+      (next) => {
+        engine.sendAsync(createPayload(subscriptionPayload), function(err, _response){
+          if (err) return next(err)
 
-    // handle first notification
-    function continueTest(err, notification){
-      let subscriptionId = testMeta.subscriptionId
-      // after subscription check one
-      t.ifError(err, 'did not error')
-      t.ok(notification, 'has notification')
-      t.equal(notification.params.subscription, subscriptionId, 'notification has correct subscription id')
+          response = _response
+          t.ok(response, 'has response')
+  
+          let method = subscriptionPayload.method
+          t.equal(subscriptionSubprovider.getWitnessed(method).length, 1, 'subscriptionSubprovider did see "'+method+'"')
+          t.equal(subscriptionSubprovider.getHandled(method).length, 1, 'subscriptionSubprovider did handle "'+method+'"')
+  
+          testMeta.subscriptionId = response.result
+          next()
+        })
+      },
+      // manipulates next block to trigger a notification
+      (next) => afterInstall(t, testMeta, response, next),
+      (next) => {
+        checkSubscriptionChanges(subscriptionChangesOne, next)
+      },
+      (next) => {
+        if (!subscriptionChangesTwo) return next()
+        checkSubscriptionChanges(subscriptionChangesTwo, next)
+      },
+      // cleanup
+      (next) => {
+        engine.sendAsync(createPayload({ method: 'eth_unsubscribe', params: [testMeta.subscriptionId] }), next)
+      },
+    ], (err) => {
+      t.ifErr(err)
+      testMeta.engine.stop()
+      t.end()
+    })
 
-      // test-specific checks, and make changes to next block to trigger next notification
-      subscriptionChangesOne(t, testMeta, notification, function(err){
-        t.ifError(err, 'did not error')
-
-        if (subscriptionChangesTwo) {
-          subscriptionSubprovider.once('data', function (err, notification) {
-            t.ifError(err, 'did not error')
+    function checkSubscriptionChanges(onChange, cb) {
+      let notification
+      asyncSeries([
+        // wait for subscription trigger
+        (next) => {
+          subscriptionSubprovider.once('data', (err, _notification) => {
+            if (err) return next(err)
+            notification = _notification
+            // validate notification
+            let subscriptionId = testMeta.subscriptionId
             t.ok(notification, 'has notification')
-
-            // final checks
-            subscriptionChangesTwo(t, testMeta, notification, function (err) {
-              t.ifError(err, 'did not error')
-              end()
-            })
+            t.equal(notification.params.subscription, subscriptionId, 'notification has correct subscription id')
+            next()
           })
-
-          // trigger a new block so that the above handler runs
-          testMeta.block = testMeta.blockProvider.nextBlock()
-        } else {
-          end()
-        }
-      })
+          // create next block so that notification is sent
+          if (shouldTriggerNextBlock) {
+            testMeta.block = testMeta.blockProvider.nextBlock()
+          }
+        },
+        // call test-specific onChange handler
+        (next) => {
+          onChange(t, testMeta, notification, next)
+        },
+      ], cb)
     }
 
-    function end() {
-      engine.sendAsync(createPayload({ method: 'eth_unsubscribe', params: [testMeta.subscriptionId] }), function (err, response) {
-        testMeta.engine.stop()
-        t.ifError(err, 'did not error')
-        t.end()
-      })
-    }
   })
 }

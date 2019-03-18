@@ -39,34 +39,41 @@ VmSubprovider.prototype.setEngine = function(engine) {
 }
 
 VmSubprovider.prototype.handleRequest = function(payload, next, end) {
-  if (this.methods.indexOf(payload.method) < 0) {
+  const self = this
+
+  // skip unrelated methods
+  if (self.methods.indexOf(payload.method) < 0) {
     return next()
   }
 
-  const self = this
-  switch (payload.method) {
+  // wait until we have seen 1 block
+  self._ready.await(() => {
 
-    case 'eth_call':
-      self.runVm(payload, function(err, results){
-        if (err) return end(err)
-        var result = '0x'
-        if (!results.error && results.vm.return) {
-          result = ethUtil.addHexPrefix(results.vm.return.toString('hex'))
-        }
-        end(null, result)
-      })
-      return
+    switch (payload.method) {
 
-    case 'eth_estimateGas':
-      self.estimateGas(payload, end)
-      return
-  }
+      case 'eth_call':
+        self.runVm(payload, function(err, results){
+          if (err) return end(err)
+          var result = '0x'
+          if (!results.error && results.vm.return) {
+            result = ethUtil.addHexPrefix(results.vm.return.toString('hex'))
+          }
+          end(null, result)
+        })
+        return
+
+      case 'eth_estimateGas':
+        self.estimateGas(payload, end)
+        return
+    }
+  })
 }
 
 VmSubprovider.prototype.estimateGas = function(payload, end) {
     const self = this
     var lo = 0
     var hi = self._blockGasLimit
+    if (!hi) return end(new Error('VmSubprovider - missing blockGasLimit'))
 
     var minDiffBetweenIterations = 1200
     var prevGasLimit = self._blockGasLimit

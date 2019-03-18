@@ -1,88 +1,92 @@
-const inherits = require('util').inherits
 const extend = require('xtend')
 const ethUtil = require('ethereumjs-util')
 const FixtureProvider = require('../../subproviders/fixture.js')
-
-module.exports = TestBlockProvider
 
 //
 // handles only `eth_getBlockByNumber` requests
 // returns a dummy block
 //
 
-inherits(TestBlockProvider, FixtureProvider)
-function TestBlockProvider(methods){
-  const self = this
-  self._blockChain = {}
-  self._pendingTxs = []
-  self.nextBlock()
-  FixtureProvider.call(self, {
-    eth_getBlockByNumber: function(payload, next, end){
-      const blockRef = payload.params[0]
-      const result = self.getBlockByRef(blockRef)
-      // return result asynchronously
-      setTimeout(() => end(null, result))
-    },
-    eth_getLogs: function(payload, next, end){
-      const transactions = self._currentBlock.transactions
-      // return result asynchronously
-      setTimeout(() => end(null, transactions))
-    },
-  })
+class TestBlockProvider extends FixtureProvider {
+
+  constructor (methods) {
+    super({
+      eth_blockNumber: (payload,  next, end) => {
+        const blockNumber = this._currentBlock.number
+        // return result asynchronously
+        setTimeout(() => end(null, blockNumber))
+      },
+      eth_getBlockByNumber: (payload,  next, end) => {
+        const blockRef = payload.params[0]
+        const result = this.getBlockByRef(blockRef)
+        // return result asynchronously
+        setTimeout(() => end(null, result))
+      },
+      eth_getLogs: (payload,  next, end) => {
+        const transactions = this._currentBlock.transactions
+        // return result asynchronously
+        setTimeout(() => end(null, transactions))
+      },
+    })
+    this._blockChain = {}
+    this._pendingTxs = []
+    this.nextBlock()
+  }
+
+  getBlockByRef (blockRef) {
+    const self = this
+    if (blockRef === 'latest') {
+      return self._currentBlock
+    } else {
+      // if present, return block at reference
+      let block = self._blockChain[blockRef]
+      if (block) return block
+      // check if we should create the new block
+      const blockNum = Number(blockRef)
+      if (blockNum > Number(self._currentBlock.number)) return
+      // create, store, and return the new block
+      block = createBlock({ number: blockRef })
+      self._blockChain[blockRef] = block
+      return block
+    }
+  }
+
+  nextBlock (blockParams) {
+    const self = this
+    const newBlock = createBlock(blockParams, self._currentBlock, self._pendingTxs)
+    self._pendingTxs = []
+    self._currentBlock = newBlock
+    self._blockChain[newBlock.number] = newBlock
+    return self._currentBlock
+  }
+
+  addTx (txParams) {
+    const self = this
+    var newTx = extend({
+      // defaults
+      address: randomHash(),
+      topics: [
+        randomHash(),
+        randomHash(),
+        randomHash()
+      ],
+      data: randomHash(),
+      blockNumber: '0xdeadbeef',
+      logIndex: '0xdeadbeef',
+      blockHash: '0x7c337eac9e3ec7bc99a1d911d326389558c9086afca7480a19698a16e40b2e0a',
+      transactionHash: '0xd81da851bd3f4094d52cb86929e2ea3732a60ba7c184b853795fc5710a68b5fa',
+      transactionIndex: '0x0'
+      // provided
+    }, txParams)
+    self._pendingTxs.push(newTx)
+    return newTx
+  }
+
 }
 
 // class _currentBlocks
 TestBlockProvider.createBlock = createBlock
 TestBlockProvider.incrementHex = incrementHex
-
-TestBlockProvider.prototype.getBlockByRef = function(blockRef){
-  const self = this
-  if (blockRef === 'latest') {
-    return self._currentBlock
-  } else {
-    // if present, return block at reference
-    let block = self._blockChain[blockRef]
-    if (block) return block
-    // check if we should create the new block
-    const blockNum = Number(blockRef)
-    if (blockNum > Number(self._currentBlock.number)) return
-    // create, store, and return the new block
-    block = createBlock({ number: blockRef })
-    self._blockChain[blockRef] = block
-    return block
-  }
-}
-
-TestBlockProvider.prototype.nextBlock = function(blockParams){
-  const self = this
-  const newBlock = createBlock(blockParams, self._currentBlock, self._pendingTxs)
-  self._pendingTxs = []
-  self._currentBlock = newBlock
-  self._blockChain[newBlock.number] = newBlock
-  return self._currentBlock
-}
-
-TestBlockProvider.prototype.addTx = function(txParams){
-  const self = this
-  var newTx = extend({
-    // defaults
-    address: randomHash(),
-    topics: [
-      randomHash(),
-      randomHash(),
-      randomHash()
-    ],
-    data: randomHash(),
-    blockNumber: '0xdeadbeef',
-    logIndex: '0xdeadbeef',
-    blockHash: '0x7c337eac9e3ec7bc99a1d911d326389558c9086afca7480a19698a16e40b2e0a',
-    transactionHash: '0xd81da851bd3f4094d52cb86929e2ea3732a60ba7c184b853795fc5710a68b5fa',
-    transactionIndex: '0x0'
-    // provided
-  }, txParams)
-  self._pendingTxs.push(newTx)
-  return newTx
-}
 
 function createBlock(blockParams, prevBlock, txs) {
   blockParams = blockParams || {}
@@ -129,3 +133,5 @@ function stripLeadingZeroes (hexString) {
   }
   return ethUtil.addHexPrefix(strippedHex)
 }
+
+module.exports = TestBlockProvider

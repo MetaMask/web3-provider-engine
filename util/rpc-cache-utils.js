@@ -99,7 +99,6 @@ function cacheTypeForPayload(payload) {
 
     // cache for block
     case 'eth_gasPrice':
-    case 'eth_blockNumber':
     case 'eth_getBalance':
     case 'eth_getStorageAt':
     case 'eth_getTransactionCount':
@@ -107,6 +106,7 @@ function cacheTypeForPayload(payload) {
     case 'eth_estimateGas':
     case 'eth_getFilterLogs':
     case 'eth_getLogs':
+    case 'eth_blockNumber':
       return 'block'
 
     // never cache
