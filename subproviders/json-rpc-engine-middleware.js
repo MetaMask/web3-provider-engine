@@ -15,8 +15,8 @@ class JsonRpcEngineMiddlewareSubprovider extends Subprovider {
   setEngine (engine) {
     if (this.middleware) throw new Error('JsonRpcEngineMiddlewareSubprovider - subprovider added to engine twice')
     const blockTracker = engine._blockTracker
-    const middleware = this._constructorFn({ engine, blockTracker })
-    if (!middleware) throw new Error('JsonRpcEngineMiddlewareSubprovider - no middleware specified')
+    const middleware = this._constructorFn({ engine, provider: engine, blockTracker })
+    if (!middleware) throw new Error('JsonRpcEngineMiddlewareSubprovider - _constructorFn did not return middleware')
     if (typeof middleware !== 'function') throw new Error('JsonRpcEngineMiddlewareSubprovider - specified middleware is not a function')
     this.middleware = middleware
   }
@@ -35,7 +35,11 @@ class JsonRpcEngineMiddlewareSubprovider extends Subprovider {
           res.result = result
         }
         // call middleware's next handler (even if error)
-        handler(cb)
+        if (handler) {
+          handler(cb)
+        } else {
+          cb()
+        }
       })
     }
 
