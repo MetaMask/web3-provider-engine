@@ -94,6 +94,13 @@ Categorically, we don’t want / can’t have the following types of RPC calls g
 
 ### Change Log
 
+##### 15.0.0
+
+- uses eth-block-tracker@4, but still provides block body on ('block', 'latest', and 'rawBlock'). Other events ('sync') provide block number hex string instead of block body.
+- SubscriptionsSubprovider automatically forwards events to provider
+- replacing subprovider implementations with those in [`eth-json-rpc-engine`](https://github.com/MetaMask/eth-json-rpc-middleware)
+- browserify: moved to `babelify@10` + `@babel/core@7`
+
 ##### 14.0.0
 
 - default dataProvider for zero is Infura mainnet REST api
