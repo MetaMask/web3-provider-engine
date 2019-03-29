@@ -1,4 +1,5 @@
 const test = require('tape')
+const asyncWaterfall = require('async').waterfall
 const ProviderEngine = require('../index.js')
 const FilterProvider = require('../subproviders/filters.js')
 const TestBlockProvider = require('./util/block.js')
@@ -59,18 +60,18 @@ filterTest('log filter - basic', {
 filterTest('log filter - mixed case', {
     method: 'eth_newFilter',
     params: [{
-      address: '0x00000000000000000000000000000000000000000000000000000000aAbBcCdD',
+      address: '0x00000000000000000000000000000000aAbBcCdD',
       topics: ['0x00000000000000000000000000000000000000000000000000DeadBeefCafe01']
     }],
   },
   function afterInstall(t, testMeta, response, cb){
     testMeta.tx = testMeta.blockProvider.addTx({
       hash: '0x0000000000000000000000000000000000000000000000000000000000000001',
-      _logAddress:  '0x00000000000000000000000000000000000000000000000000000000AABBCCDD',
+      _logAddress: '0x00000000000000000000000000000000AABBCCDD',
       _logTopics: ['0x00000000000000000000000000000000000000000000000000DEADBEEFCAFE01']
     })
     testMeta.badTx = testMeta.blockProvider.addTx({
-      _logAddress: '0x00000000000000000000000000000000000000000000000000000000aAbBcCdD',
+      _logAddress: '0x00000000000000000000000000000000aAbBcCdD',
       _logTopics: ['0x00000000000000000000000000000000000000000000000000DeadBeefCafe02']
     })
     var block = testMeta.block = testMeta.blockProvider.nextBlock()
@@ -80,7 +81,7 @@ filterTest('log filter - mixed case', {
     var results = response.result
     var matchedLog = response.result[0]
     t.equal(results.length, 1, 'correct number of results')
-    t.equal(matchedLog.transactionHash, testMeta.tx.hash, 'result log matches tx hash')
+    t.equal(matchedLog && matchedLog.transactionHash, testMeta.tx.hash, 'result log matches tx hash')
     cb()
   },
   function filterChangesTwo(t, testMeta, response, cb){
@@ -94,19 +95,19 @@ filterTest('log filter - address array', {
     method: 'eth_newFilter',
     params: [{
       address: [
-        '0x00000000000000000000000000000000000000000000000000000000aAbBcCdD',
-        '0x00000000000000000000000000000000000000000000000000000000a1b2c3d4'],
+        '0x00000000000000000000000000000000aAbBcCdD',
+        '0x00000000000000000000000000000000a1b2c3d4'],
       topics: ['0x00000000000000000000000000000000000000000000000000DeadBeefCafe01']
     }],
   },
   function afterInstall(t, testMeta, response, cb){
     testMeta.tx = testMeta.blockProvider.addTx({
       hash: '0x0000000000000000000000000000000000000000000000000000000000000001',
-      _logAddress: '0x00000000000000000000000000000000000000000000000000000000AABBCCDD',
+      _logAddress: '0x00000000000000000000000000000000AABBCCDD',
       _logTopics: ['0x00000000000000000000000000000000000000000000000000DEADBEEFCAFE01']
     })
     testMeta.badTx = testMeta.blockProvider.addTx({
-      _logAddress: '0x00000000000000000000000000000000000000000000000000000000aAbBcCdD',
+      _logAddress: '0x00000000000000000000000000000000aAbBcCdD',
       _logTopics: ['0x00000000000000000000000000000000000000000000000000DeadBeefCafe02']
     })
     var block = testMeta.block = testMeta.blockProvider.nextBlock()
@@ -116,7 +117,7 @@ filterTest('log filter - address array', {
     var results = response.result
     var matchedLog = response.result[0]
     t.equal(results.length, 1, 'correct number of results')
-    t.equal(matchedLog.transactionHash, testMeta.tx.hash, 'result log matches tx hash')
+    t.equal(matchedLog && matchedLog.transactionHash, testMeta.tx.hash, 'result log matches tx hash')
     cb()
   },
   function filterChangesTwo(t, testMeta, response, cb){
@@ -156,7 +157,7 @@ filterTest('log filter - and logic', {
     var results = response.result
     var matchedLog = response.result[0]
     t.equal(results.length, 1, 'correct number of results')
-    t.equal(matchedLog.transactionHash, testMeta.tx.hash, 'result log matches tx hash')
+    t.equal(matchedLog && matchedLog.transactionHash, testMeta.tx.hash, 'result log matches tx hash')
     cb()
   },
   function filterChangesTwo(t, testMeta, response, cb){
@@ -275,7 +276,6 @@ filterTest('eth_getFilterLogs called with non log filter id should return []', {
         t.equal(testMeta.filterProvider.getWitnessed('eth_getFilterLogs').length, 1, 'filterProvider did see "eth_getFilterLogs')
         t.equal(testMeta.filterProvider.getHandled('eth_getFilterLogs').length, 1, 'filterProvider did handle "eth_getFilterLogs')
 
-
         t.equal(response.result.length, 0, 'eth_getFilterLogs returned an empty result for a non log filter')
         cb()
       })
@@ -305,16 +305,19 @@ function filterTest(label, filterPayload, afterInstall, filterChangesOne, filter
     })
     engine.addProvider(filterProvider)
     engine.addProvider(blockProvider)
-    engine.once('block', startTest)
 
-    setTimeout(() => {
-      engine.start()
-    }, 1)
-
-    function startTest(){
+    asyncWaterfall([
+      // wait for first block
+      (cb) => {
+        engine.once('block', () => cb())
+        engine.start()
+      },
       // install block filter
-      engine.sendAsync(createPayload(filterPayload), function(err, response){
-        t.ifError(err, 'did not error')
+      (cb) => {
+        engine.sendAsync(createPayload(filterPayload), cb)
+      },
+      // validate install
+      (response, cb) => {
         t.ok(response, 'has response')
 
         var method = filterPayload.method
@@ -324,51 +327,66 @@ function filterTest(label, filterPayload, afterInstall, filterChangesOne, filter
 
         var filterId = testMeta.filterId = response.result
 
-        afterInstall(t, testMeta, response, function(err){
-          t.ifError(err, 'did not error')
-          if (filterChangesOne) {
-            engine.once('block', continueTest)
-          } else {
-            engine.stop()
-            t.end()
-          }
-        })
-      })
+        afterInstall(t, testMeta, response, cb)
+      },
+      (cb) => {
+        if (filterChangesOne) {
+          checkFilterChangesOne(cb)
+        } else {
+          cb()
+        }
+      },
+      (cb) => {
+        if (filterChangesTwo) {
+          checkFilterChangesTwo(cb)
+        } else {
+          cb()
+        }
+      },
+    ], (err) => {
+      t.ifError(err, 'did not error')
+      engine.stop()
+      t.end()
+    })
+
+    function checkFilterChangesOne (done) {
+      asyncWaterfall([
+        // wait next block
+        (cb) => {
+          engine.once('block', () => cb())
+        },
+        // check filter one
+        (cb) => {
+          var filterId = testMeta.filterId
+          engine.sendAsync(createPayload({ method: 'eth_getFilterChanges', params: [filterId] }), cb)
+        },
+        (response, cb) => {
+          t.ok(response, 'has response')
+  
+          t.equal(filterProvider.getWitnessed('eth_getFilterChanges').length, 1, 'filterProvider did see "eth_getFilterChanges"')
+          t.equal(filterProvider.getHandled('eth_getFilterChanges').length, 1, 'filterProvider did handle "eth_getFilterChanges"')
+  
+          filterChangesOne(t, testMeta, response, cb)
+        }
+      ], done)
     }
 
-    function continueTest(){
-      var filterId = testMeta.filterId
-      // after filter check one
-      engine.sendAsync(createPayload({ method: 'eth_getFilterChanges', params: [filterId] }), function(err, response){
-        t.ifError(err, 'did not error')
-        t.ok(response, 'has response')
+    function checkFilterChangesTwo (done) {
+      asyncWaterfall([
+        // check filter two
+        (cb) => {
+          var filterId = testMeta.filterId
+          engine.sendAsync(createPayload({ method: 'eth_getFilterChanges', params: [filterId] }), cb)
+        },
+        (response, cb) => {
+          t.ok(response, 'has response')
 
-        t.equal(filterProvider.getWitnessed('eth_getFilterChanges').length, 1, 'filterProvider did see "eth_getFilterChanges"')
-        t.equal(filterProvider.getHandled('eth_getFilterChanges').length, 1, 'filterProvider did handle "eth_getFilterChanges"')
+          t.equal(filterProvider.getWitnessed('eth_getFilterChanges').length, 2, 'filterProvider did see "eth_getFilterChanges"')
+          t.equal(filterProvider.getHandled('eth_getFilterChanges').length, 2, 'filterProvider did handle "eth_getFilterChanges"')
 
-        filterChangesOne(t, testMeta, response, function(err){
-          t.ifError(err, 'did not error')
-
-          if (filterChangesTwo){
-            engine.sendAsync(createPayload({ method: 'eth_getFilterChanges', params: [filterId] }), function(err, response){
-              t.ifError(err, 'did not error')
-              t.ok(response, 'has response')
-
-              t.equal(filterProvider.getWitnessed('eth_getFilterChanges').length, 2, 'filterProvider did see "eth_getFilterChanges"')
-              t.equal(filterProvider.getHandled('eth_getFilterChanges').length, 2, 'filterProvider did handle "eth_getFilterChanges"')
-
-              filterChangesTwo(t, testMeta, response, function(err){
-                t.ifError(err, 'did not error')
-                engine.stop()
-                t.end()
-              })
-            })
-          } else {
-            engine.stop()
-            t.end()
-          }
-        })
-      })
+          filterChangesTwo(t, testMeta, response, cb)
+        },
+      ], done)
     }
 
   })
