@@ -59,6 +59,7 @@ function HookedWalletSubprovider(opts){
   if (opts.getAccounts) self.getAccounts = opts.getAccounts
   // high level override
   if (opts.processTransaction) self.processTransaction = opts.processTransaction
+  if (opts.processSignTransaction) self.processSignTransaction = opts.processSignTransaction
   if (opts.processMessage) self.processMessage = opts.processMessage
   if (opts.processPersonalMessage) self.processPersonalMessage = opts.processPersonalMessage
   if (opts.processTypedMessage) self.processTypedMessage = opts.processTypedMessage
