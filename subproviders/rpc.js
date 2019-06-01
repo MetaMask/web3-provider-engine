@@ -45,6 +45,11 @@ RpcSource.prototype.handleRequest = function(payload, next, end){
           const err = new Error(msg)
           return end(new JsonRpcError.InternalError(err))
         })()
+      case 429: // Too many requests (rate limiting)
+        return (function(){
+          const err = new Error(`Too Many Requests`)
+          return end(new JsonRpcError.InternalError(err))
+        })()
       default:
         if (res.statusCode != 200) {
           return end(new JsonRpcError.InternalError(res.body))
