@@ -129,7 +129,11 @@ Web3ProviderEngine.prototype.sendAsync = function(payload, cb){
 // private
 
 Web3ProviderEngine.prototype._getBlockByNumber = function(blockNumber, cb) {
-  const req = createPayload({ method: 'eth_getBlockByNumber', params: [blockNumber, false], skipCache: this.useSkipCache })
+  const payload = { method: 'eth_getBlockByNumber', params: [blockNumber, false] }
+  if (this.useSkipCache) {
+    payload.skipCache = this.useSkipCache
+  }
+  const req = createPayload(payload)
   this._handleAsync(req, (err, res) => {
     if (err) return cb(err)
     return cb(null, res.result)
