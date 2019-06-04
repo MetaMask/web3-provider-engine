@@ -29,7 +29,7 @@ function Web3ProviderEngine(opts) {
   self._blockTracker = opts.blockTracker || new EthBlockTracker({
     provider: blockTrackerProvider,
     pollingInterval: opts.pollingInterval || 4000,
-    setSkipCacheFlag: this.useSkipCache,
+    setSkipCacheFlag: self.useSkipCache,
   })
 
   // set initialization blocker
