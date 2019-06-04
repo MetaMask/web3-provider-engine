@@ -21,13 +21,15 @@ function Web3ProviderEngine(opts) {
   // parse options
   opts = opts || {}
 
+  self.useSkipCache = typeof opts.useSkipCache !== 'undefined' ? opts.useSkipCache : true
+
   // block polling
   const directProvider = { sendAsync: self._handleAsync.bind(self) }
   const blockTrackerProvider = opts.blockTrackerProvider || directProvider
   self._blockTracker = opts.blockTracker || new EthBlockTracker({
     provider: blockTrackerProvider,
     pollingInterval: opts.pollingInterval || 4000,
-    setSkipCacheFlag: true,
+    setSkipCacheFlag: this.useSkipCache,
   })
 
   // set initialization blocker
@@ -127,7 +129,7 @@ Web3ProviderEngine.prototype.sendAsync = function(payload, cb){
 // private
 
 Web3ProviderEngine.prototype._getBlockByNumber = function(blockNumber, cb) {
-  const req = createPayload({ method: 'eth_getBlockByNumber', params: [blockNumber, false], skipCache: true })
+  const req = createPayload({ method: 'eth_getBlockByNumber', params: [blockNumber, false], skipCache: this.useSkipCache })
   this._handleAsync(req, (err, res) => {
     if (err) return cb(err)
     return cb(null, res.result)
