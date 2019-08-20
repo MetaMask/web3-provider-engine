@@ -44,6 +44,11 @@ RpcSource.prototype.handleRequest = function(payload, next, end){
           msg += `This can happen when querying logs over too wide a block range.`
           return end(rpcErrors.internal(msg))
         })()
+      case 429: // Too many requests (rate limiting)
+        return (function(){
+          const err = new Error(`Too Many Requests`)
+          return end(new JsonRpcError.InternalError(err))
+        })()
       default:
         if (res.statusCode != 200) {
           return end(rpcErrors.internal(res.body))
