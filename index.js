@@ -54,6 +54,10 @@ Web3ProviderEngine.prototype.start = function(cb = noop){
         this.emit('error', err)
         return
       }
+      if (!block) {
+        this.emit('error', new Error("Could not find block"))
+        return
+      }
       const bufferBlock = toBufferBlock(block)
       // set current + emit "block" event
       self._setCurrentBlock(bufferBlock)
