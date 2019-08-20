@@ -68,10 +68,10 @@ function HookedWalletSubprovider(opts){
   self.approvePersonalMessage = opts.approvePersonalMessage || self.autoApprove
   self.approveTypedMessage = opts.approveTypedMessage || self.autoApprove
   // actually perform the signature
-  if (opts.signTransaction) self.signTransaction = opts.signTransaction  || mustProvideInConstructor('signTransaction')
-  if (opts.signMessage) self.signMessage = opts.signMessage  || mustProvideInConstructor('signMessage')
-  if (opts.signPersonalMessage) self.signPersonalMessage = opts.signPersonalMessage  || mustProvideInConstructor('signPersonalMessage')
-  if (opts.signTypedMessage) self.signTypedMessage = opts.signTypedMessage  || mustProvideInConstructor('signTypedMessage')
+  self.signTransaction = opts.signTransaction  || mustProvideInConstructor('signTransaction')
+  self.signMessage = opts.signMessage  || mustProvideInConstructor('signMessage')
+  self.signPersonalMessage = opts.signPersonalMessage  || mustProvideInConstructor('signPersonalMessage')
+  self.signTypedMessage = opts.signTypedMessage  || mustProvideInConstructor('signTypedMessage')
   if (opts.recoverPersonalSignature) self.recoverPersonalSignature = opts.recoverPersonalSignature
   // publish to network
   if (opts.publishTransaction) self.publishTransaction = opts.publishTransaction
