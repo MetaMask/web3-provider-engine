@@ -14,29 +14,33 @@ module.exports = {
  * to convert to and from integers and their compact hex representation
  */
 
-function bufferToQuantityHex(buffer) {
-    buffer = ethUtil.toBuffer(buffer);
-    var hex = buffer.toString('hex');
-    var trimmed = ethUtil.unpad(hex);
-    return ethUtil.addHexPrefix(trimmed);
+function bufferToQuantityHex (buffer) {
+  // special case for zero
+  if (buffer.length === 1 && buffer[0] === 0) {
+    return '0x0'
+  }
+  buffer = ethUtil.toBuffer(buffer)
+  const hex = buffer.toString('hex')
+  const trimmed = ethUtil.unpad(hex)
+  return ethUtil.addHexPrefix(trimmed)
 }
 
-function intToQuantityHex(n) {
-    assert(typeof n === 'number' && n === Math.floor(n), 'intToQuantityHex arg must be an integer')
-    var nHex = ethUtil.toBuffer(n).toString('hex')
-    if (nHex[0] === '0') {
-        nHex = nHex.substring(1)
-    }
-    return ethUtil.addHexPrefix(nHex)
+function intToQuantityHex (n) {
+  assert(typeof n === 'number' && n === Math.floor(n), 'intToQuantityHex arg must be an integer')
+  var nHex = ethUtil.toBuffer(n).toString('hex')
+  if (nHex[0] === '0') {
+    nHex = nHex.substring(1)
+  }
+  return ethUtil.addHexPrefix(nHex)
 }
 
-function quantityHexToInt(prefixedQuantityHex) {
-    assert(typeof prefixedQuantityHex === 'string', 'arg to quantityHexToInt must be a string')
-    var quantityHex = ethUtil.stripHexPrefix(prefixedQuantityHex)
-    var isEven = quantityHex.length % 2 === 0
-    if (!isEven) {
-        quantityHex = '0' + quantityHex
-    }
-    var buf = Buffer.from(quantityHex, 'hex')
-    return ethUtil.bufferToInt(buf)
+function quantityHexToInt (prefixedQuantityHex) {
+  assert(typeof prefixedQuantityHex === 'string', 'arg to quantityHexToInt must be a string')
+  var quantityHex = ethUtil.stripHexPrefix(prefixedQuantityHex)
+  var isEven = quantityHex.length % 2 === 0
+  if (!isEven) {
+    quantityHex = '0' + quantityHex
+  }
+  var buf = Buffer.from(quantityHex, 'hex')
+  return ethUtil.bufferToInt(buf)
 }
