@@ -353,7 +353,7 @@ HookedWalletSubprovider.prototype.processDecryptMessage = function(msgParams, cb
   const self = this
   waterfall([
     (cb) => self.approveDecryptMessage(msgParams, cb),
-    (didApprove, cb) => self.checkApproval('message', didApprove, cb),
+    (didApprove, cb) => self.checkApproval('decryptMessage', didApprove, cb),
     (cb) => self.decryptMessage(msgParams, cb),
   ], cb)
 }
@@ -362,7 +362,7 @@ HookedWalletSubprovider.prototype.processEncryptionPublicKey = function(msgParam
   const self = this
   waterfall([
     (cb) => self.approveEncryptionPublicKey(msgParams, cb),
-    (didApprove, cb) => self.checkApproval('message', didApprove, cb),
+    (didApprove, cb) => self.checkApproval('encryptionPublicKey', didApprove, cb),
     (cb) => self.encryptionPublicKey(msgParams, cb),
   ], cb)
 }
