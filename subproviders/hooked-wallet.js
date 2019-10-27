@@ -27,6 +27,7 @@ module.exports = HookedWalletSubprovider
 //   eth_signTypedData
 //   personal_sign
 //   eth_decryptMessage
+//   encryption_public_key
 //   personal_ecRecover
 //   parity_postTransaction
 //   parity_checkRequest
@@ -68,12 +69,14 @@ function HookedWalletSubprovider(opts){
   self.approveMessage = opts.approveMessage || self.autoApprove
   self.approvePersonalMessage = opts.approvePersonalMessage || self.autoApprove
   self.approveDecryptMessage = opts.approveDecryptMessage || self.autoApprove
+  self.approveEncryptionPublicKey = opts.approveEncryptionPublicKey || self.autoApprove
   self.approveTypedMessage = opts.approveTypedMessage || self.autoApprove
   // actually perform the signature
   if (opts.signTransaction) self.signTransaction = opts.signTransaction  || mustProvideInConstructor('signTransaction')
   if (opts.signMessage) self.signMessage = opts.signMessage  || mustProvideInConstructor('signMessage')
   if (opts.signPersonalMessage) self.signPersonalMessage = opts.signPersonalMessage  || mustProvideInConstructor('signPersonalMessage')
   if (opts.decryptMessage) self.decryptMessage = opts.decryptMessage  || mustProvideInConstructor('decryptMessage')
+  if (opts.encryptionPublicKey) self.encryptionPublicKey = opts.encryptionPublicKey  || mustProvideInConstructor('encryptionPublicKey')
   if (opts.signTypedMessage) self.signTypedMessage = opts.signTypedMessage  || mustProvideInConstructor('signTypedMessage')
   if (opts.recoverPersonalSignature) self.recoverPersonalSignature = opts.recoverPersonalSignature
   // publish to network
@@ -224,7 +227,17 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
           (cb) => self.processDecryptMessage(msgParams, cb),
         ], end)
       })()
-
+      
+    case 'encryption_public_key':
+      return (function(){
+        const address = payload.params[0]
+        
+        waterfall([
+          (cb) => self.validateEncryptionPublicKey(address, cb),
+          (cb) => self.processEncryptionPublicKey(address, cb),
+        ], end)
+      })()
+      
     case 'personal_ecRecover':
       return (function(){    
         message = payload.params[0]
@@ -342,6 +355,15 @@ HookedWalletSubprovider.prototype.processDecryptMessage = function(msgParams, cb
     (cb) => self.approveDecryptMessage(msgParams, cb),
     (didApprove, cb) => self.checkApproval('message', didApprove, cb),
     (cb) => self.decryptMessage(msgParams, cb),
+  ], cb)
+}
+
+HookedWalletSubprovider.prototype.processEncryptionPublicKey = function(msgParams, cb) {
+  const self = this
+  waterfall([
+    (cb) => self.approveEncryptionPublicKey(msgParams, cb),
+    (didApprove, cb) => self.checkApproval('message', didApprove, cb),
+    (cb) => self.encryptionPublicKey(msgParams, cb),
   ], cb)
 }
 
@@ -487,6 +509,16 @@ HookedWalletSubprovider.prototype.validateDecryptMessage = function(msgParams, c
   self.validateSender(msgParams.from, function(err, senderIsValid){
     if (err) return cb(err)
     if (!senderIsValid) return cb(new Error(`Unknown address - unable to decrypt message for this address: "${msgParams.from}"`))
+    cb()
+  })
+}
+
+HookedWalletSubprovider.prototype.validateEncryptionPublicKey = function(address, cb){
+  const self = this
+
+  self.validateSender(address, function(err, senderIsValid){
+    if (err) return cb(err)
+    if (!senderIsValid) return cb(new Error(`Unknown address - unable to obtain encryption public key for this address: "${address}"`))
     cb()
   })
 }
