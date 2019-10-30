@@ -505,7 +505,7 @@ HookedWalletSubprovider.prototype.validateDecryptMessage = function(msgParams, c
   const self = this
   if (msgParams.from === undefined) return cb(new Error(`Undefined address - from address required to decrypt message.`))
   if (msgParams.data === undefined) return cb(new Error(`Undefined message - message required to decrypt message.`))
-  if (!isValidHex(msgParams.data)) return cb(new Error(`HookedWalletSubprovider - validateMessage - message was not encoded as hex.`))
+  if (!isValidHex(msgParams.data)) return cb(new Error(`HookedWalletSubprovider - validateDecryptMessage - message was not encoded as hex.`))
   self.validateSender(msgParams.from, function(err, senderIsValid){
     if (err) return cb(err)
     if (!senderIsValid) return cb(new Error(`Unknown address - unable to decrypt message for this address: "${msgParams.from}"`))
