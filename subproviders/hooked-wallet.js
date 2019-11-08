@@ -26,6 +26,8 @@ module.exports = HookedWalletSubprovider
 //   eth_sign
 //   eth_signTypedData
 //   personal_sign
+//   eth_decryptMessage
+//   encryption_public_key
 //   personal_ecRecover
 //   parity_postTransaction
 //   parity_checkRequest
@@ -59,7 +61,6 @@ function HookedWalletSubprovider(opts){
   if (opts.getAccounts) self.getAccounts = opts.getAccounts
   // high level override
   if (opts.processTransaction) self.processTransaction = opts.processTransaction
-  if (opts.processSignTransaction) self.processSignTransaction = opts.processSignTransaction
   if (opts.processMessage) self.processMessage = opts.processMessage
   if (opts.processPersonalMessage) self.processPersonalMessage = opts.processPersonalMessage
   if (opts.processTypedMessage) self.processTypedMessage = opts.processTypedMessage
@@ -67,12 +68,16 @@ function HookedWalletSubprovider(opts){
   self.approveTransaction = opts.approveTransaction || self.autoApprove
   self.approveMessage = opts.approveMessage || self.autoApprove
   self.approvePersonalMessage = opts.approvePersonalMessage || self.autoApprove
+  self.approveDecryptMessage = opts.approveDecryptMessage || self.autoApprove
+  self.approveEncryptionPublicKey = opts.approveEncryptionPublicKey || self.autoApprove
   self.approveTypedMessage = opts.approveTypedMessage || self.autoApprove
   // actually perform the signature
-  self.signTransaction = opts.signTransaction  || mustProvideInConstructor('signTransaction')
-  self.signMessage = opts.signMessage  || mustProvideInConstructor('signMessage')
-  self.signPersonalMessage = opts.signPersonalMessage  || mustProvideInConstructor('signPersonalMessage')
-  self.signTypedMessage = opts.signTypedMessage  || mustProvideInConstructor('signTypedMessage')
+  if (opts.signTransaction) self.signTransaction = opts.signTransaction  || mustProvideInConstructor('signTransaction')
+  if (opts.signMessage) self.signMessage = opts.signMessage  || mustProvideInConstructor('signMessage')
+  if (opts.signPersonalMessage) self.signPersonalMessage = opts.signPersonalMessage  || mustProvideInConstructor('signPersonalMessage')
+  if (opts.decryptMessage) self.decryptMessage = opts.decryptMessage  || mustProvideInConstructor('decryptMessage')
+  if (opts.encryptionPublicKey) self.encryptionPublicKey = opts.encryptionPublicKey  || mustProvideInConstructor('encryptionPublicKey')
+  if (opts.signTypedMessage) self.signTypedMessage = opts.signTypedMessage  || mustProvideInConstructor('signTypedMessage')
   if (opts.recoverPersonalSignature) self.recoverPersonalSignature = opts.recoverPersonalSignature
   // publish to network
   if (opts.publishTransaction) self.publishTransaction = opts.publishTransaction
@@ -183,6 +188,56 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
         ], end)
       })()
 
+    case 'eth_decryptMessage':
+      return (function(){
+        // process normally
+        const first = payload.params[0]
+        const second = payload.params[1]
+
+        // We initially incorrectly ordered these parameters.
+        // To gracefully respect users who adopted this API early,
+        // we are currently gracefully recovering from the wrong param order
+        // when it is clearly identifiable.
+        //
+        // That means when the first param is definitely an address,
+        // and the second param is definitely not, but is hex.
+        if (resemblesData(second) && resemblesAddress(first)) {
+          let warning = `The eth_decryptMessage method requires params ordered `
+          warning += `[message, address]. This was previously handled incorrectly, `
+          warning += `and has been corrected automatically. `
+          warning += `Please switch this param order for smooth behavior in the future.`
+          console.warn(warning)
+
+          address = payload.params[0]
+          message = payload.params[1]
+        } else {
+          message = payload.params[0]
+          address = payload.params[1]
+        }
+
+        // non-standard "extraParams" to be appended to our "msgParams" obj
+        // good place for metadata
+        extraParams = payload.params[2] || {}
+        msgParams = extend(extraParams, {
+          from: address,
+          data: message,
+        })
+        waterfall([
+          (cb) => self.validateDecryptMessage(msgParams, cb),
+          (cb) => self.processDecryptMessage(msgParams, cb),
+        ], end)
+      })()
+      
+    case 'encryption_public_key':
+      return (function(){
+        const address = payload.params[0]
+        
+        waterfall([
+          (cb) => self.validateEncryptionPublicKey(address, cb),
+          (cb) => self.processEncryptionPublicKey(address, cb),
+        ], end)
+      })()
+      
     case 'personal_ecRecover':
       return (function(){    
         message = payload.params[0]
@@ -291,6 +346,24 @@ HookedWalletSubprovider.prototype.processPersonalMessage = function(msgParams, c
     (cb) => self.approvePersonalMessage(msgParams, cb),
     (didApprove, cb) => self.checkApproval('message', didApprove, cb),
     (cb) => self.signPersonalMessage(msgParams, cb),
+  ], cb)
+}
+
+HookedWalletSubprovider.prototype.processDecryptMessage = function(msgParams, cb) {
+  const self = this
+  waterfall([
+    (cb) => self.approveDecryptMessage(msgParams, cb),
+    (didApprove, cb) => self.checkApproval('decryptMessage', didApprove, cb),
+    (cb) => self.decryptMessage(msgParams, cb),
+  ], cb)
+}
+
+HookedWalletSubprovider.prototype.processEncryptionPublicKey = function(msgParams, cb) {
+  const self = this
+  waterfall([
+    (cb) => self.approveEncryptionPublicKey(msgParams, cb),
+    (didApprove, cb) => self.checkApproval('encryptionPublicKey', didApprove, cb),
+    (cb) => self.encryptionPublicKey(msgParams, cb),
   ], cb)
 }
 
@@ -424,6 +497,28 @@ HookedWalletSubprovider.prototype.validatePersonalMessage = function(msgParams, 
   self.validateSender(msgParams.from, function(err, senderIsValid){
     if (err) return cb(err)
     if (!senderIsValid) return cb(new Error(`Unknown address - unable to sign message for this address: "${msgParams.from}"`))
+    cb()
+  })
+}
+
+HookedWalletSubprovider.prototype.validateDecryptMessage = function(msgParams, cb){
+  const self = this
+  if (msgParams.from === undefined) return cb(new Error(`Undefined address - from address required to decrypt message.`))
+  if (msgParams.data === undefined) return cb(new Error(`Undefined message - message required to decrypt message.`))
+  if (!isValidHex(msgParams.data)) return cb(new Error(`HookedWalletSubprovider - validateDecryptMessage - message was not encoded as hex.`))
+  self.validateSender(msgParams.from, function(err, senderIsValid){
+    if (err) return cb(err)
+    if (!senderIsValid) return cb(new Error(`Unknown address - unable to decrypt message for this address: "${msgParams.from}"`))
+    cb()
+  })
+}
+
+HookedWalletSubprovider.prototype.validateEncryptionPublicKey = function(address, cb){
+  const self = this
+
+  self.validateSender(address, function(err, senderIsValid){
+    if (err) return cb(err)
+    if (!senderIsValid) return cb(new Error(`Unknown address - unable to obtain encryption public key for this address: "${address}"`))
     cb()
   })
 }
