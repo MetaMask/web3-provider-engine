@@ -28,6 +28,7 @@ function Web3ProviderEngine(opts) {
     provider: blockTrackerProvider,
     pollingInterval: opts.pollingInterval || 4000,
     setSkipCacheFlag: true,
+    keepEventLoopActive: false,
   })
 
   // set initialization blocker
