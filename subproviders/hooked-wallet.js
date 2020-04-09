@@ -25,6 +25,8 @@ module.exports = HookedWalletSubprovider
 //   eth_sendTransaction
 //   eth_sign
 //   eth_signTypedData
+//   eth_signTypedData_v3
+//   eth_signTypedData_v4
 //   personal_sign
 //   eth_decryptMessage
 //   encryption_public_key
@@ -253,6 +255,8 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
       })()
 
     case 'eth_signTypedData':
+    case 'eth_signTypedData_v3':
+    case 'eth_signTypedData_v4':
       // process normally
       message = payload.params[0]
       address = payload.params[1]
