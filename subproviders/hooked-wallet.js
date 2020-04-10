@@ -257,29 +257,30 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
     case 'eth_signTypedData':
     case 'eth_signTypedData_v3':
     case 'eth_signTypedData_v4':
-      // process normally
+      return (function(){ 
+        // process normally
       
-      const first = payload.params[0]
-      const second = payload.params[1]
+        const first = payload.params[0]
+        const second = payload.params[1]
 
-      if (resemblesAddress(first)) {
-        address = first
-        message = second
-      } else {
-        message = first
-        address = second
-      }
-      
-      extraParams = payload.params[2] || {}
-      msgParams = extend(extraParams, {
-        from: address,
-        data: message,
-      })
-      waterfall([
-        (cb) => self.validateTypedMessage(msgParams, cb),
-        (cb) => self.processTypedMessage(msgParams, cb),
-      ], end)
-      return
+        if (resemblesAddress(first)) {
+          address = first
+          message = second
+        } else {
+          message = first
+          address = second
+        }
+
+        extraParams = payload.params[2] || {}
+        msgParams = extend(extraParams, {
+          from: address,
+          data: message,
+        })
+        waterfall([
+          (cb) => self.validateTypedMessage(msgParams, cb),
+          (cb) => self.processTypedMessage(msgParams, cb),
+        ], end)
+      })()
 
     case 'parity_postTransaction':
       txParams = payload.params[0]
