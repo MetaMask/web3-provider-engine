@@ -258,8 +258,18 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
     case 'eth_signTypedData_v3':
     case 'eth_signTypedData_v4':
       // process normally
-      message = payload.params[0]
-      address = payload.params[1]
+      
+      const first = payload.params[0]
+      const second = payload.params[1]
+
+      if (resemblesAddress(first)) {
+        address = first
+        message = second
+      } else {
+        message = first
+        address = second
+      }
+      
       extraParams = payload.params[2] || {}
       msgParams = extend(extraParams, {
         from: address,
