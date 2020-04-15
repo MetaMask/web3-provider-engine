@@ -13,8 +13,8 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Install deps via npm
-          command: npm install
+          name: Install deps via yarn
+          command: yarn install
       - run:
           name: Run tests
-          command: npm test
+          command: yarn test
