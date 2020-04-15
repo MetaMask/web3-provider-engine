@@ -1,12 +1,12 @@
-const inherits = require('util').inherits
-const Subprovider = require('../../subproviders/subprovider.js')
+const { inherits } = require('util')
 const extend = require('xtend')
+const Subprovider = require('../../src/subproviders/subprovider.js')
 
 module.exports = MockSubprovider
 
 inherits(MockSubprovider, Subprovider)
 
-function MockSubprovider(handleRequest){
+function MockSubprovider (handleRequest) {
   const self = this
 
   // Optionally provide a handleRequest method
@@ -15,10 +15,10 @@ function MockSubprovider(handleRequest){
   }
 }
 
-var mockResponse = {
-  data: 'mock-success!'
+const mockResponse = {
+  data: 'mock-success!',
 }
-MockSubprovider.prototype.handleRequest = function(payload, next, end){
+MockSubprovider.prototype.handleRequest = function (payload, next, end) {
   end(mockResponse)
 }
 

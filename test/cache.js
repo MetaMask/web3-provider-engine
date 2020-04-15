@@ -1,11 +1,11 @@
 const test = require('tape')
 const series = require('async/series')
 const createGanacheProvider = require('ganache-core').provider
-const ProviderEngine = require('../index.js')
-const FixtureProvider = require('../subproviders/fixture.js')
-const CacheProvider = require('../subproviders/cache.js')
-const ProviderSubprovider = require('../subproviders/provider.js')
-const createPayload = require('../util/create-payload.js')
+const ProviderEngine = require('..')
+const FixtureProvider = require('../src/subproviders/fixture.js')
+const CacheProvider = require('../src/subproviders/cache.js')
+const ProviderSubprovider = require('../src/subproviders/provider.js')
+const createPayload = require('../src/util/create-payload.js')
 const injectMetrics = require('./util/inject-metrics')
 
 // skip cache
@@ -148,21 +148,21 @@ cacheTest('getStorageAt for different block should not cache', [{
 // 3. Performs second request
 // 4. checks if cache hit or missed
 
-function cacheTest(label, payloads, shouldHitCacheOnSecondRequest){
+function cacheTest (label, payloads, shouldHitCacheOnSecondRequest) {
   if (!Array.isArray(payloads)) {
     payloads = [payloads, payloads]
   }
 
-  test('cache - '+label, function(t){
+  test(`cache - ${label}`, function (t) {
     t.plan(13)
 
     // cache layer
-    var cacheProvider = injectMetrics(new CacheProvider())
+    const cacheProvider = injectMetrics(new CacheProvider())
     // handle balance
-    var dataProvider = injectMetrics(new FixtureProvider({
+    const dataProvider = injectMetrics(new FixtureProvider({
       eth_getBalance: '0xdeadbeef',
       eth_getCode: '6060604052600560005560408060156000396000f3606060405260e060020a60003504633fa4f245811460245780635524107714602c575b005b603660005481565b6004356000556022565b6060908152602090f3',
-      eth_getTransactionByHash: function(payload, next, end) {
+      eth_getTransactionByHash (payload, next, end) {
         // represents a pending tx
         if (payload.params[0] === '0x00000000000000000000000000000000000000000000000000deadbeefcafe00') {
           end(null, null)
@@ -198,12 +198,12 @@ function cacheTest(label, payloads, shouldHitCacheOnSecondRequest){
       },
       eth_getStorageAt: '0x00000000000000000000000000000000000000000000000000000000deadbeef',
     }))
-    
+
     // handle dummy block
     const ganacheProvider = createGanacheProvider()
-    var blockProvider = injectMetrics(new ProviderSubprovider(ganacheProvider))
+    const blockProvider = injectMetrics(new ProviderSubprovider(ganacheProvider))
 
-    var engine = new ProviderEngine()
+    const engine = new ProviderEngine()
     engine.addProvider(cacheProvider)
     engine.addProvider(dataProvider)
     engine.addProvider(blockProvider)
@@ -235,50 +235,50 @@ function cacheTest(label, payloads, shouldHitCacheOnSecondRequest){
 
         // begin cache test
         cacheCheck(t, engine, cacheProvider, handlingProvider, payloads, next)
-      }
+      },
     ], (err) => {
       t.ifError(err)
       t.end()
     })
 
-    function cacheCheck(t, engine, cacheProvider, handlingProvider, payloads, cb) {
-      var method = payloads[0].method
-      requestTwice(payloads, function(err, response){
+    function cacheCheck (t, engine, cacheProvider, handlingProvider, payloads, cb) {
+      const { method } = payloads[0]
+      requestTwice(payloads, function (err, response) {
         // first request
         t.ifError(err || response.error && response.error.message, 'did not error')
         t.ok(response, 'has response')
 
-        t.equal(cacheProvider.getWitnessed(method).length, 1, 'cacheProvider did see "'+method+'"')
-        t.equal(cacheProvider.getHandled(method).length, 0, 'cacheProvider did NOT handle "'+method+'"')
+        t.equal(cacheProvider.getWitnessed(method).length, 1, `cacheProvider did see "${method}"`)
+        t.equal(cacheProvider.getHandled(method).length, 0, `cacheProvider did NOT handle "${method}"`)
 
-        t.equal(handlingProvider.getWitnessed(method).length, 1, 'handlingProvider did see "'+method+'"')
-        t.equal(handlingProvider.getHandled(method).length, 1, 'handlingProvider did handle "'+method+'"')
+        t.equal(handlingProvider.getWitnessed(method).length, 1, `handlingProvider did see "${method}"`)
+        t.equal(handlingProvider.getHandled(method).length, 1, `handlingProvider did handle "${method}"`)
 
-      }, function(err, response){
+      }, function (err, response) {
         // second request
         t.ifError(err || response.error && response.error.message, 'did not error')
         t.ok(response, 'has response')
 
         if (shouldHitCacheOnSecondRequest) {
-          t.equal(cacheProvider.getWitnessed(method).length, 2, 'cacheProvider did see "'+method+'"')
-          t.equal(cacheProvider.getHandled(method).length, 1, 'cacheProvider did handle "'+method+'"')
+          t.equal(cacheProvider.getWitnessed(method).length, 2, `cacheProvider did see "${method}"`)
+          t.equal(cacheProvider.getHandled(method).length, 1, `cacheProvider did handle "${method}"`)
 
-          t.equal(handlingProvider.getWitnessed(method).length, 1, 'handlingProvider did NOT see "'+method+'"')
-          t.equal(handlingProvider.getHandled(method).length, 1, 'handlingProvider did NOT handle "'+method+'"')
+          t.equal(handlingProvider.getWitnessed(method).length, 1, `handlingProvider did NOT see "${method}"`)
+          t.equal(handlingProvider.getHandled(method).length, 1, `handlingProvider did NOT handle "${method}"`)
         } else {
-          t.equal(cacheProvider.getWitnessed(method).length, 2, 'cacheProvider did see "'+method+'"')
-          t.equal(cacheProvider.getHandled(method).length, 0, 'cacheProvider did NOT handle "'+method+'"')
+          t.equal(cacheProvider.getWitnessed(method).length, 2, `cacheProvider did see "${method}"`)
+          t.equal(cacheProvider.getHandled(method).length, 0, `cacheProvider did NOT handle "${method}"`)
 
-          t.equal(handlingProvider.getWitnessed(method).length, 2, 'handlingProvider did see "'+method+'"')
-          t.equal(handlingProvider.getHandled(method).length, 2, 'handlingProvider did handle "'+method+'"')
+          t.equal(handlingProvider.getWitnessed(method).length, 2, `handlingProvider did see "${method}"`)
+          t.equal(handlingProvider.getHandled(method).length, 2, `handlingProvider did handle "${method}"`)
         }
 
         cb()
       })
     }
 
-    function requestTwice(payloads, afterFirst, afterSecond){
-      engine.sendAsync(createPayload(payloads[0]), function(err, result){
+    function requestTwice (payloads, afterFirst, afterSecond) {
+      engine.sendAsync(createPayload(payloads[0]), function (err, result) {
         afterFirst(err, result)
         engine.sendAsync(createPayload(payloads[1]), afterSecond)
       })

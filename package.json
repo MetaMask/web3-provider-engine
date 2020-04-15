@@ -7,11 +7,12 @@
   "scripts": {
     "test": "node test/index.js && yarn lint",
     "prepublishOnly": "yarn build && yarn bundle",
-    "build": "babel zero.js index.js -d dist/es5 && babel subproviders -d dist/es5/subproviders && babel util -d dist/es5/util",
+    "build": "babel src/zero.js index.js -d dist/es5 && babel src/subproviders -d dist/es5/subproviders && babel src/util -d dist/es5/util",
     "bundle": "mkdir -p ./dist && yarn bundle-engine && yarn bundle-zero",
-    "bundle-zero": "browserify -s ZeroClientProvider -e zero.js -t [ babelify --presets [ @babel/preset-env ] ] > dist/ZeroClientProvider.js",
+    "bundle-zero": "browserify -s ZeroClientProvider -e src/zero.js -t [ babelify --presets [ @babel/preset-env ] ] > dist/ZeroClientProvider.js",
     "bundle-engine": "browserify -s ProviderEngine -e index.js -t [ babelify --presets [ @babel/preset-env ] ] > dist/ProviderEngine.js",
-    "lint": "eslint --quiet --ignore-path .gitignore ."
+    "lint": "eslint . --ext .js",
+    "lint:fix": "eslint . --ext .js --fix"
   },
   "author": "",
   "license": "MIT",
@@ -43,9 +44,11 @@
     "@babel/cli": "^7.5.5",
     "@babel/core": "^7.5.5",
     "@babel/preset-env": "^7.5.5",
+    "@metamask/eslint-config": "^2.1.0",
     "babelify": "^10.0.0",
     "browserify": "^16.5.0",
-    "eslint": "^6.2.0",
+    "eslint": "^6.8.0",
+    "eslint-plugin-import": "^2.20.2",
     "ethjs": "^0.3.6",
     "ganache-core": "^2.7.0",
     "tape": "^4.4.0"
@@ -53,5 +56,13 @@
   "browser": {
     "request": false,
     "ws": false
-  }
+  },
+  "files": [
+    "dist",
+    "index.js",
+    "LICENSE",
+    "package.json",
+    "README.md",
+    "util"
+  ]
 }

@@ -1,6 +1,6 @@
 const Ethjs = require('ethjs')
-const ProviderEngine = require('./index.js')
 const ZeroClientProvider = require('./zero.js')
+const ProviderEngine = require('.')
 
 // create engine
 const providerEngine = ZeroClientProvider({
@@ -16,7 +16,7 @@ const providerEngine = ZeroClientProvider({
 const eth = new Ethjs(providerEngine)
 
 // log new blocks
-providerEngine.on('block', function(block) {
+providerEngine.on('block', function (block) {
   const blockNumber = Number.parseInt(block.number.toString('hex'), 16)
   const blockHash = `0x${block.hash.toString('hex')}`
   console.log(`block: #${blockNumber} ${blockHash}`)

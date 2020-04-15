@@ -1,70 +1,70 @@
 const test = require('tape')
 const Transaction = require('ethereumjs-tx')
 const ethUtil = require('ethereumjs-util')
-const ProviderEngine = require('../index.js')
-const FixtureProvider = require('../subproviders/fixture.js')
-const NonceTracker = require('../subproviders/nonce-tracker.js')
-const HookedWalletProvider = require('../subproviders/hooked-wallet.js')
-const HookedWalletTxProvider = require('../subproviders/hooked-wallet-ethtx.js')
+const ProviderEngine = require('..')
+const FixtureProvider = require('../src/subproviders/fixture.js')
+const NonceTracker = require('../src/subproviders/nonce-tracker.js')
+const HookedWalletProvider = require('../src/subproviders/hooked-wallet.js')
+const HookedWalletTxProvider = require('../src/subproviders/hooked-wallet-ethtx.js')
+const createPayload = require('../src/util/create-payload.js')
 const TestBlockProvider = require('./util/block.js')
-const createPayload = require('../util/create-payload.js')
 const injectMetrics = require('./util/inject-metrics')
 
 
-test('tx sig', function(t){
+test('tx sig', function (t) {
   t.plan(12)
 
-  var privateKey = Buffer.from('cccd8f4d88de61f92f3747e4a9604a0395e6ad5138add4bec4a2ddf231ee24f9', 'hex')
-  var address = Buffer.from('1234362ef32bcd26d3dd18ca749378213625ba0b', 'hex')
-  var addressHex = '0x'+address.toString('hex')
+  const privateKey = Buffer.from('cccd8f4d88de61f92f3747e4a9604a0395e6ad5138add4bec4a2ddf231ee24f9', 'hex')
+  const address = Buffer.from('1234362ef32bcd26d3dd18ca749378213625ba0b', 'hex')
+  const addressHex = `0x${address.toString('hex')}`
 
   // sign all tx's
-  var providerA = injectMetrics(new HookedWalletProvider({
-    getAccounts: function(cb){
+  const providerA = injectMetrics(new HookedWalletProvider({
+    getAccounts (cb) {
       cb(null, [addressHex])
     },
-    signTransaction: function(txParams, cb){
-      var tx = new Transaction(txParams)
+    signTransaction (txParams, cb) {
+      const tx = new Transaction(txParams)
       tx.sign(privateKey)
-      var rawTx = '0x'+tx.serialize().toString('hex')
+      const rawTx = `0x${tx.serialize().toString('hex')}`
       cb(null, rawTx)
     },
   }))
 
   // handle nonce requests
-  var providerB = injectMetrics(new NonceTracker())
+  const providerB = injectMetrics(new NonceTracker())
   // handle all bottom requests
-  var providerC = injectMetrics(new FixtureProvider({
+  const providerC = injectMetrics(new FixtureProvider({
     eth_gasPrice: '0x1234',
     eth_getTransactionCount: '0x00',
-    eth_sendRawTransaction: function(payload, next, done){
-      var rawTx = ethUtil.toBuffer(payload.params[0])
-      var tx = new Transaction(rawTx)
-      var hash = '0x'+tx.hash().toString('hex')
+    eth_sendRawTransaction (payload, next, done) {
+      const rawTx = ethUtil.toBuffer(payload.params[0])
+      const tx = new Transaction(rawTx)
+      const hash = `0x${tx.hash().toString('hex')}`
       done(null, hash)
     },
   }))
   // handle block requests
-  var providerD = injectMetrics(new TestBlockProvider())
+  const providerD = injectMetrics(new TestBlockProvider())
 
-  var engine = new ProviderEngine()
+  const engine = new ProviderEngine()
   engine.addProvider(providerA)
   engine.addProvider(providerB)
   engine.addProvider(providerC)
   engine.addProvider(providerD)
 
-  var txPayload = {
+  const txPayload = {
     method: 'eth_sendTransaction',
     params: [{
       from: addressHex,
       to: addressHex,
       value: '0x01',
       gas: '0x1234567890',
-    }]
+    }],
   }
 
   engine.start()
-  engine.sendAsync(createPayload(txPayload), function(err, response){
+  engine.sendAsync(createPayload(txPayload), function (err, response) {
     t.ifError(err, 'did not error')
     t.ok(response, 'has response')
 
@@ -92,53 +92,53 @@ test('tx sig', function(t){
 
 })
 
-test('no such account', function(t){
+test('no such account', function (t) {
   t.plan(1)
 
-  var addressHex = '0x1234362ef32bcd26d3dd18ca749378213625ba0b'
-  var otherAddressHex = '0x4321362ef32bcd26d3dd18ca749378213625ba0c'
+  const addressHex = '0x1234362ef32bcd26d3dd18ca749378213625ba0b'
+  const otherAddressHex = '0x4321362ef32bcd26d3dd18ca749378213625ba0c'
 
   // sign all tx's
-  var providerA = injectMetrics(new HookedWalletProvider({
-    getAccounts: function(cb){
+  const providerA = injectMetrics(new HookedWalletProvider({
+    getAccounts (cb) {
       cb(null, [addressHex])
     },
   }))
 
   // handle nonce requests
-  var providerB = injectMetrics(new NonceTracker())
+  const providerB = injectMetrics(new NonceTracker())
   // handle all bottom requests
-  var providerC = injectMetrics(new FixtureProvider({
+  const providerC = injectMetrics(new FixtureProvider({
     eth_gasPrice: '0x1234',
     eth_getTransactionCount: '0x00',
-    eth_sendRawTransaction: function(payload, next, done){
-      var rawTx = ethUtil.toBuffer(payload.params[0])
-      var tx = new Transaction(rawTx)
-      var hash = '0x'+tx.hash().toString('hex')
+    eth_sendRawTransaction (payload, next, done) {
+      const rawTx = ethUtil.toBuffer(payload.params[0])
+      const tx = new Transaction(rawTx)
+      const hash = `0x${tx.hash().toString('hex')}`
       done(null, hash)
     },
   }))
   // handle block requests
-  var providerD = injectMetrics(new TestBlockProvider())
+  const providerD = injectMetrics(new TestBlockProvider())
 
-  var engine = new ProviderEngine()
+  const engine = new ProviderEngine()
   engine.addProvider(providerA)
   engine.addProvider(providerB)
   engine.addProvider(providerC)
   engine.addProvider(providerD)
 
-  var txPayload = {
+  const txPayload = {
     method: 'eth_sendTransaction',
     params: [{
       from: otherAddressHex,
       to: addressHex,
       value: '0x01',
       gas: '0x1234567890',
-    }]
+    }],
   }
 
   engine.start()
-  engine.sendAsync(createPayload(txPayload), function(err, response){
+  engine.sendAsync(createPayload(txPayload), function (err, response) {
     t.ok(err, 'did error')
 
     engine.stop()
@@ -148,33 +148,33 @@ test('no such account', function(t){
 })
 
 
-test('sign message', function(t){
+test('sign message', function (t) {
   t.plan(3)
 
-  var privateKey = Buffer.from('cccd8f4d88de61f92f3747e4a9604a0395e6ad5138add4bec4a2ddf231ee24f9', 'hex')
-  var addressHex = '0x1234362ef32bcd26d3dd18ca749378213625ba0b'
+  const privateKey = Buffer.from('cccd8f4d88de61f92f3747e4a9604a0395e6ad5138add4bec4a2ddf231ee24f9', 'hex')
+  const addressHex = '0x1234362ef32bcd26d3dd18ca749378213625ba0b'
 
-  var message = 'haay wuurl'
-  var signature = '0x68dc980608bceb5f99f691e62c32caccaee05317309015e9454eba1a14c3cd4505d1dd098b8339801239c9bcaac3c4df95569dcf307108b92f68711379be14d81c'
+  const message = 'haay wuurl'
+  const signature = '0x68dc980608bceb5f99f691e62c32caccaee05317309015e9454eba1a14c3cd4505d1dd098b8339801239c9bcaac3c4df95569dcf307108b92f68711379be14d81c'
 
   // sign all messages
-  var providerA = injectMetrics(new HookedWalletTxProvider({
-    getAccounts: function(cb){
+  const providerA = injectMetrics(new HookedWalletTxProvider({
+    getAccounts (cb) {
       cb(null, [addressHex])
     },
-    getPrivateKey: function(address, cb){
+    getPrivateKey (address, cb) {
       cb(null, privateKey)
     },
   }))
 
   // handle block requests
-  var providerB = injectMetrics(new TestBlockProvider())
+  const providerB = injectMetrics(new TestBlockProvider())
 
-  var engine = new ProviderEngine()
+  const engine = new ProviderEngine()
   engine.addProvider(providerA)
   engine.addProvider(providerB)
 
-  var payload = {
+  const payload = {
     method: 'eth_sign',
     params: [
       addressHex,
@@ -183,7 +183,7 @@ test('sign message', function(t){
   }
 
   engine.start()
-  engine.sendAsync(createPayload(payload), function(err, response){
+  engine.sendAsync(createPayload(payload), function (err, response) {
     t.ifError(err, 'did not error')
     t.ok(response, 'has response')
 
@@ -257,32 +257,32 @@ signatureTest({
     {
       type: 'string',
       name: 'message',
-      value: 'Hi, Alice!'
-    }
+      value: 'Hi, Alice!',
+    },
   ],
   signature: '0xb2c9c7bdaee2cc73f318647c3f6e24792fca86a9f2736d9e7537e64c503545392313ebbbcb623c828fd8f99fd1fb48f8f4da8cb1d1a924e28b21de018c826e181c',
   addressHex: '0xbe93f9bacbcffc8ee6663f2647917ed7a20a57bb',
   privateKey: Buffer.from('6969696969696969696969696969696969696969696969696969696969696969', 'hex'),
 })
 
-test('sender validation, with mixed-case', function(t){
+test('sender validation, with mixed-case', function (t) {
   t.plan(1)
 
-  var senderAddress = '0xE4660fdAb2D6Bd8b50C029ec79E244d132c3bc2B'
+  const senderAddress = '0xE4660fdAb2D6Bd8b50C029ec79E244d132c3bc2B'
 
-  var providerA = injectMetrics(new HookedWalletTxProvider({
-    getAccounts: function(cb){
+  const providerA = injectMetrics(new HookedWalletTxProvider({
+    getAccounts (cb) {
       cb(null, [senderAddress])
     },
-    getPrivateKey: function(address, cb){
+    getPrivateKey (address, cb) {
       t.pass('correctly validated sender')
       engine.stop()
       t.end()
     },
   }))
-  var providerB = injectMetrics(new TestBlockProvider())
+  const providerB = injectMetrics(new TestBlockProvider())
   // handle all bottom requests
-  var providerC = injectMetrics(new FixtureProvider({
+  const providerC = injectMetrics(new FixtureProvider({
     eth_gasPrice: '0x1234',
     eth_estimateGas: '0x1234',
     eth_getTransactionCount: '0x00',
@@ -298,8 +298,8 @@ test('sender validation, with mixed-case', function(t){
     method: 'eth_sendTransaction',
     params: [{
       from: senderAddress.toLowerCase(),
-    }]
-  }, function(err){
+    }],
+  }, function (err) {
     t.notOk(err, 'error was present')
     engine.stop()
     t.end()
@@ -308,26 +308,26 @@ test('sender validation, with mixed-case', function(t){
 })
 
 
-function signatureTest({ testLabel, method, privateKey, addressHex, message, signature }) {
+function signatureTest ({ testLabel, method, privateKey, addressHex, message, signature }) {
   // sign all messages
-  var providerA = injectMetrics(new HookedWalletTxProvider({
-    getAccounts: function(cb){
+  const providerA = injectMetrics(new HookedWalletTxProvider({
+    getAccounts (cb) {
       cb(null, [addressHex])
     },
-    getPrivateKey: function(address, cb){
+    getPrivateKey (address, cb) {
       cb(null, privateKey)
     },
   }))
 
   // handle block requests
-  var providerB = injectMetrics(new TestBlockProvider())
+  const providerB = injectMetrics(new TestBlockProvider())
 
-  var engine = new ProviderEngine()
+  const engine = new ProviderEngine()
   engine.addProvider(providerA)
   engine.addProvider(providerB)
 
-  var payload = {
-    method: method,
+  let payload = {
+    method,
     params: [message, addressHex],
   }
 
@@ -342,7 +342,7 @@ function signatureTest({ testLabel, method, privateKey, addressHex, message, sig
   // ordered in this direction, not the other.
   if (payload.method === 'personal_sign') {
     payload = {
-      method: method,
+      method,
       params: [message, addressHex],
     }
 
@@ -355,27 +355,27 @@ function signatureTest({ testLabel, method, privateKey, addressHex, message, sig
   }
 }
 
-function recoverTest({ testLabel, method, addressHex, message, signature }) {
+function recoverTest ({ testLabel, method, addressHex, message, signature }) {
 
   // sign all messages
-  var providerA = injectMetrics(new HookedWalletTxProvider({
-    getAccounts: function(cb){
+  const providerA = injectMetrics(new HookedWalletTxProvider({
+    getAccounts (cb) {
       cb(null, [addressHex])
     },
-    getPrivateKey: function(address, cb){
+    getPrivateKey (address, cb) {
       cb(new Error('this should not be called'))
     },
   }))
 
   // handle block requests
-  var blockProvider = injectMetrics(new TestBlockProvider())
+  const blockProvider = injectMetrics(new TestBlockProvider())
 
-  var engine = new ProviderEngine()
+  const engine = new ProviderEngine()
   engine.addProvider(providerA)
   engine.addProvider(blockProvider)
 
-  var payload = {
-    method: method,
+  const payload = {
+    method,
     params: [message, signature],
   }
 
@@ -388,12 +388,12 @@ function recoverTest({ testLabel, method, addressHex, message, signature }) {
 
 }
 
-function singleRpcTest({ testLabel, payload, expectedResult, engine }) {
-  test(testLabel, function(t){
+function singleRpcTest ({ testLabel, payload, expectedResult, engine }) {
+  test(testLabel, function (t) {
     t.plan(3)
 
     engine.start()
-    engine.sendAsync(createPayload(payload), function(err, response){
+    engine.sendAsync(createPayload(payload), function (err, response) {
       if (err) {
         console.log('bad payload:', payload)
         console.error(err)

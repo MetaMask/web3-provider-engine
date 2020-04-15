@@ -1,24 +1,26 @@
 const test = require('tape')
-const ProviderEngine = require('../../index.js')
-const createPayload = require('../../util/create-payload.js')
-const FixtureProvider = require('../../subproviders/fixture.js')
-const SanitizerSubprovider = require('../../subproviders/sanitizer')
+const extend = require('xtend')
+const ProviderEngine = require('../..')
+const createPayload = require('../../src/util/create-payload.js')
+const FixtureProvider = require('../../src/subproviders/fixture.js')
+const SanitizerSubprovider = require('../../src/subproviders/sanitizer')
 const MockSubprovider = require('../util/mock-subprovider')
 const TestBlockProvider = require('../util/block.js')
-const extend = require('xtend')
 
-test('Sanitizer removes unknown keys', function(t) {
+test('Sanitizer removes unknown keys', function (t) {
   t.plan(8)
 
-  var engine = new ProviderEngine()
+  const engine = new ProviderEngine()
 
-  var sanitizer = new SanitizerSubprovider()
+  const sanitizer = new SanitizerSubprovider()
   engine.addProvider(sanitizer)
 
   // test sanitization
-  var checkSanitizer = new FixtureProvider({
+  const checkSanitizer = new FixtureProvider({
     test_unsanitized: (req, next, end) => {
-      if (req.method !== 'test_unsanitized') return next()
+      if (req.method !== 'test_unsanitized') {
+        return next()
+      }
       const firstParam = payload.params[0]
       t.notOk(firstParam && firstParam.foo)
       t.equal(firstParam.gas, '0x01')
@@ -32,7 +34,7 @@ test('Sanitizer removes unknown keys', function(t) {
   engine.addProvider(checkSanitizer)
 
   // handle block requests
-  var blockProvider = new TestBlockProvider()
+  const blockProvider = new TestBlockProvider()
   engine.addProvider(blockProvider)
 
   engine.start()

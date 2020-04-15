@@ -1,7 +1,7 @@
 const crypto = require('crypto')
 const extend = require('xtend')
 const ethUtil = require('ethereumjs-util')
-const FixtureProvider = require('../../subproviders/fixture.js')
+const FixtureProvider = require('../../src/subproviders/fixture.js')
 
 //
 // handles only `eth_getBlockByNumber` requests
@@ -12,19 +12,19 @@ class TestBlockProvider extends FixtureProvider {
 
   constructor (methods) {
     super({
-      eth_blockNumber: (payload,  next, end) => {
+      eth_blockNumber: (payload, next, end) => {
         const blockNumber = this._currentBlock.number
         // return result asynchronously
         setTimeout(() => end(null, blockNumber))
       },
-      eth_getBlockByNumber: (payload,  next, end) => {
+      eth_getBlockByNumber: (payload, next, end) => {
         const blockRef = payload.params[0]
         const result = this.getBlockByRef(blockRef)
         // return result asynchronously
         setTimeout(() => end(null, result))
       },
-      eth_getLogs: (payload,  next, end) => {
-        const transactions = this._currentBlock.transactions
+      eth_getLogs: (payload, next, end) => {
+        const { transactions } = this._currentBlock
         const logs = transactions.map((tx) => {
           return {
             address: tx._logAddress,
@@ -50,18 +50,22 @@ class TestBlockProvider extends FixtureProvider {
     const self = this
     if (blockRef === 'latest') {
       return self._currentBlock
-    } else {
-      const blockNumber = parseInt(blockRef, 16)
-      // if present, return block at reference
-      let block = self._blockChain[blockNumber]
-      if (block) return block
-      // check if we should create the new block
-      if (blockNumber > Number(self._currentBlock.number)) return
-      // create, store, and return the new block
-      block = createBlock({ number: blockRef })
-      self._blockChain[blockNumber] = block
+    }
+    const blockNumber = parseInt(blockRef, 16)
+    // if present, return block at reference
+    let block = self._blockChain[blockNumber]
+    if (block) {
       return block
     }
+    // check if we should create the new block
+    if (blockNumber > Number(self._currentBlock.number)) {
+      return
+    }
+    // create, store, and return the new block
+    block = createBlock({ number: blockRef })
+    self._blockChain[blockNumber] = block
+    return block
+
   }
 
   nextBlock (blockParams) {
@@ -76,7 +80,7 @@ class TestBlockProvider extends FixtureProvider {
 
   addTx (txParams) {
     const self = this
-    var newTx = extend({
+    const newTx = extend({
       hash: randomHash(),
       data: randomHash(),
       transactionHash: randomHash(),
@@ -90,7 +94,7 @@ class TestBlockProvider extends FixtureProvider {
       _logTopics: [
         randomHash(),
         randomHash(),
-        randomHash()
+        randomHash(),
       ],
       // provided
     }, txParams)
@@ -104,32 +108,32 @@ class TestBlockProvider extends FixtureProvider {
 TestBlockProvider.createBlock = createBlock
 TestBlockProvider.incrementHex = incrementHex
 
-function createBlock(blockParams, prevBlock, txs) {
+function createBlock (blockParams, prevBlock, txs) {
   blockParams = blockParams || {}
   txs = txs || []
-  var defaultNumber = prevBlock ? incrementHex(prevBlock.number) : '0x1'
-  var defaultGasLimit = ethUtil.intToHex(4712388)
+  const defaultNumber = prevBlock ? incrementHex(prevBlock.number) : '0x1'
+  const defaultGasLimit = ethUtil.intToHex(4712388)
   const result = extend({
     // defaults
-    number:            defaultNumber,
-    hash:              randomHash(),
-    parentHash:        prevBlock ? prevBlock.hash : randomHash(),
-    nonce:             randomHash(),
-    mixHash:           randomHash(),
-    sha3Uncles:        randomHash(),
-    logsBloom:         randomHash(),
-    transactionsRoot:  randomHash(),
-    stateRoot:         randomHash(),
-    receiptsRoot:      randomHash(),
-    miner:             randomHash(),
-    difficulty:        randomHash(),
-    totalDifficulty:   randomHash(),
-    size:              randomHash(),
-    extraData:         randomHash(),
-    gasLimit:          defaultGasLimit,
-    gasUsed:           randomHash(),
-    timestamp:         randomHash(),
-    transactions:      txs,
+    number: defaultNumber,
+    hash: randomHash(),
+    parentHash: prevBlock ? prevBlock.hash : randomHash(),
+    nonce: randomHash(),
+    mixHash: randomHash(),
+    sha3Uncles: randomHash(),
+    logsBloom: randomHash(),
+    transactionsRoot: randomHash(),
+    stateRoot: randomHash(),
+    receiptsRoot: randomHash(),
+    miner: randomHash(),
+    difficulty: randomHash(),
+    totalDifficulty: randomHash(),
+    size: randomHash(),
+    extraData: randomHash(),
+    gasLimit: defaultGasLimit,
+    gasUsed: randomHash(),
+    timestamp: randomHash(),
+    transactions: txs,
     // provided
   }, blockParams)
   txs.forEach((tx, index) => {
@@ -140,15 +144,15 @@ function createBlock(blockParams, prevBlock, txs) {
   return result
 }
 
-function incrementHex(hexString){
-  return stripLeadingZeroes(ethUtil.intToHex(Number(hexString)+1))
+function incrementHex (hexString) {
+  return stripLeadingZeroes(ethUtil.intToHex(Number(hexString) + 1))
 }
 
-function randomHash(){
+function randomHash () {
   return ethUtil.bufferToHex(crypto.randomBytes(32))
 }
 
-function randomAddress(){
+function randomAddress () {
   return ethUtil.bufferToHex(crypto.randomBytes(20))
 }
 

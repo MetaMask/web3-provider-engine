@@ -2,11 +2,11 @@ const test = require('tape')
 const asyncParallel = require('async/parallel')
 const asyncSeries = require('async/series')
 const createGanacheProvider = require('ganache-core').provider
-const ProviderEngine = require('../index.js')
-const FixtureProvider = require('../subproviders/fixture.js')
-const InflightCacheProvider = require('../subproviders/inflight-cache.js')
-const ProviderSubprovider = require('../subproviders/provider.js')
-const createPayload = require('../util/create-payload.js')
+const ProviderEngine = require('..')
+const FixtureProvider = require('../src/subproviders/fixture.js')
+const InflightCacheProvider = require('../src/subproviders/inflight-cache.js')
+const ProviderSubprovider = require('../src/subproviders/provider.js')
+const createPayload = require('../src/util/create-payload.js')
 const injectMetrics = require('./util/inject-metrics')
 
 inflightTest('getBalance for latest', {
@@ -36,25 +36,25 @@ inflightTest('getBlock for latest (1) then 1', [{
   params: ['0x1', false],
 }], false)
 
-function inflightTest(label, payloads, shouldHitCacheOnSecondRequest){
+function inflightTest (label, payloads, shouldHitCacheOnSecondRequest) {
   if (!Array.isArray(payloads)) {
     payloads = [payloads, payloads]
   }
 
-  test('inflight cache - '+label, function(t){
+  test(`inflight cache - ${label}`, function (t) {
     t.plan(6)
 
     // cache layer
-    var cacheProvider = injectMetrics(new InflightCacheProvider())
+    const cacheProvider = injectMetrics(new InflightCacheProvider())
     // handle balance
-    var dataProvider = injectMetrics(new FixtureProvider({
+    const dataProvider = injectMetrics(new FixtureProvider({
       eth_getBalance: '0xdeadbeef',
     }))
     // handle dummy block
     const ganacheProvider = createGanacheProvider()
-    var blockProvider = injectMetrics(new ProviderSubprovider(ganacheProvider))
+    const blockProvider = injectMetrics(new ProviderSubprovider(ganacheProvider))
 
-    var engine = new ProviderEngine()
+    const engine = new ProviderEngine()
     engine.addProvider(cacheProvider)
     engine.addProvider(dataProvider)
     engine.addProvider(blockProvider)
@@ -88,35 +88,35 @@ function inflightTest(label, payloads, shouldHitCacheOnSecondRequest){
       t.end()
     })
 
-    function cacheCheck(t, engine, cacheProvider, handlingProvider, payloads, cb) {
-      var method = payloads[0].method
-      requestSimultaneous(payloads, noop, noop, function(err, responses){
+    function cacheCheck (t, engine, cacheProvider, handlingProvider, payloads, cb) {
+      const { method } = payloads[0]
+      requestSimultaneous(payloads, noop, noop, function (err, responses) {
         // first request
         t.ifError(err, 'did not error')
         t.ok(responses && responses.filter(Boolean).length, 'has responses')
 
         if (shouldHitCacheOnSecondRequest) {
 
-          t.equal(cacheProvider.getWitnessed(method).length, 2, 'cacheProvider did see "'+method+'"')
-          t.equal(cacheProvider.getHandled(method).length, 1, 'cacheProvider did NOT handle "'+method+'"')
+          t.equal(cacheProvider.getWitnessed(method).length, 2, `cacheProvider did see "${method}"`)
+          t.equal(cacheProvider.getHandled(method).length, 1, `cacheProvider did NOT handle "${method}"`)
 
-          t.equal(handlingProvider.getWitnessed(method).length, 1, 'handlingProvider did see "'+method+'"')
-          t.equal(handlingProvider.getHandled(method).length, 1, 'handlingProvider did handle "'+method+'"')
-        
+          t.equal(handlingProvider.getWitnessed(method).length, 1, `handlingProvider did see "${method}"`)
+          t.equal(handlingProvider.getHandled(method).length, 1, `handlingProvider did handle "${method}"`)
+
         } else {
 
-          t.equal(cacheProvider.getWitnessed(method).length, 2, 'cacheProvider did see "'+method+'"')
-          t.equal(cacheProvider.getHandled(method).length, 0, 'cacheProvider did NOT handle "'+method+'"')
+          t.equal(cacheProvider.getWitnessed(method).length, 2, `cacheProvider did see "${method}"`)
+          t.equal(cacheProvider.getHandled(method).length, 0, `cacheProvider did NOT handle "${method}"`)
 
-          t.equal(handlingProvider.getWitnessed(method).length, 2, 'handlingProvider did see "'+method+'"')
-          t.equal(handlingProvider.getHandled(method).length, 2, 'handlingProvider did handle "'+method+'"')
+          t.equal(handlingProvider.getWitnessed(method).length, 2, `handlingProvider did see "${method}"`)
+          t.equal(handlingProvider.getHandled(method).length, 2, `handlingProvider did handle "${method}"`)
 
         }
 
       })
     }
 
-    function requestSimultaneous(payloads, afterFirst, afterSecond, cb){
+    function requestSimultaneous (payloads, afterFirst, afterSecond, cb) {
       asyncParallel([
         (cb) => {
           engine.sendAsync(createPayload(payloads[0]), (err, result) => {
@@ -136,4 +136,4 @@ function inflightTest(label, payloads, shouldHitCacheOnSecondRequest){
 
 }
 
-function noop(){}
+function noop () {}

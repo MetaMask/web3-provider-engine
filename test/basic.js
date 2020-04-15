@@ -1,31 +1,31 @@
 const test = require('tape')
-const ProviderEngine = require('../index.js')
+const ProviderEngine = require('..')
+const FixtureProvider = require('../src/subproviders/fixture.js')
+const createPayload = require('../src/util/create-payload.js')
 const PassthroughProvider = require('./util/passthrough.js')
-const FixtureProvider = require('../subproviders/fixture.js')
 const TestBlockProvider = require('./util/block.js')
-const createPayload = require('../util/create-payload.js')
 const injectMetrics = require('./util/inject-metrics')
 
 
-test('fallthrough test', function(t){
+test('fallthrough test', function (t) {
   t.plan(8)
 
   // handle nothing
-  var providerA = injectMetrics(new PassthroughProvider())
+  const providerA = injectMetrics(new PassthroughProvider())
   // handle "test_rpc"
-  var providerB = injectMetrics(new FixtureProvider({
+  const providerB = injectMetrics(new FixtureProvider({
     test_rpc: true,
   }))
   // handle block requests
-  var providerC = injectMetrics(new TestBlockProvider())
+  const providerC = injectMetrics(new TestBlockProvider())
 
-  var engine = new ProviderEngine()
+  const engine = new ProviderEngine()
   engine.addProvider(providerA)
   engine.addProvider(providerB)
   engine.addProvider(providerC)
 
   engine.start()
-  engine.sendAsync(createPayload({ method: 'test_rpc' }), function(err, response){
+  engine.sendAsync(createPayload({ method: 'test_rpc' }), function (err, response) {
     t.ifError(err, 'did not error')
     t.ok(response, 'has response')
 
@@ -44,11 +44,11 @@ test('fallthrough test', function(t){
 
 })
 
-test('add provider at index', function(t){
-  var providerA = new PassthroughProvider()
-  var providerB = new PassthroughProvider()
-  var providerC = new PassthroughProvider()
-  var engine = new ProviderEngine()
+test('add provider at index', function (t) {
+  const providerA = new PassthroughProvider()
+  const providerB = new PassthroughProvider()
+  const providerC = new PassthroughProvider()
+  const engine = new ProviderEngine()
   engine.addProvider(providerA)
   engine.addProvider(providerB)
   engine.addProvider(providerC, 1)
@@ -57,11 +57,11 @@ test('add provider at index', function(t){
   t.end()
 })
 
-test('remove provider', function(t){
-  var providerA = new PassthroughProvider()
-  var providerB = new PassthroughProvider()
-  var providerC = new PassthroughProvider()
-  var engine = new ProviderEngine()
+test('remove provider', function (t) {
+  const providerA = new PassthroughProvider()
+  const providerB = new PassthroughProvider()
+  const providerC = new PassthroughProvider()
+  const engine = new ProviderEngine()
   engine.addProvider(providerA)
   engine.addProvider(providerB)
   engine.addProvider(providerC)

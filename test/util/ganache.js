@@ -1,5 +1,5 @@
 const { provider } = require('ganache-core')
-const ProviderSubprovider = require('../../subproviders/provider')
+const ProviderSubprovider = require('../../src/subproviders/provider')
 
 
 class GanacheProvider extends ProviderSubprovider {

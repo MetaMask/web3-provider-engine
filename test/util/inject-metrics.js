@@ -1,7 +1,7 @@
 
 module.exports = injectSubproviderMetrics
 
-function injectSubproviderMetrics(subprovider){
+function injectSubproviderMetrics (subprovider) {
   subprovider.getWitnessed = getWitnessed.bind(subprovider)
   subprovider.getHandled = getHandled.bind(subprovider)
   subprovider.clearMetrics = () => {
@@ -11,33 +11,33 @@ function injectSubproviderMetrics(subprovider){
 
   subprovider.clearMetrics()
 
-  var _super = subprovider.handleRequest.bind(subprovider)
+  const _super = subprovider.handleRequest.bind(subprovider)
   subprovider.handleRequest = handleRequest.bind(subprovider, _super)
 
   return subprovider
 }
 
-function getWitnessed(method){
+function getWitnessed (method) {
   const self = this
-  var witnessed = self.payloadsWitnessed[method] = self.payloadsWitnessed[method] || []
+  const witnessed = self.payloadsWitnessed[method] = self.payloadsWitnessed[method] || []
   return witnessed
 }
 
-function getHandled(method){
+function getHandled (method) {
   const self = this
-  var witnessed = self.payloadsHandled[method] = self.payloadsHandled[method] || []
+  const witnessed = self.payloadsHandled[method] = self.payloadsHandled[method] || []
   return witnessed
 }
 
-function handleRequest(_super, payload, next, end){
+function handleRequest (_super, payload, next, end) {
   const self = this
   // mark payload witnessed
-  var witnessed = self.getWitnessed(payload.method)
+  const witnessed = self.getWitnessed(payload.method)
   witnessed.push(payload)
   // continue
-  _super(payload, next, function(err, result){
+  _super(payload, next, function (err, result) {
     // mark payload handled
-    var handled = self.getHandled(payload.method)
+    const handled = self.getHandled(payload.method)
     handled.push(payload)
     // continue
     end(err, result)

@@ -1,15 +1,26 @@
 module.exports = {
-  "env": {
-    "browser": true,
-    "commonjs": true,
-    "es6": true,
-    "node": true
+  root: true,
+  extends: [
+    '@metamask/eslint-config',
+    '@metamask/eslint-config/config/nodejs',
+  ],
+  overrides: [{
+    files: [
+      '.eslintrc.js',
+    ],
+    parserOptions: {
+      sourceType: 'script',
+    },
+  }],
+  rules: {
+    'camelcase': ['error', {
+      'allow': [
+        // 'nacl_decodeHex',
+        // 'recoverTypedSignature_v4',
+        'signTypedData_v3',
+        'signTypedData_v4',
+      ],
+    }],
+    'no-param-reassign': 'off',
   },
-  "extends": "eslint:recommended",
-  "rules": {
-    "no-extra-semi": "warn",
-    "no-unused-vars": "warn",
-    "no-console": "warn",
-    "no-mixed-spaces-and-tabs": "warn"
-  }
-};
+}
