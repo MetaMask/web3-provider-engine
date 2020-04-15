@@ -25,6 +25,8 @@ module.exports = HookedWalletSubprovider
 //   eth_sendTransaction
 //   eth_sign
 //   eth_signTypedData
+//   eth_signTypedData_v3
+//   eth_signTypedData_v4
 //   personal_sign
 //   eth_decryptMessage
 //   encryption_public_key
@@ -253,19 +255,32 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
       })()
 
     case 'eth_signTypedData':
-      // process normally
-      message = payload.params[0]
-      address = payload.params[1]
-      extraParams = payload.params[2] || {}
-      msgParams = extend(extraParams, {
-        from: address,
-        data: message,
-      })
-      waterfall([
-        (cb) => self.validateTypedMessage(msgParams, cb),
-        (cb) => self.processTypedMessage(msgParams, cb),
-      ], end)
-      return
+    case 'eth_signTypedData_v3':
+    case 'eth_signTypedData_v4':
+      return (function(){ 
+        // process normally
+      
+        const first = payload.params[0]
+        const second = payload.params[1]
+
+        if (resemblesAddress(first)) {
+          address = first
+          message = second
+        } else {
+          message = first
+          address = second
+        }
+
+        extraParams = payload.params[2] || {}
+        msgParams = extend(extraParams, {
+          from: address,
+          data: message,
+        })
+        waterfall([
+          (cb) => self.validateTypedMessage(msgParams, cb),
+          (cb) => self.processTypedMessage(msgParams, cb),
+        ], end)
+      })()
 
     case 'parity_postTransaction':
       txParams = payload.params[0]
