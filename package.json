@@ -5,10 +5,10 @@
   "repository": "https://github.com/MetaMask/web3-provider-engine",
   "main": "index.js",
   "scripts": {
-    "test": "node test/index.js && npm run lint",
-    "prepublishOnly": "npm run build && npm run bundle",
+    "test": "node test/index.js && yarn lint",
+    "prepublishOnly": "yarn build && yarn bundle",
     "build": "babel zero.js index.js -d dist/es5 && babel subproviders -d dist/es5/subproviders && babel util -d dist/es5/util",
-    "bundle": "mkdir -p ./dist && npm run bundle-engine && npm run bundle-zero",
+    "bundle": "mkdir -p ./dist && yarn bundle-engine && yarn bundle-zero",
     "bundle-zero": "browserify -s ZeroClientProvider -e zero.js -t [ babelify --presets [ @babel/preset-env ] ] > dist/ZeroClientProvider.js",
     "bundle-engine": "browserify -s ProviderEngine -e index.js -t [ babelify --presets [ @babel/preset-env ] ] > dist/ProviderEngine.js",
     "lint": "eslint --quiet --ignore-path .gitignore ."
