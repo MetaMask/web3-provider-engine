@@ -1,5 +1,5 @@
 const test = require('tape')
-const Transaction = require('ethereumjs-tx')
+const { Transaction } = require('ethereumjs-tx')
 const ethUtil = require('ethereumjs-util')
 const ProviderEngine = require('../index.js')
 const FixtureProvider = require('../subproviders/fixture.js')

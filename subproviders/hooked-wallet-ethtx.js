@@ -41,7 +41,7 @@ function HookedWalletEthTxSubprovider(opts) {
   self.signMessage = function(msgParams, cb) {
     opts.getPrivateKey(msgParams.from, function(err, privateKey) {
       if (err) return cb(err)
-      var dataBuff = ethUtil.toBuffer(msgParams.data)
+      var dataBuff = Buffer.from(msgParams.data, 'utf8')
       var msgHash = ethUtil.hashPersonalMessage(dataBuff)
       var sig = ethUtil.ecsign(msgHash, privateKey)
       var serialized = ethUtil.bufferToHex(concatSig(sig.v, sig.r, sig.s))
