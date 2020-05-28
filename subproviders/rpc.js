@@ -19,7 +19,8 @@ RpcSource.prototype.handleRequest = function(payload, next, end){
   const targetUrl = self.rpcUrl
 
   // overwrite id to conflict with other concurrent users
-  let newPayload = createPayload(payload)
+  const sanitizedPayload = sanitizePayload(payload)
+  const newPayload = createPayload(sanitizedPayload)
 
   xhr({
     uri: targetUrl,
@@ -70,4 +71,14 @@ RpcSource.prototype.handleRequest = function(payload, next, end){
 
     end(null, data.result)
   })
+}
+
+// drops any non-standard params
+function sanitizePayload (payload) {
+  return {
+    id: payload.id,
+    jsonrpc: payload.jsonrpc,
+    method: payload.method,
+    params: payload.params,
+  }
 }
