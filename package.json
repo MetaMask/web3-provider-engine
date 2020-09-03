@@ -15,6 +15,9 @@
   },
   "author": "",
   "license": "MIT",
+  "resolutions": {
+    "ganache-core/**/elliptic": "^6.5.2"
+  },
   "dependencies": {
     "async": "^2.5.0",
     "backoff": "^2.5.0",
