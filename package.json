@@ -1,6 +1,6 @@
 {
   "name": "web3-provider-engine",
-  "version": "15.0.12",
+  "version": "16.0.0",
   "description": "A JavaScript library for composing Ethereum provider objects using middleware modules",
   "repository": "https://github.com/MetaMask/web3-provider-engine",
   "main": "index.js",
@@ -13,7 +13,12 @@
     "bundle-engine": "browserify -s ProviderEngine -e index.js -t [ babelify --presets [ @babel/preset-env ] ] > dist/ProviderEngine.js",
     "lint": "eslint --quiet --ignore-path .gitignore ."
   },
-  "author": "",
+  "files": [
+    "*.js",
+    "dist",
+    "subprovider",
+    "util"
+  ],
   "license": "MIT",
   "resolutions": {
     "ganache-core/**/elliptic": "^6.5.2"
