@@ -21,4 +21,60 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
   - eth-rpc-errors@3.0.0 ([#353](https://github.com/MetaMask/web3-provider-engine/pull/353))
 - Specify publish files
 
+## [15.0.0]
+
+### Changed
+
+- uses eth-block-tracker@4, but still provides block body on ('block', 'latest', and 'rawBlock'). Other events ('sync') provide block number hex string instead of block body.
+- SubscriptionsSubprovider automatically forwards events to provider
+- replacing subprovider implementations with those in [`eth-json-rpc-engine`](https://github.com/MetaMask/eth-json-rpc-middleware)
+- browserify: moved to `babelify@10` + `@babel/core@7`
+
+## [14.0.0]
+
+### Changed
+
+- default dataProvider for zero is Infura mainnet REST api
+- websocket support
+- subscriptions support
+- remove solc subprovider
+- removed `dist` from git (but published in npm module)
+- es5 builds in `dist/es5`
+- zero + ProviderEngine bundles are es5
+- web3 subprovider renamed to provider subprovider
+- error if provider subprovider is missing a proper provider
+- removed need to supply getAccounts hook
+- fixed `hooked-wallet-ethtx` message signing
+- fixed `hooked-wallet` default txParams
+
+## [13.0.0]
+
+### Changed
+
+- txs included in blocks via [`eth-block-tracker`](https://github.com/kumavis/eth-block-tracker)@2.0.0
+
+## [12.0.0]
+
+### Changed
+
+- moved block polling to [`eth-block-tracker`](https://github.com/kumavis/eth-block-tracker).
+
+## [11.0.0]
+
+### Changed
+
+- zero.js - replaced http subprovider with fetch provider (includes polyfill for node).
+
+## [10.0.0]
+
+### Changed
+
+- renamed HookedWalletSubprovider `personalRecoverSigner` to `recoverPersonalSignature`
+
+## [9.0.0]
+
+### Changed
+
+- `pollingShouldUnref` option now defaults to false
+
 [Unreleased]:https://github.com/MetaMask/web3-provider-engine/compare/v16.0.0...HEAD
