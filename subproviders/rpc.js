@@ -2,7 +2,7 @@ const xhr = process.browser ? require('xhr') : require('request')
 const inherits = require('util').inherits
 const createPayload = require('../util/create-payload.js')
 const Subprovider = require('./subprovider.js')
-const { ethErrors, serializeError } = require('eth-json-rpc-errors')
+const { ethErrors, serializeError } = require('eth-rpc-errors')
 
 
 module.exports = RpcSource
