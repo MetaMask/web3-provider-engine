@@ -1,6 +1,6 @@
 {
   "name": "web3-provider-engine",
-  "version": "16.0.0",
+  "version": "16.0.1",
   "description": "A JavaScript library for composing Ethereum provider objects using middleware modules",
   "repository": "https://github.com/MetaMask/web3-provider-engine",
   "main": "index.js",
@@ -30,7 +30,7 @@
     "cross-fetch": "^2.1.0",
     "eth-block-tracker": "^4.4.2",
     "eth-json-rpc-filters": "^4.2.1",
-    "eth-json-rpc-infura": "5.1.0",
+    "eth-json-rpc-infura": "^5.1.0",
     "eth-json-rpc-middleware": "^6.0.0",
     "eth-rpc-errors": "^3.0.0",
     "eth-sig-util": "^1.4.2",
