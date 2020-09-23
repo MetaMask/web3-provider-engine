@@ -16,7 +16,7 @@
   "files": [
     "*.js",
     "dist",
-    "subprovider",
+    "subproviders",
     "util"
   ],
   "license": "MIT",
