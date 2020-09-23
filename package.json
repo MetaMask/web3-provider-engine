@@ -13,7 +13,12 @@
     "bundle-engine": "browserify -s ProviderEngine -e index.js -t [ babelify --presets [ @babel/preset-env ] ] > dist/ProviderEngine.js",
     "lint": "eslint --quiet --ignore-path .gitignore ."
   },
-  "author": "",
+  "files": [
+    "*.js",
+    "dist",
+    "subprovider",
+    "util"
+  ],
   "license": "MIT",
   "resolutions": {
     "ganache-core/**/elliptic": "^6.5.2"
