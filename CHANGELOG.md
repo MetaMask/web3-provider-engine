@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [16.0.1] - 2020-09-23
+
+- Fix broken publish files ([#356](https://github.com/MetaMask/web3-provider-engine/pull/356))
+
 ## [16.0.0] - 2020-09-22
 
 ### Changed
@@ -77,4 +81,5 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - `pollingShouldUnref` option now defaults to false
 
-[Unreleased]:https://github.com/MetaMask/web3-provider-engine/compare/v16.0.0...HEAD
+[Unreleased]:https://github.com/MetaMask/web3-provider-engine/compare/v16.0.1...HEAD
+[16.0.1]:https://github.com/MetaMask/web3-provider-engine/compare/v16.0.0...v16.0.1
