@@ -169,7 +169,7 @@ Web3ProviderEngine.prototype._getBlockByNumberWithRetry = function(blockNumber, 
 
 
 Web3ProviderEngine.prototype._getBlockByNumber = function(blockNumber, cb) {
-  const req = createPayload({ method: 'eth_getBlockByNumber', params: [blockNumber, false], skipCache: true })
+  const req = createPayload({ method: 'eth_getBlockByNumber', params: [blockNumber, false] })
   this._handleAsync(req, (err, res) => {
     if (err) return cb(err)
     return cb(null, res.result)
