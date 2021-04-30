@@ -90,3 +90,9 @@ Categorically, we don’t want / can’t have the following types of RPC calls g
 * id mgmt + tx signing (requires private data)
 * filters (requires a stateful data api)
 * vm (expensive, hard to scale)
+
+## Running tests
+
+```bash
+yarn test
+```
