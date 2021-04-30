@@ -4,6 +4,9 @@
   "description": "A JavaScript library for composing Ethereum provider objects using middleware modules",
   "repository": "https://github.com/MetaMask/web3-provider-engine",
   "main": "index.js",
+  "engines": {
+    "node": ">=12.0.0"
+  },
   "scripts": {
     "test": "node test/index.js && yarn lint",
     "prepublishOnly": "yarn build && yarn bundle",
