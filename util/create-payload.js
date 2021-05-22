@@ -1,11 +1,10 @@
 const getRandomId = require('./random-id.js')
-const extend = require('xtend')
 
 module.exports = createPayload
 
 
 function createPayload(data){
-  return extend({
+  return Object.assign({
     // defaults
     id: getRandomId(),
     jsonrpc: '2.0',

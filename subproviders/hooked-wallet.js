@@ -11,7 +11,6 @@ const parallel = require('async/parallel')
 const inherits = require('util').inherits
 const ethUtil = require('ethereumjs-util')
 const sigUtil = require('eth-sig-util')
-const extend = require('xtend')
 const Semaphore = require('semaphore')
 const Subprovider = require('./subprovider.js')
 const estimateGas = require('../util/estimate-gas.js')
@@ -140,7 +139,7 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
       // non-standard "extraParams" to be appended to our "msgParams" obj
       // good place for metadata
       extraParams = payload.params[2] || {}
-      msgParams = extend(extraParams, {
+      msgParams = Object.assign({}, extraParams, {
         from: address,
         data: message,
       })
@@ -180,7 +179,7 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
         // non-standard "extraParams" to be appended to our "msgParams" obj
         // good place for metadata
         extraParams = payload.params[2] || {}
-        msgParams = extend(extraParams, {
+        msgParams = Object.assign({}, extraParams, {
           from: address,
           data: message,
         })
@@ -220,7 +219,7 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
         // non-standard "extraParams" to be appended to our "msgParams" obj
         // good place for metadata
         extraParams = payload.params[2] || {}
-        msgParams = extend(extraParams, {
+        msgParams = Object.assign({}, extraParams, {
           from: address,
           data: message,
         })
@@ -229,25 +228,25 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
           (cb) => self.processDecryptMessage(msgParams, cb),
         ], end)
       })()
-      
+
     case 'encryption_public_key':
       return (function(){
         const address = payload.params[0]
-        
+
         waterfall([
           (cb) => self.validateEncryptionPublicKey(address, cb),
           (cb) => self.processEncryptionPublicKey(address, cb),
         ], end)
       })()
-      
+
     case 'personal_ecRecover':
-      return (function(){    
+      return (function(){
         message = payload.params[0]
         let signature = payload.params[1]
         // non-standard "extraParams" to be appended to our "msgParams" obj
         // good place for metadata
         extraParams = payload.params[2] || {}
-        msgParams = extend(extraParams, {
+        msgParams = Object.assign({}, extraParams, {
           sig: signature,
           data: message,
         })
@@ -257,9 +256,9 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
     case 'eth_signTypedData':
     case 'eth_signTypedData_v3':
     case 'eth_signTypedData_v4':
-      return (function(){ 
+      return (function(){
         // process normally
-      
+
         const first = payload.params[0]
         const second = payload.params[1]
 
@@ -272,7 +271,7 @@ HookedWalletSubprovider.prototype.handleRequest = function(payload, next, end){
         }
 
         extraParams = payload.params[2] || {}
-        msgParams = extend(extraParams, {
+        msgParams = Object.assign({}, extraParams, {
           from: address,
           data: message,
         })
@@ -650,7 +649,7 @@ HookedWalletSubprovider.prototype.fillInTxExtras = function(txParams, cb){
     if (taskResults.nonce) result.nonce = taskResults.nonce.result
     if (taskResults.gas) result.gas = taskResults.gas
 
-    cb(null, extend(txParams, result))
+    cb(null, Object.assign({}, txParams, result))
   })
 }
 

@@ -5,7 +5,6 @@ const FixtureProvider = require('../../subproviders/fixture.js')
 const SanitizerSubprovider = require('../../subproviders/sanitizer')
 const MockSubprovider = require('../util/mock-subprovider')
 const TestBlockProvider = require('../util/block.js')
-const extend = require('xtend')
 
 test('Sanitizer removes unknown keys', function(t) {
   t.plan(8)

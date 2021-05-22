@@ -1,5 +1,4 @@
 const crypto = require('crypto')
-const extend = require('xtend')
 const ethUtil = require('ethereumjs-util')
 const FixtureProvider = require('../../subproviders/fixture.js')
 
@@ -76,7 +75,7 @@ class TestBlockProvider extends FixtureProvider {
 
   addTx (txParams) {
     const self = this
-    var newTx = extend({
+    var newTx = Object.assign({
       hash: randomHash(),
       data: randomHash(),
       transactionHash: randomHash(),
@@ -109,7 +108,7 @@ function createBlock(blockParams, prevBlock, txs) {
   txs = txs || []
   var defaultNumber = prevBlock ? incrementHex(prevBlock.number) : '0x1'
   var defaultGasLimit = ethUtil.intToHex(4712388)
-  const result = extend({
+  const result = Object.assign({
     // defaults
     number:            defaultNumber,
     hash:              randomHash(),

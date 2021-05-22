@@ -1,6 +1,5 @@
 const inherits = require('util').inherits
 const Subprovider = require('../../subproviders/subprovider.js')
-const extend = require('xtend')
 
 module.exports = MockSubprovider
 
