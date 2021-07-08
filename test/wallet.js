@@ -1,5 +1,5 @@
 const test = require('tape')
-const Transaction = require('ethereumjs-tx')
+const { Transaction } = require('@ethereumjs/tx')
 const ethUtil = require('ethereumjs-util')
 const ProviderEngine = require('../index.js')
 const FixtureProvider = require('../subproviders/fixture.js')
@@ -24,9 +24,9 @@ test('tx sig', function(t){
       cb(null, [addressHex])
     },
     signTransaction: function(txParams, cb){
-      var tx = new Transaction(txParams)
-      tx.sign(privateKey)
-      var rawTx = '0x'+tx.serialize().toString('hex')
+      const tx = new Transaction(txParams)
+      const signedTransaction = tx.sign(privateKey)
+      var rawTx = '0x'+signedTransaction.serialize().toString('hex')
       cb(null, rawTx)
     },
   }))

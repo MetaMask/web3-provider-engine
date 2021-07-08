@@ -1,5 +1,5 @@
 const test = require('tape')
-const Transaction = require('ethereumjs-tx')
+const { Transaction } = require('@ethereumjs/tx')
 const ethUtil = require('ethereumjs-util')
 const ProviderEngine = require('../index.js')
 const FixtureProvider = require('../subproviders/fixture.js')
@@ -8,7 +8,6 @@ const HookedWalletProvider = require('../subproviders/hooked-wallet.js')
 const TestBlockProvider = require('./util/block.js')
 const createPayload = require('../util/create-payload.js')
 const injectMetrics = require('./util/inject-metrics')
-
 
 test('basic nonce tracking', function(t){
   t.plan(11)
