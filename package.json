@@ -27,7 +27,6 @@
     "ganache-core/**/elliptic": "^6.5.2"
   },
   "dependencies": {
-    "@ethereumjs/common": "^2.4.0",
     "@ethereumjs/tx": "^3.3.0",
     "async": "^2.5.0",
     "backoff": "^2.5.0",
