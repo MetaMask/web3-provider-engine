@@ -1,8 +1,9 @@
 const inherits = require('util').inherits
-const Transaction = require('ethereumjs-tx')
 const ethUtil = require('ethereumjs-util')
 const Subprovider = require('./subprovider.js')
 const blockTagForPayload = require('../util/rpc-cache-utils').blockTagForPayload
+const Common = require('@ethereumjs/common')
+const { TransactionFactory } = require('@ethereumjs/tx')
 
 module.exports = NonceTrackerSubprovider
 
@@ -57,9 +58,11 @@ NonceTrackerSubprovider.prototype.handleRequest = function(payload, next, end){
         if (err) return cb()
         // parse raw tx
         var rawTx = payload.params[0]
-        var stripped = ethUtil.stripHexPrefix(rawTx)
         var rawData = Buffer.from(ethUtil.stripHexPrefix(rawTx), 'hex')
-        var tx = new Transaction(Buffer.from(ethUtil.stripHexPrefix(rawTx), 'hex'))
+        console.log({ rawData });
+        // var tx = new Transaction(Buffer.from(ethUtil.stripHexPrefix(rawTx), 'hex'))
+        const common = new Common({ chain: 'ropsten', hardfork: 'london', eips:[1559] })
+        const tx = TransactionFactory.fromSerializedData(rawData, { common })
         // extract address
         var address = '0x'+tx.getSenderAddress().toString('hex').toLowerCase()
         // extract nonce and increment
