@@ -1,5 +1,5 @@
 const test = require('tape')
-const { Transaction } = require('@ethereumjs/tx')
+const { TransactionFactory } = require('@ethereumjs/tx')
 const ethUtil = require('ethereumjs-util')
 const ProviderEngine = require('../index.js')
 const FixtureProvider = require('../subproviders/fixture.js')
@@ -24,7 +24,7 @@ test('tx sig', function(t){
       cb(null, [addressHex])
     },
     signTransaction: function(txParams, cb){
-      const tx = new Transaction(txParams)
+      const tx = TransactionFactory.fromTxData(txParams)
       const signedTransaction = tx.sign(privateKey)
       var rawTx = '0x'+signedTransaction.serialize().toString('hex')
       cb(null, rawTx)
@@ -39,7 +39,7 @@ test('tx sig', function(t){
     eth_getTransactionCount: '0x00',
     eth_sendRawTransaction: function(payload, next, done){
       var rawTx = ethUtil.toBuffer(payload.params[0])
-      var tx = new Transaction(rawTx)
+      var tx = TransactionFactory.fromSerializedData(rawTx)
       var hash = '0x'+tx.hash().toString('hex')
       done(null, hash)
     },
@@ -113,7 +113,7 @@ test('no such account', function(t){
     eth_getTransactionCount: '0x00',
     eth_sendRawTransaction: function(payload, next, done){
       var rawTx = ethUtil.toBuffer(payload.params[0])
-      var tx = new Transaction(rawTx)
+      var tx = TransactionFactory.fromTxData(rawTx)
       var hash = '0x'+tx.hash().toString('hex')
       done(null, hash)
     },
