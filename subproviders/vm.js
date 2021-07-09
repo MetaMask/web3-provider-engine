@@ -144,9 +144,8 @@ VmSubprovider.prototype.runVm = function(payload, cb){
   }
   const tx = new Transaction(normalizedTxParams)
   const fakeTx = Object.create(tx)
-  const { from } = normalizedTxParams
   // override getSenderAddress
-  fakeTx.getSenderAddress = () => { return from }
+  fakeTx.getSenderAddress = () => normalizedTxParams.from
 
   vm.runTx({
     tx: tx,
