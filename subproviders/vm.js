@@ -148,7 +148,7 @@ VmSubprovider.prototype.runVm = function(payload, cb){
   fakeTx.getSenderAddress = () => normalizedTxParams.from
 
   vm.runTx({
-    tx: tx,
+    tx: fakeTx,
     block: block,
     skipNonce: true,
     skipBalance: true
