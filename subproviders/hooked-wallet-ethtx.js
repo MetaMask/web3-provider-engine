@@ -1,5 +1,5 @@
 /*
- * Uses ethereumjs-tx to sign a transaction.
+ * Uses @ethereumjs/tx to sign a transaction.
  *
  * The two callbacks a user needs to implement are:
  * - getAccounts() -- array of addresses supported
@@ -10,7 +10,7 @@
 
 const inherits = require('util').inherits
 const HookedWalletProvider = require('./hooked-wallet.js')
-const EthTx = require('ethereumjs-tx')
+const { TransactionFactory } = require('@ethereumjs/tx')
 const ethUtil = require('ethereumjs-util')
 const sigUtil = require('eth-sig-util')
 
@@ -32,7 +32,7 @@ function HookedWalletEthTxSubprovider(opts) {
     opts.getPrivateKey(txData.from, function(err, privateKey) {
       if (err) return cb(err)
 
-      var tx = new EthTx(txData)
+      var tx = TransactionFactory.fromTxData(txData)
       tx.sign(privateKey)
       cb(null, '0x' + tx.serialize().toString('hex'))
     })

@@ -3,9 +3,8 @@ const inherits = require('util').inherits
 const Stoplight = require('../util/stoplight.js')
 const createVm = require('ethereumjs-vm/dist/hooked').fromWeb3Provider
 const Block = require('ethereumjs-block')
-const FakeTransaction = require('ethereumjs-tx/fake.js')
+const { TransactionFactory } = require('@ethereumjs/tx')
 const ethUtil = require('ethereumjs-util')
-const createPayload = require('../util/create-payload.js')
 const rpcHexEncoding = require('../util/rpc-hex-encoding.js')
 const Subprovider = require('./subprovider.js')
 
@@ -143,11 +142,13 @@ VmSubprovider.prototype.runVm = function(payload, cb){
     gasPrice: txParams.gasPrice ? ethUtil.addHexPrefix(txParams.gasPrice) : undefined,
     nonce: txParams.nonce ? ethUtil.addHexPrefix(txParams.nonce) : undefined,
   }
-  var tx = new FakeTransaction(normalizedTxParams)
-  tx._from = normalizedTxParams.from || '0x0000000000000000000000000000000000000000'
+  const tx = TransactionFactory.fromTxData(normalizedTxParams)
+  const fakeTx = Object.create(tx)
+  // override getSenderAddress
+  fakeTx.getSenderAddress = () => normalizedTxParams.from
 
   vm.runTx({
-    tx: tx,
+    tx: fakeTx,
     block: block,
     skipNonce: true,
     skipBalance: true

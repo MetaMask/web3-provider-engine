@@ -27,6 +27,7 @@
     "ganache-core/**/elliptic": "^6.5.2"
   },
   "dependencies": {
+    "@ethereumjs/tx": "^3.3.0",
     "async": "^2.5.0",
     "backoff": "^2.5.0",
     "clone": "^2.0.0",
@@ -38,7 +39,6 @@
     "eth-rpc-errors": "^3.0.0",
     "eth-sig-util": "^1.4.2",
     "ethereumjs-block": "^1.2.2",
-    "ethereumjs-tx": "^1.2.0",
     "ethereumjs-util": "^5.1.5",
     "ethereumjs-vm": "^2.3.4",
     "json-stable-stringify": "^1.0.1",

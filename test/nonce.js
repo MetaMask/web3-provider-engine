@@ -1,5 +1,5 @@
 const test = require('tape')
-const Transaction = require('ethereumjs-tx')
+const { TransactionFactory } = require('@ethereumjs/tx')
 const ethUtil = require('ethereumjs-util')
 const ProviderEngine = require('../index.js')
 const FixtureProvider = require('../subproviders/fixture.js')
@@ -8,7 +8,6 @@ const HookedWalletProvider = require('../subproviders/hooked-wallet.js')
 const TestBlockProvider = require('./util/block.js')
 const createPayload = require('../util/create-payload.js')
 const injectMetrics = require('./util/inject-metrics')
-
 
 test('basic nonce tracking', function(t){
   t.plan(11)
@@ -20,7 +19,7 @@ test('basic nonce tracking', function(t){
   // sign all tx's
   var providerA = injectMetrics(new HookedWalletProvider({
     signTransaction: function(txParams, cb){
-      var tx = new Transaction(txParams)
+      var tx = TransactionFactory.fromTxData(txParams)
       tx.sign(privateKey)
       var rawTx = '0x'+tx.serialize().toString('hex')
       cb(null, rawTx)
@@ -35,7 +34,7 @@ test('basic nonce tracking', function(t){
     eth_getTransactionCount: '0x00',
     eth_sendRawTransaction: function(payload, next, done){
       var rawTx = ethUtil.toBuffer(payload.params[0])
-      var tx = new Transaction(rawTx)
+      var tx = new TransactionFactory.fromTxData(rawTx)
       var hash = '0x'+tx.hash().toString('hex')
       done(null, hash)
     },
@@ -103,7 +102,7 @@ test('nonce tracking - on error', function(t){
   // sign all tx's
   var providerA = injectMetrics(new HookedWalletProvider({
     signTransaction: function(txParams, cb){
-      var tx = new Transaction(txParams)
+      var tx = TransactionFactory.fromTxData(txParams)
       tx.sign(privateKey)
       var rawTx = '0x'+tx.serialize().toString('hex')
       cb(null, rawTx)
