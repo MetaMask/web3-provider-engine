@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [16.0.2] - 2020-09-23
+
+- Update `ethereumjs-tx` to `@ethereumjs/tx` to support EIP1559 transactions ([#356](https://github.com/MetaMask/web3-provider-engine/pull/377))
+
 ## [16.0.1] - 2020-09-23
 
 - Fix broken publish files ([#356](https://github.com/MetaMask/web3-provider-engine/pull/356))
