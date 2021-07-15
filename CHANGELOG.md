@@ -6,6 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [16.0.3] - 2021-07-15
+
+### Changed
+
+- Remove zero prefix from address. ([#380](https://github.com/MetaMask/web3-provider-engine/pull/380))
+  - The previously published version (now deprecated) included an upgrade that didn't take into account that `tx.getSenderAddress().toString('hex')` now _includes_ the leading `0x` prefix.
+
 ## [16.0.2] - 2021-07-14
 
 ### Changed
