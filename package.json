@@ -41,7 +41,7 @@
     "ethereumjs-block": "^1.2.2",
     "ethereumjs-util": "^5.1.5",
     "ethereumjs-vm": "^2.3.4",
-    "json-stable-stringify": "^1.0.1",
+    "safe-stable-stringify": "^2.2.0",
     "promise-to-callback": "^1.0.0",
     "readable-stream": "^2.2.9",
     "request": "^2.85.0",
