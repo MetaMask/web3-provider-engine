@@ -33,6 +33,7 @@ inherits(EtherscanProvider, Subprovider)
 function EtherscanProvider(opts) {
   opts = opts || {}
   this.network = opts.network || 'api'
+  this.apiKey = opts.apiKey || ''
   this.proto = (opts.https || false) ? 'https' : 'http'
   this.requests = [];
   this.times = isNaN(opts.times) ? 4 : opts.times;
@@ -51,7 +52,7 @@ EtherscanProvider.prototype.handleRequests = function(self){
     var requestItem = self.requests.shift()
 
     if(typeof requestItem !== 'undefined')
-      handlePayload(requestItem.proto, requestItem.network, requestItem.payload, requestItem.next, requestItem.end)
+      handlePayload(self.apiKey, requestItem.proto, requestItem.network, requestItem.payload, requestItem.next, requestItem.end)
   }
 }
 
@@ -70,32 +71,32 @@ EtherscanProvider.prototype.handleRequest = function(payload, next, end){
   this.requests.push(requestObject);
 }
 
-function handlePayload(proto, network, payload, next, end){
+function handlePayload(apiKey, proto, network, payload, next, end){
   switch(payload.method) {
     case 'eth_blockNumber':
-      etherscanXHR(true, proto, network, 'proxy', 'eth_blockNumber', {}, end)
+      etherscanXHR(apiKey, true, proto, network, 'proxy', 'eth_blockNumber', {}, end)
       return
 
     case 'eth_getBlockByNumber':
-      etherscanXHR(true, proto, network, 'proxy', 'eth_getBlockByNumber', {
+      etherscanXHR(apiKey, true, proto, network, 'proxy', 'eth_getBlockByNumber', {
         tag: payload.params[0],
         boolean: payload.params[1] }, end)
       return
 
     case 'eth_getBlockTransactionCountByNumber':
-      etherscanXHR(true, proto, network, 'proxy', 'eth_getBlockTransactionCountByNumber', {
+      etherscanXHR(apiKey, true, proto, network, 'proxy', 'eth_getBlockTransactionCountByNumber', {
         tag: payload.params[0]
       }, end)
       return
 
     case 'eth_getTransactionByHash':
-      etherscanXHR(true, proto, network, 'proxy', 'eth_getTransactionByHash', {
+      etherscanXHR(apiKey, true, proto, network, 'proxy', 'eth_getTransactionByHash', {
         txhash: payload.params[0]
       }, end)
       return
 
     case 'eth_getBalance':
-      etherscanXHR(true, proto, network, 'account', 'balance', {
+      etherscanXHR(apiKey, true, proto, network, 'account', 'balance', {
         address: payload.params[0],
         tag: payload.params[1] }, end)
       return
@@ -116,19 +117,19 @@ function handlePayload(proto, network, payload, next, end){
           params[props[i]] = payload.params[i]
         }
 
-        etherscanXHR(true, proto, network, 'account', 'txlist', params, end)
+        etherscanXHR(apiKey, true, proto, network, 'account', 'txlist', params, end)
       })()
 
     case 'eth_call':
-      etherscanXHR(true, proto, network, 'proxy', 'eth_call', payload.params[0], end)
+      etherscanXHR(apiKey, true, proto, network, 'proxy', 'eth_call', payload.params[0], end)
       return
 
     case 'eth_sendRawTransaction':
-      etherscanXHR(false, proto, network, 'proxy', 'eth_sendRawTransaction', { hex: payload.params[0] }, end)
+      etherscanXHR(apiKey, false, proto, network, 'proxy', 'eth_sendRawTransaction', { hex: payload.params[0] }, end)
       return
 
     case 'eth_getTransactionReceipt':
-      etherscanXHR(true, proto, network, 'proxy', 'eth_getTransactionReceipt', { txhash: payload.params[0] }, end)
+      etherscanXHR(apiKey, true, proto, network, 'proxy', 'eth_getTransactionReceipt', { txhash: payload.params[0] }, end)
       return
 
     // note !! this does not support topic filtering yet, it will return all block logs
@@ -138,13 +139,13 @@ function handlePayload(proto, network, payload, next, end){
             txProcessed = 0,
             logs = [];
 
-        etherscanXHR(true, proto, network, 'proxy', 'eth_getBlockByNumber', {
+        etherscanXHR(apiKey, true, proto, network, 'proxy', 'eth_getBlockByNumber', {
           tag: payloadObject.toBlock,
           boolean: payload.params[1] }, function(err, blockResult) {
             if(err) return end(err);
   
             for(var transaction in blockResult.transactions){
-              etherscanXHR(true, proto, network, 'proxy', 'eth_getTransactionReceipt', { txhash: transaction.hash }, function(err, receiptResult) {
+              etherscanXHR(apiKey, true, proto, network, 'proxy', 'eth_getTransactionReceipt', { txhash: transaction.hash }, function(err, receiptResult) {
                 if(!err) logs.concat(receiptResult.logs);
                 txProcessed += 1;
                 if(txProcessed === blockResult.transactions.length) end(null, logs)
@@ -154,21 +155,21 @@ function handlePayload(proto, network, payload, next, end){
       })()
 
     case 'eth_getTransactionCount':
-      etherscanXHR(true, proto, network, 'proxy', 'eth_getTransactionCount', {
+      etherscanXHR(apiKey, true, proto, network, 'proxy', 'eth_getTransactionCount', {
         address: payload.params[0],
         tag: payload.params[1]
       }, end)
       return
 
     case 'eth_getCode':
-      etherscanXHR(true, proto, network, 'proxy', 'eth_getCode', {
+      etherscanXHR(apiKey, true, proto, network, 'proxy', 'eth_getCode', {
         address: payload.params[0],
         tag: payload.params[1]
       }, end)
       return
 
     case 'eth_getStorageAt':
-      etherscanXHR(true, proto, network, 'proxy', 'eth_getStorageAt', {
+      etherscanXHR(apiKey, true, proto, network, 'proxy', 'eth_getStorageAt', {
         address: payload.params[0],
         position: payload.params[1],
         tag: payload.params[2]
@@ -187,9 +188,9 @@ function toQueryString(params) {
   }).join('&')
 }
 
-function etherscanXHR(useGetMethod, proto, network, module, action, params, end) {
-  var uri = proto + '://' + network + '.etherscan.io/api?' + toQueryString({ module: module, action: action }) + '&' + toQueryString(params)
-  
+function etherscanXHR(apiKey, useGetMethod, proto, network, module, action, params, end) {
+  const qs = toQueryString({ module: module, action: action, apikey: apiKey }) + '&' + toQueryString(params)
+  const uri = `${proto}://${network}.etherscan.io/api?${qs}`
   xhr({
     uri: uri,
     method: useGetMethod ? 'GET' : 'POST',
