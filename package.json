@@ -23,9 +23,6 @@
     "util"
   ],
   "license": "MIT",
-  "resolutions": {
-    "ganache-core/**/elliptic": "^6.5.2"
-  },
   "dependencies": {
     "@ethereumjs/tx": "^3.3.0",
     "async": "^2.5.0",
@@ -58,7 +55,7 @@
     "browserify": "^16.5.0",
     "eslint": "^6.2.0",
     "ethjs": "^0.3.6",
-    "ganache-core": "^2.7.0",
+    "ganache": "^7.0.0-rc.0",
     "tape": "^4.4.0"
   },
   "browser": {

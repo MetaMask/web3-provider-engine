@@ -1,6 +1,6 @@
 const test = require('tape')
 const series = require('async/series')
-const createGanacheProvider = require('ganache-core').provider
+const createGanacheProvider = require('ganache').provider
 const ProviderEngine = require('../index.js')
 const FixtureProvider = require('../subproviders/fixture.js')
 const CacheProvider = require('../subproviders/cache.js')
@@ -214,7 +214,7 @@ function cacheTest(label, payloads, shouldHitCacheOnSecondRequest){
 
     series([
       // increment one block from #0 to #1
-      (next) => ganacheProvider.sendAsync({ id: 1, method: 'evm_mine', params: [] }, next),
+      (next) => ganacheProvider.request({ id: 1, method: 'evm_mine', params: [] }).then(val => next(null, val), next),
       // run polling until first block
       (next) => {
         engine.start()

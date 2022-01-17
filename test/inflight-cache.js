@@ -1,7 +1,7 @@
 const test = require('tape')
 const asyncParallel = require('async/parallel')
 const asyncSeries = require('async/series')
-const createGanacheProvider = require('ganache-core').provider
+const createGanacheProvider = require('ganache').provider
 const ProviderEngine = require('../index.js')
 const FixtureProvider = require('../subproviders/fixture.js')
 const InflightCacheProvider = require('../subproviders/inflight-cache.js')
@@ -59,9 +59,9 @@ function inflightTest(label, payloads, shouldHitCacheOnSecondRequest){
     engine.addProvider(dataProvider)
     engine.addProvider(blockProvider)
 
-    asyncSeries([
+    asyncParallel([
       // increment one block from #0 to #1
-      (next) => ganacheProvider.sendAsync({ id: 1, method: 'evm_mine', params: [] }, next),
+      (next) => ganacheProvider.request({ id: 1, method: 'evm_mine', params: [] }).then(val => next(null, val), next),
       // run polling until first block
       (next) => {
         engine.start()
