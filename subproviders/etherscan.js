@@ -83,9 +83,19 @@ EtherscanProvider.prototype.handleRequest = function(payload, next, end){
 }
 
 function handlePayload(apiKey, proto, network, payload, next, end){
+  const params0 = payload.params[0]
   switch(payload.method) {
     case 'eth_blockNumber':
       etherscanXHR(apiKey, true, proto, network, 'proxy', 'eth_blockNumber', {}, end)
+      return
+
+    case 'eth_estimateGas':
+      etherscanXHR(apiKey, true, proto, network, 'proxy', 'eth_estimateGas', pickNonNull({
+        to: params0.to,
+        value: params0.value,
+        gasPrice: params0.gasPrice,
+        gas: params0.gas
+      }), end)
       return
 
     case 'eth_getBlockByNumber':
@@ -263,6 +273,17 @@ function unref (timeout) {
 
 function ref (timeout) {
   if (timeout.ref) timeout.ref();
+}
+
+function pickNonNull (obj) {
+  const defined = {}
+  for (let key in obj) {
+    if (obj[key] != null) {
+      defined[key] = obj[key]
+    }
+  }
+
+  return defined
 }
 
 function normalizeError (err) {
