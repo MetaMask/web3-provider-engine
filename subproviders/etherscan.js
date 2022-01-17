@@ -41,10 +41,18 @@ function EtherscanProvider(opts) {
   this.interval = isNaN(opts.interval) ? 1000 : opts.interval;
   this.retryFailed = typeof opts.retryFailed === 'boolean' ? opts.retryFailed : true; // not built yet
 
-  setInterval(this.handleRequests, this.interval, this);
+  this.intervalId = setInterval(this.handleRequests, this.interval, this);
+  unref(this.intervalId);
 }
 
 EtherscanProvider.prototype.handleRequests = function(self){
+  self._handleRequests(self)
+  if(self.requests.length == 0) {
+    unref(self.intervalId);
+  }
+}
+
+EtherscanProvider.prototype._handleRequests = function(self){
   if(self.requests.length == 0) return;
 
   //console.log('Handling the next ' + self.times + ' of ' + self.requests.length + ' requests');
@@ -70,6 +78,7 @@ EtherscanProvider.prototype.handleRequest = function(payload, next, end){
       };
 
   this.requests.push(requestObject);
+  ref(this.intervalId);
 }
 
 function handlePayload(apiKey, proto, network, payload, next, end){
@@ -243,3 +252,12 @@ function etherscanXHR(apiKey, useGetMethod, proto, network, module, action, para
     end(null, data.result)
   })
 }
+
+function unref (timeout) {
+  if (timeout.unref) timeout.unref();
+}
+
+function ref (timeout) {
+  if (timeout.ref) timeout.ref();
+}
+
