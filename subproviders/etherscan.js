@@ -232,7 +232,7 @@ function etherscanXHR(apiKey, useGetMethod, proto, network, module, action, para
     // NOTE: or use id === -1? (id=1 is 'success')
     if ((module === 'proxy') && data.error) {
       // Maybe send back the code too?
-      return end(data.error.message)
+      return end(data.error.message || data.error)
     }
 
     // NOTE: or data.status !== 1?
