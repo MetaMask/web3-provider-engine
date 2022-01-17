@@ -38,35 +38,35 @@ function EtherscanProvider(opts) {
   this.times = isNaN(opts.times) ? 4 : opts.times;
   this.interval = isNaN(opts.interval) ? 1000 : opts.interval;
   this.retryFailed = typeof opts.retryFailed === 'boolean' ? opts.retryFailed : true; // not built yet
-  
+
   setInterval(this.handleRequests, this.interval, this);
 }
 
 EtherscanProvider.prototype.handleRequests = function(self){
-	if(self.requests.length == 0) return;
-	
-	//console.log('Handling the next ' + self.times + ' of ' + self.requests.length + ' requests');
-	
-	for(var requestIndex = 0; requestIndex < self.times; requestIndex++) {
-		var requestItem = self.requests.shift()
-  		
-		if(typeof requestItem !== 'undefined')
-			handlePayload(requestItem.proto, requestItem.network, requestItem.payload, requestItem.next, requestItem.end)
-	}
+  if(self.requests.length == 0) return;
+
+  //console.log('Handling the next ' + self.times + ' of ' + self.requests.length + ' requests');
+
+  for(var requestIndex = 0; requestIndex < self.times; requestIndex++) {
+    var requestItem = self.requests.shift()
+
+    if(typeof requestItem !== 'undefined')
+      handlePayload(requestItem.proto, requestItem.network, requestItem.payload, requestItem.next, requestItem.end)
+  }
 }
 
 EtherscanProvider.prototype.handleRequest = function(payload, next, end){
   var requestObject = {proto: this.proto, network: this.network, payload: payload, next: next, end: end},
-	  self = this;
-  
+    self = this;
+
   if(this.retryFailed)
-	  requestObject.end = function(err, result){
-		  if(err === '403 - Forbidden: Access is denied.')
-			 self.requests.push(requestObject);
-		  else
-			 end(err, result);
-		  };
-	
+    requestObject.end = function(err, result){
+      if(err === '403 - Forbidden: Access is denied.')
+       self.requests.push(requestObject);
+      else
+       end(err, result);
+      };
+
   this.requests.push(requestObject);
 }
 
@@ -142,7 +142,7 @@ function handlePayload(proto, network, payload, next, end){
           tag: payloadObject.toBlock,
           boolean: payload.params[1] }, function(err, blockResult) {
             if(err) return end(err);
-
+  
             for(var transaction in blockResult.transactions){
               etherscanXHR(true, proto, network, 'proxy', 'eth_getTransactionReceipt', { txhash: transaction.hash }, function(err, receiptResult) {
                 if(!err) logs.concat(receiptResult.logs);
@@ -189,7 +189,7 @@ function toQueryString(params) {
 
 function etherscanXHR(useGetMethod, proto, network, module, action, params, end) {
   var uri = proto + '://' + network + '.etherscan.io/api?' + toQueryString({ module: module, action: action }) + '&' + toQueryString(params)
-	
+  
   xhr({
     uri: uri,
     method: useGetMethod ? 'GET' : 'POST',
@@ -202,19 +202,19 @@ function etherscanXHR(useGetMethod, proto, network, module, action, params, end)
     // console.log('[etherscan] response: ', err)
 
     if (err) return end(err)
-	
-	  /*console.log('[etherscan request]' 
-				  + ' method: ' + useGetMethod
-				  + ' proto: ' + proto
-				  + ' network: ' + network
-				  + ' module: ' + module
-				  + ' action: ' + action
-				  + ' params: ' + params
-				  + ' return body: ' + body);*/
-	
+
+    /*console.log('[etherscan request]'
+          + ' method: ' + useGetMethod
+          + ' proto: ' + proto
+          + ' network: ' + network
+          + ' module: ' + module
+          + ' action: ' + action
+          + ' params: ' + params
+          + ' return body: ' + body);*/
+  
     if(body.indexOf('403 - Forbidden: Access is denied.') > -1)
-    	return end('403 - Forbidden: Access is denied.')
-	  
+      return end('403 - Forbidden: Access is denied.')
+    
     var data
     try {
       data = JSON.parse(body)
