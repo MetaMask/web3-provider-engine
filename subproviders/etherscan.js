@@ -25,6 +25,7 @@
 const xhr = process.browser ? require('xhr') : require('request')
 const inherits = require('util').inherits
 const Subprovider = require('./subprovider.js')
+const MAINNET = 'mainnet'
 
 module.exports = EtherscanProvider
 
@@ -32,7 +33,7 @@ inherits(EtherscanProvider, Subprovider)
 
 function EtherscanProvider(opts) {
   opts = opts || {}
-  this.network = opts.network || 'api'
+  this.network = opts.network || MAINNET
   this.apiKey = opts.apiKey || ''
   this.proto = (opts.https || false) ? 'https' : 'http'
   this.requests = [];
@@ -189,8 +190,9 @@ function toQueryString(params) {
 }
 
 function etherscanXHR(apiKey, useGetMethod, proto, network, module, action, params, end) {
+  const subdomain = network === MAINNET ? 'api' : `api-${network}`
   const qs = toQueryString({ module: module, action: action, apikey: apiKey }) + '&' + toQueryString(params)
-  const uri = `${proto}://${network}.etherscan.io/api?${qs}`
+  const uri = `${proto}://${subdomain}.etherscan.io/api?${qs}`
   xhr({
     uri: uri,
     method: useGetMethod ? 'GET' : 'POST',
