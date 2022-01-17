@@ -40,6 +40,7 @@ var permitted = [
   'toBlock',
   'address',
   'topics',
+  'chainId',
 ]
 
 function cloneTxParams(txParams){
