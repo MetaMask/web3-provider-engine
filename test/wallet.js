@@ -154,7 +154,7 @@ test('sign message', function(t){
   var privateKey = Buffer.from('cccd8f4d88de61f92f3747e4a9604a0395e6ad5138add4bec4a2ddf231ee24f9', 'hex')
   var addressHex = '0x1234362ef32bcd26d3dd18ca749378213625ba0b'
 
-  var message = 'haay wuurl'
+  var message = '0x' + Buffer.from('haay wuurl').toString('hex')
   var signature = '0x68dc980608bceb5f99f691e62c32caccaee05317309015e9454eba1a14c3cd4505d1dd098b8339801239c9bcaac3c4df95569dcf307108b92f68711379be14d81c'
 
   // sign all messages

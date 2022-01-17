@@ -1,4 +1,4 @@
-const sha3 = require('ethereumjs-util').sha3;
+const keccak256 = require('ethereumjs-util').keccak256;
 const test = require('tape')
 const ProviderEngine = require('../../index.js')
 const createPayload = require('../../util/create-payload.js')
@@ -107,7 +107,7 @@ test('etherscan eth_getBalance', function(t) {
 test('etherscan eth_call', function(t) {
   t.plan(3)
 
-  var signature = Buffer.concat([sha3("getLatestBlock()", 256)], 4).toString('hex');
+  var signature = Buffer.concat([keccak256("getLatestBlock()")], 4).toString('hex');
   var engine = new ProviderEngine()
   var etherscan = new EtherscanSubprovider()
   engine.addProvider(etherscan)
