@@ -32,8 +32,13 @@ function HookedWalletEthTxSubprovider(opts) {
     opts.getPrivateKey(txData.from, function(err, privateKey) {
       if (err) return cb(err)
 
-      var tx = TransactionFactory.fromTxData(txData)
-      tx.sign(privateKey)
+      var tx
+      try {
+        tx = TransactionFactory.fromTxData(txData)
+        tx.sign(privateKey)
+      } catch (err) {
+        return cb(err)
+      }
       cb(null, '0x' + tx.serialize().toString('hex'))
     })
   }
