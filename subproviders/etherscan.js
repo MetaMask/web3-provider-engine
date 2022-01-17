@@ -124,7 +124,10 @@ function handlePayload(apiKey, proto, network, payload, next, end){
 
         const params = {}
         for (let i = 0, l = Math.min(payload.params.length, props.length); i < l; i++) {
-          params[props[i]] = payload.params[i]
+          const value = payload.params[i]
+          if (value !== undefined) {
+            params[props[i]] = value
+          }
         }
 
         etherscanXHR(apiKey, true, proto, network, 'account', 'txlist', params, end)
