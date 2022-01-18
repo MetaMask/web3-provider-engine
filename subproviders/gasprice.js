@@ -19,6 +19,7 @@ function GaspriceProvider(opts) {
   opts = opts || {}
   this.numberOfBlocks = opts.numberOfBlocks || 10
   this.delayInBlocks = opts.delayInBlocks || 5
+  this.defaultGas = opts.defaultGas || 1
 }
 
 GaspriceProvider.prototype.handleRequest = function(payload, next, end){
@@ -48,6 +49,15 @@ GaspriceProvider.prototype.handleRequest = function(payload, next, end){
     function calcPrice(err, transactions) {
       // flatten array
       transactions = transactions.reduce(function(a, b) { return a.concat(b) }, [])
+
+      if (transactions.length === 0) {
+        if (self.defaultGas > 0) {
+          end(null, self.defaultGas)
+        } else {
+          end(new Error('No transactions found to base the gas-price of.'))
+        }
+        return
+      }
 
       // leave only the gasprice
       // FIXME: convert number using a bignum library
