@@ -31,7 +31,7 @@
     "async": "^2.5.0",
     "backoff": "^2.5.0",
     "clone": "^2.0.0",
-    "eth-block-tracker": "^4.4.2",
+    "eth-block-tracker": "^5.0.1",
     "eth-json-rpc-filters": "^4.2.1",
     "eth-json-rpc-infura": "^5.1.0",
     "eth-json-rpc-middleware": "^6.0.0",
