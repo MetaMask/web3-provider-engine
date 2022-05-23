@@ -2,7 +2,7 @@
 
 Web3 ProviderEngine is a tool for composing your own [web3 providers](https://github.com/ethereum/wiki/wiki/JavaScript-API#web3).
 
-Originally created for MetaMask, but has been superceded by [json-rpc-engine](https://www.npmjs.com/package/json-rpc-engine) in combination with our [eth-json-rpc-middleware](https://www.npmjs.com/package/eth-json-rpc-middleware). This module is not very actively maintained, so we recommend using that one instead.
+<table><tr><td><p align="center"><b>⚠️ PLEASE READ ⚠️</b></p><div align="center">This package was originally created for MetaMask and is being phased out in favor of <a href="https://www.npmjs.com/package/json-rpc-engine"><code>json-rpc-engine</code></a> and <a href="https://www.npmjs.com/package/eth-json-rpc-middleware"><code>eth-json-rpc-middleware</code></a>. As such, we will no longer be accepting changes to this package except those which address security issues.</div></td></tr></table>
 
 ### Composable
 
