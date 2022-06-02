@@ -29,6 +29,6 @@ Stoplight.prototype.await = function(fn){
   if (self.isLocked) {
     self.once('unlock', fn)
   } else {
-    setTimeout(fn)
+    setTimeout(fn, 0)
   }
 }
