@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [16.0.4] - 2022-04-29
+
+### Fixed
+
+- Remove vulnerable version of `cross-fetch` ([#404](https://github.com/MetaMask/web3-provider-engine/pull/404))
+
 ## [16.0.3] - 2021-07-15
 
 ### Changed
