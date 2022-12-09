@@ -1,7 +1,7 @@
 const EventEmitter = require('events').EventEmitter
 const inherits = require('util').inherits
 const ethUtil = require('ethereumjs-util')
-const EthBlockTracker = require('eth-block-tracker')
+const { PollingBlockTracker } = require('eth-block-tracker')
 const map = require('async/map')
 const eachSeries = require('async/eachSeries')
 const Stoplight = require('./util/stoplight.js')
@@ -24,7 +24,7 @@ function Web3ProviderEngine(opts) {
   // block polling
   const directProvider = { sendAsync: self._handleAsync.bind(self) }
   const blockTrackerProvider = opts.blockTrackerProvider || directProvider
-  self._blockTracker = opts.blockTracker || new EthBlockTracker({
+  self._blockTracker = opts.blockTracker || new PollingBlockTracker({
     provider: blockTrackerProvider,
     pollingInterval: opts.pollingInterval || 4000,
     setSkipCacheFlag: true,
