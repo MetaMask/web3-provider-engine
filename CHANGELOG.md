@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [16.0.5] - ???
+
+### Changed
+
+- Update `eth-block-tracker` to 5.0.1 to remove unintentional dependency on Babel, which produced warning locally when not installed ([#409](https://github.com/MetaMask/web3-provider-engine/pull/409))
+
 ## [16.0.4] - 2022-04-29
 
 ### Fixed
