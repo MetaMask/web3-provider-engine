@@ -1,6 +1,6 @@
 {
   "name": "web3-provider-engine",
-  "version": "16.0.4",
+  "version": "16.0.5",
   "description": "A JavaScript library for composing Ethereum provider objects using middleware modules",
   "repository": "https://github.com/MetaMask/web3-provider-engine",
   "main": "index.js",
