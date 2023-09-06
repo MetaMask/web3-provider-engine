@@ -23,9 +23,6 @@
     "util"
   ],
   "license": "MIT",
-  "resolutions": {
-    "ganache-core/**/elliptic": "^6.5.2"
-  },
   "dependencies": {
     "@cypress/request": "^3.0.1",
     "@ethereumjs/statemanager": "^1.1.0",
@@ -59,7 +56,7 @@
     "browserify": "^17.0.0",
     "eslint": "^6.2.0",
     "ethereum-cryptography": "^2.1.2",
-    "ganache-core": "^2.13.2",
+    "ganache": "^7.9.2",
     "tape": "^5.7.1"
   },
   "browser": {

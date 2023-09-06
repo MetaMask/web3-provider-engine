@@ -1,6 +1,6 @@
 const test = require('tape')
 const series = require('async/series')
-const createGanacheProvider = require('ganache-core').provider
+const createGanacheProvider = require('ganache').provider
 const ProviderEngine = require('../index.js')
 const FixtureProvider = require('../subproviders/fixture.js')
 const CacheProvider = require('../subproviders/cache.js')

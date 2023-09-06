@@ -1,7 +1,7 @@
 const test = require('tape')
 const asyncParallel = require('async/parallel')
 const asyncSeries = require('async/series')
-const createGanacheProvider = require('ganache-core').provider
+const createGanacheProvider = require('ganache').provider
 const ProviderEngine = require('../index.js')
 const FixtureProvider = require('../subproviders/fixture.js')
 const InflightCacheProvider = require('../subproviders/inflight-cache.js')
@@ -51,7 +51,9 @@ function inflightTest(label, payloads, shouldHitCacheOnSecondRequest){
       eth_getBalance: '0xdeadbeef',
     }))
     // handle dummy block
-    const ganacheProvider = createGanacheProvider()
+    const ganacheProvider = createGanacheProvider({
+      vmErrorsOnRpcResponse: true,
+    })
     var blockProvider = injectMetrics(new ProviderSubprovider(ganacheProvider))
 
     var engine = new ProviderEngine()
@@ -102,7 +104,7 @@ function inflightTest(label, payloads, shouldHitCacheOnSecondRequest){
 
           t.equal(handlingProvider.getWitnessed(method).length, 1, 'handlingProvider did see "'+method+'"')
           t.equal(handlingProvider.getHandled(method).length, 1, 'handlingProvider did handle "'+method+'"')
-        
+
         } else {
 
           t.equal(cacheProvider.getWitnessed(method).length, 2, 'cacheProvider did see "'+method+'"')
