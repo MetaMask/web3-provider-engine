@@ -8,7 +8,7 @@ on:
 jobs:
   build-lint-test:
     name: Build, Lint, and Test
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     strategy:
       matrix:
         node-version: [12.x, 14.x, 16.x, 18.x, 20.x]
@@ -24,7 +24,7 @@ jobs:
       - run: yarn test
   all-jobs-pass:
     name: All jobs pass
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-latest
     needs:
       - build-lint-test
     steps:
