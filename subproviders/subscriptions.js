@@ -1,5 +1,5 @@
 const ProviderSubprovider = require('./json-rpc-engine-middleware')
-const createSubscriptionManager = require('eth-json-rpc-filters/subscriptionManager')
+const createSubscriptionManager = require('@metamask/eth-json-rpc-filters/subscriptionManager')
 
 class SubscriptionsSubprovider extends ProviderSubprovider {
   constructor() {

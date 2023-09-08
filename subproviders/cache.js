@@ -1,5 +1,5 @@
 const ProviderSubprovider = require('./json-rpc-engine-middleware')
-const createBlockCacheMiddleware = require('eth-json-rpc-middleware/block-cache')
+const { createBlockCacheMiddleware } = require('@metamask/eth-json-rpc-middleware')
 
 class BlockCacheSubprovider extends ProviderSubprovider {
   constructor(opts) {

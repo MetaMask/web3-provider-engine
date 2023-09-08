@@ -1,9 +1,9 @@
-const createInfuraProvider = require('eth-json-rpc-infura/src/createProvider')
+const { createProvider } = require('@metamask/eth-json-rpc-infura')
 const ProviderSubprovider = require('./provider.js')
 
 class InfuraSubprovider extends ProviderSubprovider {
   constructor(opts = {}) {
-    const provider = createInfuraProvider(opts)
+    const provider = createProvider(opts)
     super(provider)
   }
 }

@@ -1,5 +1,5 @@
 const ProviderSubprovider = require('./json-rpc-engine-middleware')
-const createFetchMiddleware = require('eth-json-rpc-middleware/fetch')
+const { createFetchMiddleware } = require('@metamask/eth-json-rpc-middleware')
 
 class FetchSubprovider extends ProviderSubprovider {
   constructor(opts) {

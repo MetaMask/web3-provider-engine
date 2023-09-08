@@ -2,7 +2,7 @@ const xhr = process.browser ? require('xhr') : require('request')
 const inherits = require('util').inherits
 const createPayload = require('../util/create-payload.js')
 const Subprovider = require('./subprovider.js')
-const { ethErrors, serializeError } = require('eth-rpc-errors')
+const { rpcErrors, serializeError } = require('@metamask/rpc-errors')
 
 
 module.exports = RpcSource
@@ -38,7 +38,7 @@ RpcSource.prototype.handleRequest = function(payload, next, end){
     // check for error code
     switch (res.statusCode) {
       case 405:
-        return end(ethErrors.rpc.methodNotFound())
+        return end(rpcErrors.methodNotFound())
       case 504: // Gateway timeout
         return (function(){
           let msg = `Gateway timeout. The request took too long to process. `
