@@ -24,9 +24,11 @@
   ],
   "license": "MIT",
   "resolutions": {
+    "@cypress/request/qs": "6.10.4",
     "ganache-core/**/elliptic": "^6.5.2"
   },
   "dependencies": {
+    "@cypress/request": "^3.0.0",
     "@ethereumjs/tx": "^3.3.0",
     "async": "^2.5.0",
     "backoff": "^2.5.0",
@@ -43,7 +45,6 @@
     "json-stable-stringify": "^1.0.1",
     "promise-to-callback": "^1.0.0",
     "readable-stream": "^2.2.9",
-    "request": "^2.85.0",
     "semaphore": "^1.0.3",
     "ws": "^5.1.1",
     "xhr": "^2.2.0",
