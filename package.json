@@ -51,9 +51,9 @@
     "xtend": "^4.0.1"
   },
   "devDependencies": {
-    "@babel/cli": "^7.5.5",
-    "@babel/core": "^7.5.5",
-    "@babel/preset-env": "^7.5.5",
+    "@babel/cli": "^7.23.0",
+    "@babel/core": "^7.23.0",
+    "@babel/preset-env": "^7.23.2",
     "babelify": "^10.0.0",
     "browserify": "^16.5.0",
     "eslint": "^6.2.0",
