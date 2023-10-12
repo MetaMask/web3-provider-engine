@@ -12,7 +12,6 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Replace vulnerable dependency `request` with patched `@cypress/request` ([#441](https://github.com/MetaMask/web3-provider-engine/pull/441))
 - Update `ws` from `^5.1.1` to `^7.5.9` ([#446](https://github.com/MetaMask/web3-provider-engine/pull/446))
-- Rename filters subprovider class from `SubscriptionsSubProvider` to `FiltersSubProvider` ([#442](https://github.com/MetaMask/web3-provider-engine/pull/442))
 
 ## [16.0.5]
 
