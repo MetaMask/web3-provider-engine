@@ -30,6 +30,7 @@
   "dependencies": {
     "@cypress/request": "^3.0.0",
     "@ethereumjs/statemanager": "^1.1.0",
+    "@ethereumjs/block": "^4.3.0",
     "@ethereumjs/tx": "^4.2.0",
     "@ethereumjs/vm": "^6.5.0",
     "@metamask/eth-json-rpc-filters": "^7.0.0",
@@ -41,7 +42,6 @@
     "backoff": "^2.5.0",
     "clone": "^2.0.0",
     "eth-block-tracker": "^8.0.0",
-    "ethereumjs-block": "^2.2.2",
     "ethereumjs-util": "^7.1.5",
     "json-stable-stringify": "^1.0.1",
     "promise-to-callback": "^1.0.0",
