@@ -12,8 +12,8 @@
     "prepublishOnly": "yarn build && yarn bundle",
     "build": "babel zero.js index.js -d dist/es5 && babel subproviders -d dist/es5/subproviders && babel util -d dist/es5/util",
     "bundle": "mkdir -p ./dist && yarn bundle-engine && yarn bundle-zero",
-    "bundle-zero": "browserify -s ZeroClientProvider -e zero.js -t [ babelify --presets [ @babel/preset-env ] ] > dist/ZeroClientProvider.js",
-    "bundle-engine": "browserify -s ProviderEngine -e index.js -t [ babelify --presets [ @babel/preset-env ] ] > dist/ProviderEngine.js",
+    "bundle-zero": "browserify -s ZeroClientProvider -e zero.js -t [ babelify --presets [ @babel/preset-env ] --global true --ignore [ 'node_modules/@babel' 'node_modules/core-js-pure' 'node_modules/core-js' ] ] > dist/ZeroClientProvider.js",
+    "bundle-engine": "browserify -s ProviderEngine -e index.js -t [ babelify --presets [ @babel/preset-env ] --global true --ignore [ 'node_modules/@babel' 'node_modules/core-js-pure' 'node_modules/core-js' ] ] > dist/ProviderEngine.js",
     "lint": "eslint --quiet --ignore-path .gitignore ."
   },
   "files": [
