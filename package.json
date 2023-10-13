@@ -29,7 +29,7 @@
   },
   "dependencies": {
     "@cypress/request": "^3.0.0",
-    "@ethereumjs/tx": "^3.3.0",
+    "@ethereumjs/tx": "^4.2.0",
     "@metamask/eth-json-rpc-filters": "^7.0.0",
     "@metamask/eth-json-rpc-infura": "^9.0.0",
     "@metamask/eth-json-rpc-middleware": "^12.0.0",
