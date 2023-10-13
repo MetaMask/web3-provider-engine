@@ -12,7 +12,7 @@ const inherits = require('util').inherits
 const HookedWalletProvider = require('./hooked-wallet.js')
 const { TransactionFactory } = require('@ethereumjs/tx')
 const ethUtil = require('ethereumjs-util')
-const sigUtil = require('eth-sig-util')
+const sigUtil = require('@metamask/eth-sig-util')
 
 module.exports = HookedWalletEthTxSubprovider
 
@@ -41,7 +41,10 @@ function HookedWalletEthTxSubprovider(opts) {
   self.signMessage = function(msgParams, cb) {
     opts.getPrivateKey(msgParams.from, function(err, privateKey) {
       if (err) return cb(err)
-      var dataBuff = ethUtil.toBuffer(msgParams.data)
+      const data = typeof msgParams.data === 'string' && !ethUtil.isHexString(msgParams.data)
+        ? Buffer.from(msgParams.data)
+        : msgParams.data;
+      var dataBuff = ethUtil.toBuffer(data)
       var msgHash = ethUtil.hashPersonalMessage(dataBuff)
       var sig = ethUtil.ecsign(msgHash, privateKey)
       var serialized = ethUtil.bufferToHex(concatSig(sig.v, sig.r, sig.s))
@@ -52,7 +55,10 @@ function HookedWalletEthTxSubprovider(opts) {
   self.signPersonalMessage = function(msgParams, cb) {
     opts.getPrivateKey(msgParams.from, function(err, privateKey) {
       if (err) return cb(err)
-      const serialized = sigUtil.personalSign(privateKey, msgParams)
+      const serialized = sigUtil.personalSign({
+        privateKey,
+        data: msgParams.data
+      })
       cb(null, serialized)
     })
   }
@@ -60,7 +66,11 @@ function HookedWalletEthTxSubprovider(opts) {
   self.signTypedMessage = function (msgParams, cb) {
     opts.getPrivateKey(msgParams.from, function(err, privateKey) {
       if (err) return cb(err)
-      const serialized = sigUtil.signTypedData(privateKey, msgParams)
+      const serialized = sigUtil.signTypedData({
+        privateKey,
+        version: 'V1',
+        data: msgParams.data,
+      })
       cb(null, serialized)
     })
   }
