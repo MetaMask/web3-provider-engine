@@ -4313,7 +4313,7 @@ ethereumjs-util@^5.0.0, ethereumjs-util@^5.0.1, ethereumjs-util@^5.1.1, ethereum
     rlp "^2.0.0"
     safe-buffer "^5.1.1"
 
-ethereumjs-util@^7.0.2, ethereumjs-util@^7.1.5:
+ethereumjs-util@^7.0.2:
   version "7.1.5"
   resolved "https://registry.yarnpkg.com/ethereumjs-util/-/ethereumjs-util-7.1.5.tgz#9ecf04861e4fbbeed7465ece5f23317ad1129181"
   integrity sha512-SDl5kKrQAudFBUe5OJM9Ac6WmMyYmXX/6sTmLZ3ffG2eY6ZIGBes3pEDxNN6V72WyOw4CPD5RomKdsa8DAAwLg==

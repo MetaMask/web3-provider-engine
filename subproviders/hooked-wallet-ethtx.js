@@ -11,7 +11,7 @@
 const inherits = require('util').inherits
 const HookedWalletProvider = require('./hooked-wallet.js')
 const { TransactionFactory } = require('@ethereumjs/tx')
-const ethUtil = require('ethereumjs-util')
+const ethUtil = require('@ethereumjs/util')
 const sigUtil = require('@metamask/eth-sig-util')
 
 module.exports = HookedWalletEthTxSubprovider

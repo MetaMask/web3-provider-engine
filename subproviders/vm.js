@@ -5,7 +5,7 @@ const { VM } = require('@ethereumjs/vm')
 const Block = require('@ethereumjs/block')
 const { EthersStateManager } = require('@ethereumjs/statemanager')
 const { TransactionFactory } = require('@ethereumjs/tx')
-const ethUtil = require('ethereumjs-util')
+const ethUtil = require('@ethereumjs/util')
 const rpcHexEncoding = require('../util/rpc-hex-encoding.js')
 const Subprovider = require('./subprovider.js')
 
