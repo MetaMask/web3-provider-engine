@@ -68,7 +68,7 @@ function HookedWalletEthTxSubprovider(opts) {
       if (err) return cb(err)
       const serialized = sigUtil.signTypedData({
         privateKey,
-        version: 'V1',
+        version: msgParams.version || 'V1',
         data: msgParams.data,
       })
       cb(null, serialized)
