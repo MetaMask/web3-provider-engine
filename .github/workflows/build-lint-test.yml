@@ -20,6 +20,7 @@ jobs:
           node-version: ${{ matrix.node-version }}
       - run: yarn --frozen-lockfile --ignore-scripts
       - run: yarn build
+      - run: yarn bundle
       - run: yarn lint
       - run: yarn test
   all-jobs-pass:
