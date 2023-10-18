@@ -45,7 +45,7 @@
     "eth-block-tracker": "^8.0.0",
     "json-stable-stringify": "^1.0.1",
     "promise-to-callback": "^1.0.0",
-    "readable-stream": "^2.2.9",
+    "readable-stream": "^3.6.2",
     "semaphore": "^1.0.3",
     "ws": "^7.5.9",
     "xhr": "^2.2.0",
