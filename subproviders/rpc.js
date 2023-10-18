@@ -1,4 +1,4 @@
-const xhr = process.browser ? require('xhr') : require('request')
+const fetch = require('../util/fetch.js')
 const inherits = require('util').inherits
 const createPayload = require('../util/create-payload.js')
 const Subprovider = require('./subprovider.js')
@@ -22,21 +22,18 @@ RpcSource.prototype.handleRequest = function(payload, next, end){
   const sanitizedPayload = sanitizePayload(payload)
   const newPayload = createPayload(sanitizedPayload)
 
-  xhr({
-    uri: targetUrl,
+  fetch(targetUrl, {
     method: 'POST',
     headers: {
       'Accept': 'application/json',
       'Content-Type': 'application/json',
     },
     body: JSON.stringify(newPayload),
-    rejectUnauthorized: false,
-    timeout: 20000,
-  }, function(err, res, body) {
-    if (err) return end(serializeError(err))
-
+  }).catch((err) => {
+    end(serializeError(err))
+  }).then(res => {
     // check for error code
-    switch (res.statusCode) {
+    switch (res.status) {
       case 405:
         return end(rpcErrors.methodNotFound())
       case 504: // Gateway timeout
@@ -58,15 +55,12 @@ RpcSource.prototype.handleRequest = function(payload, next, end){
           return end(serializeError(err))
         }
     }
-
-    // parse response
-    let data
-    try {
-      data = JSON.parse(body)
-    } catch (err) {
-      console.error(err.stack)
-      return end(serializeError(err))
-    }
+    return res.body()
+  }).catch(err => {
+    console.error(err.stack)
+    end(serializeError(err))
+  }).then(data => {
+    if (!data) return
     if (data.error) return end(data.error)
 
     end(null, data.result)
