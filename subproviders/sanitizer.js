@@ -6,7 +6,7 @@
 const inherits = require('util').inherits
 const Subprovider = require('./subprovider.js')
 const extend = require('xtend')
-const ethUtil = require('ethereumjs-util')
+const ethUtil = require('@ethereumjs/util')
 
 module.exports = SanitizerSubprovider
 

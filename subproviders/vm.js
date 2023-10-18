@@ -1,10 +1,11 @@
 const doWhilst = require('async/doWhilst')
 const inherits = require('util').inherits
 const Stoplight = require('../util/stoplight.js')
-const createVm = require('ethereumjs-vm/dist/hooked').fromWeb3Provider
-const Block = require('ethereumjs-block')
+const { VM } = require('@ethereumjs/vm')
+const Block = require('@ethereumjs/block')
+const { EthersStateManager } = require('@ethereumjs/statemanager')
 const { TransactionFactory } = require('@ethereumjs/tx')
-const ethUtil = require('ethereumjs-util')
+const ethUtil = require('@ethereumjs/util')
 const rpcHexEncoding = require('../util/rpc-hex-encoding.js')
 const Subprovider = require('./subprovider.js')
 
@@ -119,8 +120,11 @@ VmSubprovider.prototype.runVm = function(payload, cb){
   var blockNumber = ethUtil.addHexPrefix(blockData.number.toString('hex'))
 
   // create vm with state lookup intercepted
-  var vm = self.vm = createVm(self.engine, blockNumber, {
-    enableHomestead: true
+  const vm = self.vm = new VM({
+    stateManager: new EthersStateManager({
+      provider: self.engine,
+      blockTag: blockNumber,
+    }),
   })
 
   if (self.opts.debug) {

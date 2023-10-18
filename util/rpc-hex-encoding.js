@@ -1,4 +1,4 @@
-const ethUtil = require('ethereumjs-util')
+const ethUtil = require('@ethereumjs/util')
 const assert = require('./assert.js')
 
 module.exports = {

@@ -1,6 +1,6 @@
 const test = require('tape')
 const { TransactionFactory } = require('@ethereumjs/tx')
-const ethUtil = require('ethereumjs-util')
+const ethUtil = require('@ethereumjs/util')
 const ProviderEngine = require('../index.js')
 const FixtureProvider = require('../subproviders/fixture.js')
 const NonceTracker = require('../subproviders/nonce-tracker.js')
