@@ -1,6 +1,6 @@
 const crypto = require('crypto')
 const extend = require('xtend')
-const ethUtil = require('ethereumjs-util')
+const { addHexPrefix, bufferToHex, intToHex, stripHexPrefix } = require('@ethereumjs/util')
 const FixtureProvider = require('../../subproviders/fixture.js')
 
 //
@@ -108,7 +108,7 @@ function createBlock(blockParams, prevBlock, txs) {
   blockParams = blockParams || {}
   txs = txs || []
   var defaultNumber = prevBlock ? incrementHex(prevBlock.number) : '0x1'
-  var defaultGasLimit = ethUtil.intToHex(4712388)
+  var defaultGasLimit = intToHex(4712388)
   const result = extend({
     // defaults
     number:            defaultNumber,
@@ -135,29 +135,29 @@ function createBlock(blockParams, prevBlock, txs) {
   txs.forEach((tx, index) => {
     tx.blockHash = result.hash
     tx.blockNumber = result.number
-    tx.transactionIndex = ethUtil.intToHex(index)
+    tx.transactionIndex = intToHex(index)
   })
   return result
 }
 
 function incrementHex(hexString){
-  return stripLeadingZeroes(ethUtil.intToHex(Number(hexString)+1))
+  return stripLeadingZeroes(intToHex(Number(hexString)+1))
 }
 
 function randomHash(){
-  return ethUtil.bufferToHex(crypto.randomBytes(32))
+  return bufferToHex(crypto.randomBytes(32))
 }
 
 function randomAddress(){
-  return ethUtil.bufferToHex(crypto.randomBytes(20))
+  return bufferToHex(crypto.randomBytes(20))
 }
 
 function stripLeadingZeroes (hexString) {
-  let strippedHex = ethUtil.stripHexPrefix(hexString)
+  let strippedHex = stripHexPrefix(hexString)
   while (strippedHex[0] === '0') {
     strippedHex = strippedHex.substr(1)
   }
-  return ethUtil.addHexPrefix(strippedHex)
+  return addHexPrefix(strippedHex)
 }
 
 module.exports = TestBlockProvider

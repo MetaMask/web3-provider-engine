@@ -58,6 +58,7 @@
     "babelify": "^10.0.0",
     "browserify": "^16.5.0",
     "eslint": "^6.2.0",
+    "ethereum-cryptography": "^2.1.2",
     "ethjs": "^0.3.6",
     "ganache-core": "^2.7.0",
     "tape": "^4.4.0"
