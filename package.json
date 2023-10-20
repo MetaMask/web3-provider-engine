@@ -60,8 +60,8 @@
     "eslint": "^6.2.0",
     "ethereum-cryptography": "^2.1.2",
     "ethjs": "^0.3.6",
-    "ganache-core": "^2.7.0",
-    "tape": "^4.4.0"
+    "ganache-core": "^2.13.2",
+    "tape": "^5.7.1"
   },
   "browser": {
     "request": false,
