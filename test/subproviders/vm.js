@@ -1,6 +1,6 @@
 const test = require('tape')
 const async = require('async')
-const ethUtil = require('ethereumjs-util')
+const { toBuffer } = require('@ethereumjs/util')
 const ProviderEngine = require('../../index.js')
 const VmSubprovider = require('../../subproviders/vm')
 const TestBlockProvider = require('../util/block.js')
@@ -39,14 +39,14 @@ test('binary search eth_estimateGas implementation', function(t) {
                 cb(new Error('fake out of gas'))
             } else {
                 cb(null, {
-                    gasUsed: ethUtil.toBuffer(scenario.gasNeeded),
+                    gasUsed: toBuffer(scenario.gasNeeded),
                 });
             }
         }
         engine.addProvider(vmSubprovider)
         engine.addProvider(new TestBlockProvider());
         engine.start()
-        
+
         engine.sendAsync(createPayload({
           method: 'eth_estimateGas',
           params: [{}, 'latest'],
