@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [16.0.7]
+
+### Fixed
+
+- Properly replace vulnerable dependency `request` with patched `@cypress/request` ([#459](https://github.com/MetaMask/web3-provider-engine/pull/459))
+
 ## [16.0.6]
 
 ### Fixed
