@@ -14,10 +14,16 @@ inflightTest('getBalance for latest', {
   params: ['0xabcd', 'latest'],
 }, true)
 
+inflightTest('getBlock by number (0)', {
+  method: 'eth_getBlockByNumber',
+  params: ['0x0', false],
+}, true)
+
+// latest is always forwarded for eth_getBlockByNumber
 inflightTest('getBlock for latest', {
   method: 'eth_getBlockByNumber',
   params: ['latest', false],
-}, true)
+}, false)
 
 inflightTest('getBlock for latest (1) then 0', [{
   method: 'eth_getBlockByNumber',
