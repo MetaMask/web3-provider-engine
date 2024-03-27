@@ -29,6 +29,9 @@ Web3 ProviderEngine is a tool for composing your own [web3 providers](https://gi
 >  }
 >);
 >```
+>
+> This example was written with v12.1.0 of `@metamask/eth-json-rpc-middleware` and v3.0.1 of `@metamask/eth-json-rpc-provider`.
+>
 
 
 ### Composable
