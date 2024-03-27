@@ -12,10 +12,16 @@ Web3 ProviderEngine is a tool for composing your own [web3 providers](https://gi
 > ```javascript
 > import { providerFromMiddleware } from '@metamask/eth-json-rpc-provider';
 > import { createFetchMiddleware } from '@metamask/eth-json-rpc-middleware';
+> import { valueToBytes, bytesToBase64 } from '@metamask/utils';
+> import fetch from 'cross-fetch';
 >
 > const rpcUrl = '[insert RPC URL here]';
 >
-> const fetchMiddleware = createFetchMiddleware({ rpcUrl });
+> const fetchMiddleware = createFetchMiddleware({
+>   btoa: (stringToEncode) => bytesToBase64(valueToBytes(stringToEncode)),
+>   fetch,
+>   rpcUrl,
+> });
 > const provider = providerFromMiddleware(fetchMiddleware);
 >
 > provider.sendAsync(
@@ -30,7 +36,7 @@ Web3 ProviderEngine is a tool for composing your own [web3 providers](https://gi
 > );
 > ```
 >
-> This example was written with v12.1.0 of `@metamask/eth-json-rpc-middleware` and v3.0.1 of `@metamask/eth-json-rpc-provider`.
+> This example was written with v12.1.0 of `@metamask/eth-json-rpc-middleware`, v3.0.1 of `@metamask/eth-json-rpc-provider`, and v8.4.0 of `@metamask/utils`.
 >
 
 
