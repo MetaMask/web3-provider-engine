@@ -7,28 +7,28 @@ Web3 ProviderEngine is a tool for composing your own [web3 providers](https://gi
 >
 > This package was originally created for MetaMask, but has been replaced by `@metamask/json-rpc-engine`, `@metamask/eth-json-rpc-middleware`, and `@metamask/eth-json-rpc-provider`.
 >
->Here is an example of how to create a provider using those packages:
+> Here is an example of how to create a provider using those packages:
 >
->```typescript
->import { providerFromMiddleware } from '@metamask/eth-json-rpc-provider';
->import { createFetchMiddleware } from '@metamask/eth-json-rpc-middleware';
+> ```javascript
+> import { providerFromMiddleware } from '@metamask/eth-json-rpc-provider';
+> import { createFetchMiddleware } from '@metamask/eth-json-rpc-middleware';
 >
->const rpcUrl = '[insert RPC URL here]';
+> const rpcUrl = '[insert RPC URL here]';
 >
->const fetchMiddleware = createFetchMiddleware({ rpcUrl });
->const provider = providerFromMiddleware(fetchMiddleware);
+> const fetchMiddleware = createFetchMiddleware({ rpcUrl });
+> const provider = providerFromMiddleware(fetchMiddleware);
 >
->provider.sendAsync(
->  { id: 1, jsonrpc: '2.0', method: 'eth_chainId' },
->  (error, response) => {
->    if (error) {
->      console.error(error);
->    } else {
->      console.log(response.result);
->    }
->  }
->);
->```
+> provider.sendAsync(
+>   { id: 1, jsonrpc: '2.0', method: 'eth_chainId' },
+>   (error, response) => {
+>     if (error) {
+>       console.error(error);
+>     } else {
+>       console.log(response.result);
+>     }
+>   }
+> );
+> ```
 >
 > This example was written with v12.1.0 of `@metamask/eth-json-rpc-middleware` and v3.0.1 of `@metamask/eth-json-rpc-provider`.
 >
