@@ -9,7 +9,7 @@ Web3 ProviderEngine is a tool for composing your own [web3 providers](https://gi
 >
 >Here is an example of how to create a provider using those packages:
 >
->```js
+>```typescript
 >import { providerFromMiddleware } from '@metamask/eth-json-rpc-provider';
 >import { createFetchMiddleware } from '@metamask/eth-json-rpc-middleware';
 >
