@@ -5,7 +5,7 @@ Web3 ProviderEngine is a tool for composing your own [web3 providers](https://gi
 > [!CAUTION]
 > This package has been deprecated.
 >
-> This package was originally created for MetaMask, but has been replaced by `@metamask/json-rpc-engine`, `@metamask/eth-json-rpc-middleware`, and `@metamask/eth-json-rpc-provider`.
+> This package was originally created for MetaMask, but has been replaced by `@metamask/json-rpc-engine`, `@metamask/eth-json-rpc-middleware`, `@metamask/eth-json-rpc-provider`, and various other packages.
 >
 > Here is an example of how to create a provider using those packages:
 >
