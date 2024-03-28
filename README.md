@@ -2,7 +2,43 @@
 
 Web3 ProviderEngine is a tool for composing your own [web3 providers](https://github.com/ethereum/wiki/wiki/JavaScript-API#web3).
 
-<table><tr><td><p align="center"><b>⚠️ PLEASE READ ⚠️</b></p><div align="center">This package was originally created for MetaMask and is being phased out in favor of <a href="https://www.npmjs.com/package/@metamask/json-rpc-engine"><code>@metamask/json-rpc-engine</code></a> and <a href="https://www.npmjs.com/package/@metamask/eth-json-rpc-middleware"><code>@metamask/eth-json-rpc-middleware</code></a>. As such, we will no longer be accepting changes to this package except those which address security issues.</div></td></tr></table>
+> [!CAUTION]
+> This package has been deprecated.
+>
+> This package was originally created for MetaMask, but has been replaced by `@metamask/json-rpc-engine`, `@metamask/eth-json-rpc-middleware`, `@metamask/eth-json-rpc-provider`, and various other packages.
+>
+> Here is an example of how to create a provider using those packages:
+>
+> ```javascript
+> import { providerFromMiddleware } from '@metamask/eth-json-rpc-provider';
+> import { createFetchMiddleware } from '@metamask/eth-json-rpc-middleware';
+> import { valueToBytes, bytesToBase64 } from '@metamask/utils';
+> import fetch from 'cross-fetch';
+>
+> const rpcUrl = '[insert RPC URL here]';
+>
+> const fetchMiddleware = createFetchMiddleware({
+>   btoa: (stringToEncode) => bytesToBase64(valueToBytes(stringToEncode)),
+>   fetch,
+>   rpcUrl,
+> });
+> const provider = providerFromMiddleware(fetchMiddleware);
+>
+> provider.sendAsync(
+>   { id: 1, jsonrpc: '2.0', method: 'eth_chainId' },
+>   (error, response) => {
+>     if (error) {
+>       console.error(error);
+>     } else {
+>       console.log(response.result);
+>     }
+>   }
+> );
+> ```
+>
+> This example was written with v12.1.0 of `@metamask/eth-json-rpc-middleware`, v3.0.1 of `@metamask/eth-json-rpc-provider`, and v8.4.0 of `@metamask/utils`.
+>
+
 
 ### Composable
 
