@@ -67,3 +67,7 @@ node_modules
 
 # Optional REPL history
 .node_repl_history
+
+# Yarn 3
+.yarn/cache
+.yarn/install-state.gz
