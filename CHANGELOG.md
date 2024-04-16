@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [17.0.0]
+
+#### Changed
+
+- Add deprecation notice ([#469](https://github.com/MetaMask/web3-provider-engine/pull/469))
+- **BREAKING**: Increase minimum Node.js version to 16 ([#447](https://github.com/MetaMask/web3-provider-engine/pull/447))
+- Bump ethereumjs and metamask dependencies ([#453](https://github.com/MetaMask/web3-provider-engine/pull/453)) ([#471](https://github.com/MetaMask/web3-provider-engine/pull/471))
+- babelify dependencies ([#454](https://github.com/MetaMask/web3-provider-engine/pull/454))
+- Update dependency `readable-stream` from `^2.2.9` to `^3.6.2` ([#452](https://github.com/MetaMask/web3-provider-engine/pull/452))
+- Update devDependency `browserify` from `16.5.0` to `17.0.0` ([#456](https://github.com/MetaMask/web3-provider-engine/pull/456))
+
 ## [16.0.7]
 
 ### Fixed
