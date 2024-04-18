@@ -1,4 +1,4 @@
-const { provider } = require('ganache-core')
+const { provider } = require('ganache-cli')
 const ProviderSubprovider = require('../../subproviders/provider')
 
 

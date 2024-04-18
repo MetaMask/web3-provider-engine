@@ -24,9 +24,7 @@
   ],
   "license": "MIT",
   "resolutions": {
-    "ganache-core/web3-provider-engine/eth-sig-util/ethereumjs-abi": "npm:ethereumjs-abi@0.6.8",
-    "@cypress/request/qs": "6.10.4",
-    "ganache-core/**/elliptic": "^6.5.2"
+    "@cypress/request/qs": "6.10.4"
   },
   "dependencies": {
     "@cypress/request": "^3.0.0",
@@ -59,7 +57,7 @@
     "browserify": "^16.5.0",
     "eslint": "^6.2.0",
     "ethjs": "^0.3.6",
-    "ganache-core": "^2.7.0",
+    "ganache-cli": "6.12.2",
     "tape": "^4.4.0"
   },
   "browser": {
