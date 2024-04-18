@@ -30,12 +30,12 @@
   "dependencies": {
     "@cypress/request": "^3.0.0",
     "@ethereumjs/tx": "^3.3.0",
+    "@metamask/eth-json-rpc-infura": "^6.0.0",
     "async": "^2.5.0",
     "backoff": "^2.5.0",
     "clone": "^2.0.0",
     "eth-block-tracker": "^5.0.1",
     "eth-json-rpc-filters": "~5.0.0",
-    "eth-json-rpc-infura": "^5.1.0",
     "eth-json-rpc-middleware": "^8.1.0",
     "eth-rpc-errors": "^4.0.3",
     "eth-sig-util": "^1.4.2",
