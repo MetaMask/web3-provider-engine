@@ -24,7 +24,8 @@
   ],
   "license": "MIT",
   "resolutions": {
-    "@cypress/request/qs": "6.10.4"
+    "@cypress/request/qs": "6.10.4",
+    "ethereumjs-abi": "npm:ethereumjs-abi@0.6.8"
   },
   "dependencies": {
     "@cypress/request": "^3.0.0",
