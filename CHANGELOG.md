@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ## [Unreleased]
 
+## [17.0.1]
+
+### Fixed
+
+- Properly return signed transaction object in `signTransaction` of `HookedWalletEthTxSubprovider` ([#465](https://github.com/MetaMask/web3-provider-engine/pull/465))
+
 ## [17.0.0]
 
 #### Changed
