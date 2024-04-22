@@ -62,5 +62,6 @@
   "browser": {
     "request": false,
     "ws": false
-  }
+  },
+  "packageManager": "yarn@1.22.19"
 }
