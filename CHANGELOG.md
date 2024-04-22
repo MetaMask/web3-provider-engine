@@ -12,6 +12,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 - Properly return signed transaction object in `signTransaction` of `HookedWalletEthTxSubprovider` ([#465](https://github.com/MetaMask/web3-provider-engine/pull/465))
 
+## [16.0.8]
+
+### Changed
+
+- Update dependencies ([#477](https://github.com/MetaMask/web3-provider-engine/pull/477))
+  - `eth-rpc-errors@^3.0.0->^4.0.3`
+  - `ethereumjs-block@^1.2.2->^2.2.2`
+  - `ethereumjs-util@^5.1.5->^7.1.5`
+  - `ethereumjs-vm@^2.3.4->^2.6.0`
+  - `eth-json-rpc-filters@^4.2.1->~5.0.0`
+  - `eth-json-rpc-infura@^5.1.0` -> `@metamask/eth-json-rpc-infura@^6.0.0`
+  - `eth-json-rpc-middleware@^6.0.0->^8.1.0`
+  - `eth-sig-util@^1.4.2` -> `@metamask/eth-sig-util@^4.0.1`
+
+### Fixed
+
+- Properly return signed transaction object in `signTransaction` of `HookedWalletEthTxSubprovider` ([#465](https://github.com/MetaMask/web3-provider-engine/pull/465))
+
 ## [17.0.0]
 
 #### Changed
