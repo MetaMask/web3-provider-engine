@@ -25,23 +25,23 @@
   "license": "MIT",
   "resolutions": {
     "@cypress/request/qs": "6.10.4",
-    "ganache-core/**/elliptic": "^6.5.2"
+    "ethereumjs-abi": "npm:ethereumjs-abi@0.6.8"
   },
   "dependencies": {
     "@cypress/request": "^3.0.0",
     "@ethereumjs/tx": "^3.3.0",
+    "@metamask/eth-json-rpc-infura": "^6.0.0",
+    "@metamask/eth-sig-util": "^4.0.1",
     "async": "^2.5.0",
     "backoff": "^2.5.0",
     "clone": "^2.0.0",
     "eth-block-tracker": "^5.0.1",
-    "eth-json-rpc-filters": "^4.2.1",
-    "eth-json-rpc-infura": "^5.1.0",
-    "eth-json-rpc-middleware": "^6.0.0",
-    "eth-rpc-errors": "^3.0.0",
-    "eth-sig-util": "^1.4.2",
-    "ethereumjs-block": "^1.2.2",
-    "ethereumjs-util": "^5.1.5",
-    "ethereumjs-vm": "^2.3.4",
+    "eth-json-rpc-filters": "~5.0.0",
+    "eth-json-rpc-middleware": "^8.1.0",
+    "eth-rpc-errors": "^4.0.3",
+    "ethereumjs-block": "^2.2.2",
+    "ethereumjs-util": "^7.1.5",
+    "ethereumjs-vm": "^2.6.0",
     "json-stable-stringify": "^1.0.1",
     "promise-to-callback": "^1.0.0",
     "readable-stream": "^2.2.9",
@@ -58,7 +58,7 @@
     "browserify": "^16.5.0",
     "eslint": "^6.2.0",
     "ethjs": "^0.3.6",
-    "ganache-core": "^2.7.0",
+    "ganache-cli": "6.12.2",
     "tape": "^4.4.0"
   },
   "browser": {

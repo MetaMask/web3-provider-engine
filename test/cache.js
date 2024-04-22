@@ -1,6 +1,6 @@
 const test = require('tape')
 const series = require('async/series')
-const createGanacheProvider = require('ganache-core').provider
+const createGanacheProvider = require('ganache-cli').provider
 const ProviderEngine = require('../index.js')
 const FixtureProvider = require('../subproviders/fixture.js')
 const CacheProvider = require('../subproviders/cache.js')
@@ -198,7 +198,7 @@ function cacheTest(label, payloads, shouldHitCacheOnSecondRequest){
       },
       eth_getStorageAt: '0x00000000000000000000000000000000000000000000000000000000deadbeef',
     }))
-    
+
     // handle dummy block
     const ganacheProvider = createGanacheProvider()
     var blockProvider = injectMetrics(new ProviderSubprovider(ganacheProvider))
